@@ -64,6 +64,12 @@ derivCall refs (Not p) = derivCall refs p
 derivCall refs (Contains p) = derivCall refs p
 derivCall refs (Optional p) = derivCall refs p
 
+derivReturns :: Refs -> [Pattern] -> [Bool] -> [Pattern]
+derivReturns refs [] [] = []
+derivReturns refs (p:tailps) ns =
+	let (dp, tailns) = derivReturn refs p ns
+	in  dp:(derivReturns refs tailps tailns)
+
 derivReturn :: Refs -> Pattern -> [Bool] -> (Pattern, [Bool])
 derivReturn refs Empty ns = (Not ZAny, ns)
 derivReturn refs ZAny ns = (ZAny, ns)
@@ -90,20 +96,20 @@ derivReturn refs (Interleave l r) ns =
 		(rightDeriv, rightTail) = derivReturn refs r leftTail
 	in (Or (Interleave leftDeriv r) (Interleave rightDeriv l), rightTail)
 derivReturn refs (ZeroOrMore p) ns = 
-	let	(derivp, nsTail) = derivReturn refs p ns
-	in  (Concat derivp p, nsTail)
+	let	(derivp, tailns) = derivReturn refs p ns
+	in  (Concat derivp p, tailns)
 derivReturn refs (Reference name) ns = case Map.lookup name refs of
 	(Just p) -> derivReturn refs p ns
 	Nothing  -> error $ "reference <" ++ name ++ "> does not exist"
 derivReturn refs (Not p) ns =
-	let (derivp, nsTail) = derivReturn refs p ns
-	in  (Not derivp, nsTail)
+	let (derivp, tailns) = derivReturn refs p ns
+	in  (Not derivp, tailns)
 derivReturn refs (Contains p) ns =
-	let (derivp, nsTail) = derivReturn refs p ns
-	in  (Contains derivp, nsTail)
+	let (derivp, tailns) = derivReturn refs p ns
+	in  (Contains derivp, tailns)
 derivReturn refs (Optional p) ns =
-	let (derivp, nsTail) = derivReturn refs p ns
-	in  (Optional derivp, nsTail)
+	let (derivp, tailns) = derivReturn refs p ns
+	in  (Optional derivp, tailns)
 
 
 get :: Maybe String -> String
