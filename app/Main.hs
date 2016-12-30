@@ -2,12 +2,27 @@ module Main where
 
 import Lib
 import qualified Data.Map.Strict as Map
+import qualified Data.Tree as Tree
+
+type ValueType = String
 
 data Value
-	= Equal String
+	= Equal ValueType
 	| OrValue Value Value
 	| ExceptValue Value
 	| AnyValue
+
+eval :: Value -> ValueType -> Bool
+eval (Equal value) v = v == value
+eval (OrValue l r) v = eval l v || eval r v
+eval (ExceptValue value) v = not $ eval value v
+eval AnyValue _ = True
+
+type IfExpr = (Value, Pattern, Pattern)
+
+evalIf :: IfExpr -> ValueType -> Pattern
+evalIf (value, thn, els) v = 
+	if eval value v then thn else els
 
 data Pattern
 	= Empty
@@ -25,7 +40,14 @@ data Pattern
 
 type Refs = Map.Map String Pattern
 
-type IfExpr = (Value, Pattern, Pattern)
+
+
+-- unescapable is used for short circuiting.  
+-- A part of the tree can be skipped if all patterns are unescapable.
+unescapable :: Pattern -> Bool
+unescapable ZAny = True
+unescapable (Not ZAny) = True
+unescapable _ = False
 
 nullable :: Refs -> Pattern -> Bool
 nullable refs Empty = True
@@ -111,6 +133,13 @@ derivReturn refs (Optional p) ns =
 	let (derivp, tailns) = derivReturn refs p ns
 	in  (Optional derivp, tailns)
 
+deriv :: Refs -> [Pattern] -> Tree.Tree ValueType -> [Pattern]
+deriv refs ps (Tree.Node label children) =
+	let	ifs = derivCalls refs ps
+		childps = map (flip evalIf label) ifs
+		childres = foldl (deriv refs) childps children
+		childns = map (nullable refs) childres
+	in derivReturns refs ps childns 
 
 get :: Maybe String -> String
 get (Just s) = s
