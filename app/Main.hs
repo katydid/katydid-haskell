@@ -11,6 +11,7 @@ data Value
 	| OrValue Value Value
 	| ExceptValue Value
 	| AnyValue
+	deriving (Eq, Ord)
 
 eval :: Value -> ValueType -> Bool
 eval (Equal value) v = v == value
@@ -37,17 +38,9 @@ data Pattern
 	| Optional Pattern
 	| Contains Pattern
 	| Reference String
+	deriving (Eq, Ord)
 
 type Refs = Map.Map String Pattern
-
-
-
--- unescapable is used for short circuiting.  
--- A part of the tree can be skipped if all patterns are unescapable.
-unescapable :: Pattern -> Bool
-unescapable ZAny = True
-unescapable (Not ZAny) = True
-unescapable _ = False
 
 nullable :: Refs -> Pattern -> Bool
 nullable refs Empty = True
@@ -139,7 +132,42 @@ deriv refs ps (Tree.Node label children) =
 		childps = map (flip evalIf label) ifs
 		childres = foldl (deriv refs) childps children
 		childns = map (nullable refs) childres
-	in derivReturns refs ps childns 
+	in derivReturns refs ps childns
+
+type MemCalls = Map.Map [Pattern] [IfExpr]
+
+memCalls :: MemCalls -> Refs -> [Pattern] -> (MemCalls, [IfExpr])
+memCalls m refs ps = case Map.lookup ps m of
+	(Just ifs) -> (m, ifs)
+	Nothing    -> let ifs = derivCalls refs ps
+		in (Map.insert ps ifs m, ifs)
+
+type MemReturns = Map.Map ([Pattern], [Bool]) [Pattern]
+
+memReturns :: MemReturns -> Refs -> [Pattern] -> [Bool] -> (MemReturns, [Pattern])
+memReturns m refs ps ns = case Map.lookup (ps, ns) m of
+	(Just ps) -> (m, ps)
+	Nothing   -> let res = derivReturns refs ps ns
+		in (Map.insert (ps, ns) res m, res)
+
+mderiv :: MemCalls -> MemReturns -> Refs -> [Pattern] -> Tree.Tree ValueType -> (MemCalls, MemReturns, [Pattern])
+mderiv mc mr refs ps (Tree.Node label children) =
+	let	(mc', ifs) = memCalls mc refs ps
+		childps = map (flip evalIf label) ifs
+		(mc'', mr', childres) = foldl (foldableMderiv refs) (mc', mr, childps) children
+		childns = map (nullable refs) childres
+		(mr'', res) = memReturns mr' refs ps childns
+	in (mc'', mr'', res)
+
+foldableMderiv :: Refs -> (MemCalls, MemReturns, [Pattern]) -> Tree.Tree ValueType -> (MemCalls, MemReturns, [Pattern])
+foldableMderiv refs (mc, mr, ps) n = mderiv mc mr refs ps n
+
+-- unescapable is used for short circuiting.
+-- A part of the tree can be skipped if all patterns are unescapable.
+unescapable :: Pattern -> Bool
+unescapable ZAny = True
+unescapable (Not ZAny) = True
+unescapable _ = False
 
 get :: Maybe String -> String
 get (Just s) = s
