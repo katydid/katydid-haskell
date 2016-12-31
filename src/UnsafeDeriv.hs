@@ -16,6 +16,7 @@ newMem refs = Mem (memoize (derivCalls refs)) (memoize (derivReturns refs)) (mem
 
 uderiv :: Mem -> [Pattern] -> Tree.Tree ValueType -> [Pattern]
 uderiv mem ps (Tree.Node label children) =
+	if all unescapable ps then ps else
 	let	ifs = (calls mem) ps
 		childps = map (evalIf label) ifs
 		childres = foldl (uderiv mem) childps children

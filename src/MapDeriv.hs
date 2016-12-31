@@ -43,6 +43,7 @@ mderivReturns refs = get (derivReturns refs)
 
 mderiv :: Refs -> (Mem, [Pattern]) -> Tree.Tree ValueType -> (Mem, [Pattern])
 mderiv refs (m, patterns) (Tree.Node label children) =
+	if all unescapable patterns then (m, patterns) else
 	let	(mcalls', ifs) = mderivCalls refs (calls m) patterns
 		m' = m {calls = mcalls'}
 		childps = map (evalIf label) ifs

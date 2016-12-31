@@ -121,8 +121,16 @@ derivReturn refs (Optional p) ns =
 
 deriv :: Refs -> [Pattern] -> Tree.Tree ValueType -> [Pattern]
 deriv refs ps (Tree.Node label children) =
+	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
 		childps = map (evalIf label) ifs
 		childres = foldl (deriv refs) childps children
 		childns = map (nullable refs) childres
 	in derivReturns refs (ps, childns)
+
+-- unescapable is used for short circuiting.
+-- A part of the tree can be skipped if all patterns are unescapable.
+unescapable :: Pattern -> Bool
+unescapable ZAny = True
+unescapable (Not ZAny) = True
+unescapable _ = False

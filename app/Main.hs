@@ -6,13 +6,6 @@ import Deriv
 import Data.Map
 import UnsafeDeriv
 
--- unescapable is used for short circuiting.
--- A part of the tree can be skipped if all patterns are unescapable.
-unescapable :: Pattern -> Bool
-unescapable ZAny = True
-unescapable (Not ZAny) = True
-unescapable _ = False
-
 main :: IO ()
 main = let
 	m = empty
