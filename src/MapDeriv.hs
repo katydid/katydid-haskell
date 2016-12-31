@@ -3,6 +3,7 @@ module MapDeriv where
 import Deriv
 import qualified Data.Map.Strict as Map
 import qualified Data.Tree as Tree
+import Patterns
 
 data Mem = Mem {
 	  calls     :: MemCalls

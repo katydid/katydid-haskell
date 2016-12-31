@@ -2,15 +2,8 @@ module Deriv where
 
 import qualified Data.Map.Strict as Map
 import qualified Data.Tree as Tree
-
-type ValueType = String
-
-data Value
-	= Equal ValueType
-	| OrValue Value Value
-	| ExceptValue Value
-	| AnyValue
-	deriving (Eq, Ord)
+import Patterns
+import Zip
 
 eval :: Value -> ValueType -> Bool
 eval (Equal value) v = v == value
@@ -23,23 +16,6 @@ type IfExpr = (Value, Pattern, Pattern)
 evalIf :: ValueType -> IfExpr -> Pattern
 evalIf v (value, thn, els) = 
 	if eval value v then thn else els
-
-data Pattern
-	= Empty
-	| ZAny
-	| Node Value Pattern
-	| Or Pattern Pattern
-	| And Pattern Pattern
-	| Not Pattern
-	| Concat Pattern Pattern
-	| Interleave Pattern Pattern
-	| ZeroOrMore Pattern
-	| Optional Pattern
-	| Contains Pattern
-	| Reference String
-	deriving (Eq, Ord)
-
-type Refs = Map.Map String Pattern
 
 nullable :: Refs -> Pattern -> Bool
 nullable refs Empty = True
@@ -124,9 +100,11 @@ deriv refs ps (Tree.Node label children) =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
 		childps = map (evalIf label) ifs
-		childres = foldl (deriv refs) childps children
+		(zipps, zipper) = zippy childps
+		childres = foldl (deriv refs) zipps children
 		childns = map (nullable refs) childres
-	in derivReturns refs (ps, childns)
+		unzipns = unzipby zipper childns
+	in derivReturns refs (ps, unzipns)
 
 -- unescapable is used for short circuiting.
 -- A part of the tree can be skipped if all patterns are unescapable.

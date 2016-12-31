@@ -16,9 +16,11 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     UnsafeMem
+                     , Patterns
                      , Deriv
                      , MapDeriv
                      , UnsafeDeriv
+                     , Zip
   build-depends:       base >= 4.7 && < 5
                      , containers
   default-language:    Haskell2010
