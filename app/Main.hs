@@ -16,6 +16,6 @@ unescapable _ = False
 main :: IO ()
 main = let
 	m = empty
-	m1 = insert 0 "a" m
-	m2 = insert 0 "b" m1
+	m1 = insert 0 "test 123" m
+	m2 = insert 0 "test 456" m1
 	in putStrLn $ m2 ! 0
