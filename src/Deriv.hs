@@ -5,18 +5,6 @@ import qualified Data.Tree as Tree
 import Patterns
 import Zip
 
-eval :: Value -> ValueType -> Bool
-eval (Equal value) v = v == value
-eval (OrValue l r) v = eval l v || eval r v
-eval (ExceptValue value) v = not $ eval value v
-eval AnyValue _ = True
-
-type IfExpr = (Value, Pattern, Pattern)
-
-evalIf :: ValueType -> IfExpr -> Pattern
-evalIf v (value, thn, els) = 
-	if eval value v then thn else els
-
 nullable :: Refs -> Pattern -> Bool
 nullable refs Empty = True
 nullable refs ZAny = True
