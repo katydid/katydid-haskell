@@ -3,21 +3,9 @@ module Deriv where
 import qualified Data.Map.Strict as Map
 import qualified Data.Tree as Tree
 import Patterns
+import Values
 import Zip
-
-nullable :: Refs -> Pattern -> Bool
-nullable refs Empty = True
-nullable refs ZAny = True
-nullable refs (Node _ _) = False
-nullable refs (Or l r) = nullable refs l || nullable refs r
-nullable refs (And l r) = nullable refs l && nullable refs r
-nullable refs (Not p) = not $ nullable refs p
-nullable refs (Concat l r) = nullable refs l && nullable refs r
-nullable refs (Interleave l r) = nullable refs l && nullable refs r
-nullable refs (ZeroOrMore _) = True
-nullable refs (Optional _) = True
-nullable refs (Contains p) = nullable refs p
-nullable refs (Reference name) = nullable refs $ refs Map.! name
+import IfExprs
 
 derivCalls :: Refs -> [Pattern] -> [IfExpr]
 derivCalls refs ps = concatMap (derivCall refs) ps
@@ -94,9 +82,3 @@ deriv refs ps (Tree.Node label children) =
 		unzipns = unzipby zipper childns
 	in derivReturns refs (ps, unzipns)
 
--- unescapable is used for short circuiting.
--- A part of the tree can be skipped if all patterns are unescapable.
-unescapable :: Pattern -> Bool
-unescapable ZAny = True
-unescapable (Not ZAny) = True
-unescapable _ = False

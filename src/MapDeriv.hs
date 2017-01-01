@@ -4,6 +4,8 @@ import Deriv
 import qualified Data.Map.Strict as Map
 import qualified Data.Tree as Tree
 import Patterns
+import IfExprs
+import Values
 
 data Mem = Mem {
 	  calls     :: MemCalls

@@ -4,7 +4,9 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Tree as Tree
 import UnsafeMem
 import Deriv
+import IfExprs
 import Patterns
+import Values
 
 data Mem = Mem {
 	calls :: [Pattern] -> [IfExpr]

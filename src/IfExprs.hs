@@ -1,6 +1,13 @@
 module IfExprs where
 
 import Patterns
+import Values
+
+type IfExpr = (Value, Pattern, Pattern)
+
+evalIf :: ValueType -> IfExpr -> Pattern
+evalIf v (value, thn, els) = 
+	if eval value v then thn else els
 
 data IfExprs
 	= Cond {
