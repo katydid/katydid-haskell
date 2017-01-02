@@ -2,6 +2,7 @@ module IfExprs where
 
 import Patterns
 import Values
+import Simplify
 
 type IfExpr = (Value, Pattern, Pattern)
 
@@ -17,33 +18,31 @@ data IfExprs
 	}
 	| Ret [Pattern]
 
-compileIfExprs :: [IfExpr] -> IfExprs
-compileIfExprs [] = Ret []
-compileIfExprs (e:es) = 
-	let ifs = compileIfExprs es
-	in addIfExpr (simplifyIf e) ifs
+compileIfExprs :: Refs -> [IfExpr] -> IfExprs
+compileIfExprs _ [] = Ret []
+compileIfExprs refs (e:es) = addIfExpr (simplifyIf refs e) (compileIfExprs refs es)
 
 evalIfExprs :: IfExprs -> ValueType -> [Pattern]
 evalIfExprs (Ret ps) _ = ps
-evalIfExprs (Cond c t e) v = if eval c v
-	then evalIfExprs t v
-	else evalIfExprs e v
+evalIfExprs (Cond c t e) v 
+	| eval c v  = evalIfExprs t v
+	| otherwise = evalIfExprs e v
 
--- TODO add simplifyPattern
-simplifyIf :: IfExpr -> IfExpr
-simplifyIf (cond, thn, els) = (simplifyValue cond, thn, els)
+simplifyIf :: Refs -> IfExpr -> IfExpr
+simplifyIf refs (cond, thn, els) = 
+	let	scond = simplifyValue cond
+		sthn  = simplify refs thn
+		sels  = simplify refs els
+	in if sthn == sels then (AnyValue, sthn, sels) else (scond, sthn, sels)
 
 addIfExpr :: IfExpr -> IfExprs -> IfExprs
 addIfExpr (c, t, e) (Ret ps) =
 	Cond c (Ret (t:ps)) (Ret (e:ps))
-addIfExpr (c, t, e) (Cond cs ts es) =
-	if c == cs
-	then Cond cs (addRet t ts) (addRet e es)
-	else if isFalse (simplifyValue (AndValue c cs))
-		then Cond cs (addRet e ts) (addIfExpr (c, t, e) es)
-		else if isFalse (simplifyValue (AndValue (NotValue c) cs))
-			then Cond cs (addIfExpr (c, t, e) ts) (addRet t es)
-			else Cond cs (addIfExpr (c, t, e) ts) (addIfExpr (c, t, e) es)
+addIfExpr (c, t, e) (Cond cs ts es)
+	| c == cs = Cond cs (addRet t ts) (addRet e es)
+	| (NotValue AnyValue) == (simplifyValue (AndValue c cs)) = Cond cs (addRet e ts) (addIfExpr (c, t, e) es)
+	| (NotValue AnyValue) == (simplifyValue (AndValue (NotValue c) cs)) = Cond cs (addIfExpr (c, t, e) ts) (addRet t es)
+	| otherwise = Cond cs (addIfExpr (c, t, e) ts) (addIfExpr (c, t, e) es)
 
 addRet :: Pattern -> IfExprs -> IfExprs
 addRet p (Ret ps) = Ret (p:ps)

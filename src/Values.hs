@@ -19,39 +19,30 @@ eval AnyValue _ = True
 
 simplifyValue :: Value -> Value
 simplifyValue e@(Equal _) = e
-simplifyValue (OrValue l r) = 
-	let	sl = simplifyValue l
-		sr = simplifyValue r
-	in if sl == sr 
-		then sl 
-		else if sl == AnyValue || sr == AnyValue 
-			then AnyValue
-			else if sr == (NotValue AnyValue)
-				then sl
-				else if sl == (NotValue AnyValue)
-					then sr
-					else OrValue sl sr
-simplifyValue (AndValue l r) =
-	let	sl = simplifyValue l
-		sr = simplifyValue r
-	in if sl == sr 
-		then sl
-		else if sl == (NotValue AnyValue) || sr == (NotValue AnyValue)
-			then (NotValue AnyValue)
-			else if sr == AnyValue
-				then sl
-				else if sl == AnyValue
-					then sr
-					else AndValue sl sr
-simplifyValue (NotValue v) =
-	let sv = simplifyValue v
-	in if sv == (NotValue v) then v else (NotValue v)
+simplifyValue (OrValue v1 v2) = simplifyOrValue (simplifyValue v1) (simplifyValue v2)
+simplifyValue (AndValue v1 v2) = simplifyAndValue (simplifyValue v1) (simplifyValue v2)
+simplifyValue (NotValue v) = simplifyNotValue (simplifyValue v)
 simplifyValue AnyValue = AnyValue
 
-isFalse :: Value -> Bool
-isFalse (Equal _) = False
-isFalse (OrValue l r) = isFalse l && isFalse r
-isFalse (AndValue l r) = isFalse l || isFalse r
-isFalse (NotValue AnyValue) = True
-isFalse (NotValue _) = False
-isFalse AnyValue = False
+simplifyOrValue :: Value -> Value -> Value
+simplifyOrValue AnyValue _ = AnyValue
+simplifyOrValue _ AnyValue = AnyValue
+simplifyOrValue (NotValue AnyValue) v = v
+simplifyOrValue v (NotValue AnyValue) = v
+simplifyOrValue v1 v2
+	| v1 == v2  = v1
+	| otherwise = OrValue v1 v2
+
+-- TODO we can simplify more when we and two values than aren't equal
+simplifyAndValue :: Value -> Value -> Value
+simplifyAndValue AnyValue v = v
+simplifyAndValue v AnyValue = v
+simplifyAndValue (NotValue AnyValue) _ = NotValue AnyValue
+simplifyAndValue _ (NotValue AnyValue) = NotValue AnyValue
+simplifyAndValue v1 v2
+	| v1 == v2  = v1
+	| otherwise = AndValue v1 v2
+
+simplifyNotValue :: Value -> Value
+simplifyNotValue (NotValue v) = v
+simplifyNotValue v = NotValue v
