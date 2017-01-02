@@ -84,7 +84,7 @@ zipderiv :: Refs -> [Pattern] -> Tree.Tree ValueType -> [Pattern]
 zipderiv refs ps (Tree.Node label children) =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
-		childps = map (evalIf label) ifs
+		childps = evalIfExprs (compileIfExprs refs ifs) label
 		(zipps, zipper) = zippy childps
 		childres = foldl (zipderiv refs) zipps children
 		childns = map (nullable refs) childres
