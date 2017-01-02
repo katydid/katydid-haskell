@@ -3,6 +3,7 @@ module IfExprs where
 import Patterns
 import Values
 import Simplify
+import Zip
 
 type IfExpr = (Value, Pattern, Pattern)
 
@@ -47,3 +48,23 @@ addIfExpr (c, t, e) (Cond cs ts es)
 addRet :: Pattern -> IfExprs -> IfExprs
 addRet p (Ret ps) = Ret (p:ps)
 addRet p (Cond c thn els) = Cond c (addRet p thn) (addRet p els)
+
+data ZippedIfExprs
+	= ZippedCond {
+		zcond :: Value
+		, zthn :: ZippedIfExprs
+		, zels :: ZippedIfExprs
+	}
+	| ZippedRet [Pattern] Zipper
+
+zipIfExprs :: IfExprs -> ZippedIfExprs
+zipIfExprs (Cond c t e) = ZippedCond c (zipIfExprs t) (zipIfExprs e)
+zipIfExprs (Ret ps) = let (ps, zs) = zippy ps in ZippedRet ps zs
+
+evalZippedIfExprs :: ZippedIfExprs -> ValueType -> ([Pattern], Zipper)
+evalZippedIfExprs (ZippedRet ps zs) _ = (ps, zs)
+evalZippedIfExprs (ZippedCond c t e) v
+	| eval c v  = evalZippedIfExprs t v
+	| otherwise = evalZippedIfExprs e v
+
+

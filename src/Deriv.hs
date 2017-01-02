@@ -84,10 +84,30 @@ zipderiv :: Refs -> [Pattern] -> Tree.Tree ValueType -> [Pattern]
 zipderiv refs ps (Tree.Node label children) =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
-		childps = evalIfExprs (compileIfExprs refs ifs) label
+		compIfs = (compileIfExprs refs ifs)
+		childps = evalIfExprs compIfs label
 		(zipps, zipper) = zippy childps
 		childres = foldl (zipderiv refs) zipps children
 		childns = map (nullable refs) childres
 		unzipns = unzipby zipper childns
 	in derivReturns refs (ps, unzipns)
 
+precall :: Refs -> [Pattern] -> ZippedIfExprs
+precall refs current = 
+	let	ifs = derivCalls refs current
+		compIfs = (compileIfExprs refs ifs)
+	in  zipIfExprs compIfs
+
+thereturn :: Refs -> [Pattern] -> Zipper -> [Pattern] -> [Pattern]
+thereturn refs current zipper childres =
+	let	childns = map (nullable refs) childres
+		unzipns = unzipby zipper childns
+	in derivReturns refs (current, unzipns)
+
+zipderiv2 :: Refs -> [Pattern] -> Tree.Tree ValueType -> [Pattern]
+zipderiv2 refs ps (Tree.Node label children) =
+	if all unescapable ps then ps else
+	let	zifs = precall refs ps
+		(zipps, zipper) = evalZippedIfExprs zifs label
+		childres = foldl (zipderiv2 refs) zipps children
+	in thereturn refs ps zipper childres
