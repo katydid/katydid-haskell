@@ -33,12 +33,14 @@ simplifyOrValue v1 v2
 	| v1 == v2  = v1
 	| otherwise = OrValue v1 v2
 
--- TODO we can simplify more when we and two values than aren't equal
 simplifyAndValue :: Value -> Value -> Value
 simplifyAndValue AnyValue v = v
 simplifyAndValue v AnyValue = v
 simplifyAndValue (NotValue AnyValue) _ = NotValue AnyValue
 simplifyAndValue _ (NotValue AnyValue) = NotValue AnyValue
+simplifyAndValue v@(Equal v1) (Equal v2)
+	| v1 == v2  = v
+	| otherwise = (NotValue AnyValue)
 simplifyAndValue v1 v2
 	| v1 == v2  = v1
 	| otherwise = AndValue v1 v2
