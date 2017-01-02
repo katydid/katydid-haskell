@@ -7,7 +7,7 @@ import Values
 
 simplify :: Refs -> Pattern -> Pattern
 simplify refs p =
-	let simp = simplify refs
+	let simp = simplify' refs
 	in case p of
 	Empty -> Empty
 	(Node v p) -> simplifyNode (simplifyValue v) (simp p)
@@ -19,6 +19,9 @@ simplify refs p =
  	(Optional p) -> simplifyOptional (simp p)
  	(Interleave p1 p2) -> simplifyInterleave (simp p1) (simp p2)
  	(Contains p) -> simplifyContains (simp p)
+
+simplify' :: Refs -> Pattern -> Pattern
+simplify' refs p = checkRef refs $ simplify refs p
 
 simplifyNode :: Value -> Pattern -> Pattern
 simplifyNode (NotValue AnyValue) _ = Not ZAny
@@ -42,11 +45,19 @@ simplifyOr _ _ ZAny = ZAny
 simplifyOr _ (Node v1 Empty) (Node v2 Empty) = Node (OrValue v1 v2) Empty
 simplifyOr refs Empty p = if nullable refs p then p else Or Empty p
 simplifyOr refs p Empty = if nullable refs p then p else Or Empty p
-simplifyOr _ p1 p2 = bin Or $ Set.toAscList $ setOfOrs p1 `Set.union` setOfOrs p2
+simplifyOr _ p1 p2 = bin Or $ simplifyChildren Or $ Set.toAscList $ setOfOrs p1 `Set.union` setOfOrs p2
+
+simplifyChildren :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> [Pattern]
+simplifyChildren _ [] = []
+simplifyChildren _ [p] = [p]
+simplifyChildren op (p1@(Node v1 c1):(p2@(Node v2 c2):ps))
+	| v1 == v2 = simplifyChildren op $ (Node v1 (op c1 c2)):ps
+	| otherwise = p1:(simplifyChildren op (p2:ps))
+simplifyChildren op (p:ps) = p:(simplifyChildren op ps)
 
 bin :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> Pattern
-bin f (p1:p2:[]) = f p1 p2
-bin f (p:ps) = f p (bin f ps)
+bin op (p1:p2:[]) = op p1 p2
+bin op (p:ps) = op p (bin op ps)
 
 setOfOrs :: Pattern -> Set.Set Pattern
 setOfOrs (Or p1 p2) = setOfOrs p1 `Set.union` setOfOrs p2
@@ -60,7 +71,7 @@ simplifyAnd _ p ZAny = p
 simplifyAnd _ (Node v1 Empty) (Node v2 Empty) = Node (AndValue v1 v2) Empty
 simplifyAnd refs Empty p = if nullable refs p then Empty else Not ZAny
 simplifyAnd refs p Empty = if nullable refs p then Empty else Not ZAny
-simplifyAnd _ p1 p2 = bin And $ Set.toAscList $ setOfAnds p1 `Set.union` setOfAnds p2
+simplifyAnd _ p1 p2 = bin And $ simplifyChildren And $ Set.toAscList $ setOfAnds p1 `Set.union` setOfAnds p2
 
 setOfAnds :: Pattern -> Set.Set Pattern
 setOfAnds (And p1 p2) = setOfAnds p1 `Set.union` setOfAnds p2
