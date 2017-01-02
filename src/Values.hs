@@ -31,6 +31,8 @@ simplifyOrValue (NotValue AnyValue) v = v
 simplifyOrValue v (NotValue AnyValue) = v
 simplifyOrValue v1 v2
 	| v1 == v2  = v1
+	| v1 == (NotValue v2) = AnyValue
+	| (NotValue v1) == v2 = AnyValue
 	| otherwise = OrValue v1 v2
 
 simplifyAndValue :: Value -> Value -> Value
