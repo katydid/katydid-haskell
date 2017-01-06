@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Main where
 
 import System.Directory
@@ -6,15 +8,19 @@ import ParsedTree
 import Text.XML.HXT.Parser.XmlParsec
 import Text.XML.HXT.DOM.TypeDefs
 
+data EncodedData 
+    = XMLData [XmlTree]
+    | JsonData [JsonTree]
+    deriving Show
+
 data TestSuiteCase = TestSuiteCase {
     name        :: String
     , grammar   :: String
-    , json      :: [ParsedTree]
-    , xml       :: XmlTrees
+    , input     :: EncodedData
     , valid     :: Bool
 } deriving Show
 
-decodeJson :: String -> [ParsedTree]
+decodeJson :: String -> [JsonTree]
 decodeJson jsonStr = unmarshal jsonStr
 
 getRelapseJson :: [FilePath] -> FilePath
@@ -34,7 +40,7 @@ readJsonTest path = do {
     files <- ls path;
     grammar <- readFile $ getRelapseJson files;
     jsonData <- readFile $ getJson files;
-    return $ TestSuiteCase (takeBaseName path) grammar (decodeJson jsonData) [] (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) grammar (JsonData (decodeJson jsonData)) (isValidCase files)
 }
 
 readXMLTest :: FilePath -> IO TestSuiteCase
@@ -42,7 +48,7 @@ readXMLTest path = do {
     files <- ls path;
     grammar <- readFile $ getRelapseJson files;
     xmlData <- readFile $ getXML files;
-    return $ TestSuiteCase (takeBaseName path) grammar [] (xread xmlData) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) grammar (XMLData (xread xmlData)) (isValidCase files)
 }
 
 ls :: FilePath -> IO [FilePath]
