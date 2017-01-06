@@ -11,7 +11,7 @@ data MyLabel
 	= String String
 	| Number Rational
 	| Bool Bool
-	deriving Show
+	deriving (Show, Eq, Ord)
 
 class ParsedTree a where
 	getMyLabel :: a -> MyLabel

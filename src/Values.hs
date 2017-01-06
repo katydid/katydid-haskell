@@ -1,16 +1,16 @@
 module Values where
 
-type ValueType = String
+import ParsedTree
 
 data Value
-	= Equal ValueType
+	= Equal MyLabel
 	| OrValue Value Value
 	| AndValue Value Value
 	| NotValue Value
 	| AnyValue
 	deriving (Eq, Ord, Show)
 
-eval :: Value -> ValueType -> Bool
+eval :: Value -> MyLabel -> Bool
 eval (Equal value) v = v == value
 eval (OrValue l r) v = eval l v || eval r v
 eval (AndValue l r) v = eval l v && eval r v

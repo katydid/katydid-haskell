@@ -4,6 +4,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Tree as Tree
 import Patterns
 import Values
+import ParsedTree
 import Zip
 import IfExprs
 
@@ -71,16 +72,16 @@ derivReturn refs (Optional p) ns =
 	let (derivp, tailns) = derivReturn refs p ns
 	in  (Optional derivp, tailns)
 
-deriv :: Refs -> [Pattern] -> Tree.Tree ValueType -> [Pattern]
-deriv refs ps (Tree.Node label children) =
+deriv :: ParsedTree a => Refs -> [Pattern] -> a -> [Pattern]
+deriv refs ps t =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
-		childps = map (evalIf label) ifs
-		childres = foldl (deriv refs) childps children
+		childps = map (evalIf (getMyLabel t)) ifs
+		childres = foldl (deriv refs) childps (getMyChildren t)
 		childns = map (nullable refs) childres
 	in derivReturns refs (ps, childns)
 
-zipderiv :: Refs -> [Pattern] -> Tree.Tree ValueType -> [Pattern]
+zipderiv :: Refs -> [Pattern] -> Tree.Tree MyLabel -> [Pattern]
 zipderiv refs ps (Tree.Node label children) =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
@@ -104,7 +105,7 @@ thereturn refs current zipper childres =
 		unzipns = unzipby zipper childns
 	in derivReturns refs (current, unzipns)
 
-zipderiv2 :: Refs -> [Pattern] -> Tree.Tree ValueType -> [Pattern]
+zipderiv2 :: Refs -> [Pattern] -> Tree.Tree MyLabel -> [Pattern]
 zipderiv2 refs ps (Tree.Node label children) =
 	if all unescapable ps then ps else
 	let	zifs = precall refs ps
