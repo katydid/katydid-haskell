@@ -3,12 +3,14 @@ module Main where
 import System.Directory
 import System.FilePath
 import ParsedTree
+import Text.XML.HXT.Parser.XmlParsec
+import Text.XML.HXT.DOM.TypeDefs
 
 data TestSuiteCase = TestSuiteCase {
     name        :: String
     , grammar   :: String
     , json      :: [ParsedTree]
-    , xml       :: String
+    , xml       :: XmlTrees
     , valid     :: Bool
 } deriving Show
 
@@ -24,12 +26,23 @@ isValidCase paths = 1 == (length $ filter (\fname -> (takeBaseName fname) == "va
 getJson :: [FilePath] -> FilePath
 getJson paths = head $ filter (\fname -> (takeExtension fname) == ".json" && (takeBaseName fname) /= "relapse") paths
 
-readTest :: FilePath -> IO TestSuiteCase
-readTest path = do {
+getXML :: [FilePath] -> FilePath
+getXML paths = head $ filter (\fname -> (takeExtension fname) == ".xml" && (takeBaseName fname) /= "relapse") paths
+
+readJsonTest :: FilePath -> IO TestSuiteCase
+readJsonTest path = do {
     files <- ls path;
     grammar <- readFile $ getRelapseJson files;
     jsonData <- readFile $ getJson files;
-    return $ TestSuiteCase (takeBaseName path) grammar (decodeJson jsonData) "" (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) grammar (decodeJson jsonData) [] (isValidCase files)
+}
+
+readXMLTest :: FilePath -> IO TestSuiteCase
+readXMLTest path = do {
+    files <- ls path;
+    grammar <- readFile $ getRelapseJson files;
+    xmlData <- readFile $ getXML files;
+    return $ TestSuiteCase (takeBaseName path) grammar [] (xread xmlData) (isValidCase files)
 }
 
 ls :: FilePath -> IO [FilePath]
@@ -44,17 +57,12 @@ testPath = do {
      return $ (takeDirectory path) </> "testsuite" </> "relapse" </> "tests"
 }
 
-jsonTestsPath :: IO FilePath
-jsonTestsPath = do {
-    path <- testPath;
-    return $ path </> "json"
-}
-
 main :: IO ()
 main = do {
-    jsondir <- jsonTestsPath;
-    dirs <- ls jsondir;
-    testCases <- mapM readTest dirs;
+    path <- testPath;
+    jsondirs <- ls $ path </> "json";
+    xmldirs <- ls $ path </> "xml";
+    testCases <- mapM readXMLTest xmldirs;
     putStrLn $ show $ head testCases;
     return ()
 }
