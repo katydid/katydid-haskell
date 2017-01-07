@@ -23,6 +23,43 @@ data BoolExpr
 	| StringContainsFunc StringExpr StringExpr
 
 	| BoolListElemFunc [BoolExpr] IntExpr
+
+	| BytesGreaterOrEqualFunc BytesExpr BytesExpr
+	| DoubleGreaterOrEqualFunc DoubleExpr DoubleExpr
+	| IntGreaterOrEqualFunc IntExpr IntExpr
+	| UintGreaterOrEqualFunc UintExpr UintExpr
+
+	| BytesGreaterThanFunc BytesExpr BytesExpr
+	| DoubleGreaterThanFunc DoubleExpr DoubleExpr
+	| IntGreaterThanFunc IntExpr IntExpr
+	| UintGreaterThanFunc UintExpr UintExpr
+
+	| StringHasPrefixFunc StringExpr StringExpr
+	| StringHasSuffixFunc StringExpr StringExpr
+
+	| BytesLessOrEqualFunc BytesExpr BytesExpr
+	| DoubleLessOrEqualFunc DoubleExpr DoubleExpr
+	| IntLessOrEqualFunc IntExpr IntExpr
+	| UintLessOrEqualFunc UintExpr UintExpr
+
+	| BytesLessThanFunc BytesExpr BytesExpr
+	| DoubleLessThanFunc DoubleExpr DoubleExpr
+	| IntLessThanFunc IntExpr IntExpr
+	| UintLessThanFunc UintExpr UintExpr
+
+	| BytesNotEqualFunc BytesExpr BytesExpr
+	| BoolNotEqualFunc BoolExpr BoolExpr
+	| DoubleNotEqualFunc DoubleExpr DoubleExpr
+	| IntNotEqualFunc IntExpr IntExpr
+	| StringNotEqualFunc StringExpr StringExpr
+	| UintNotEqualFunc UintExpr UintExpr
+
+	| BytesTypeFunc BytesExpr
+	| BoolTypeFunc BoolExpr
+	| DoubleTypeFunc DoubleExpr
+	| IntTypeFunc  IntExpr
+	| UintTypeFunc UintExpr
+	| StringTypeFunc StringExpr
 	deriving (Eq, Ord, Show)
 
 data DoubleExpr
@@ -35,6 +72,15 @@ data IntExpr
 	= IntConst Int
 	| IntVariable
 	| IntListElemFunc [IntExpr] IntExpr
+
+	| BytesListLengthFunc [BytesExpr]
+	| BoolListLengthFunc [BoolExpr]
+	| BytesLengthFunc BytesExpr
+	| DoubleListLengthFunc [DoubleExpr]
+	| IntListLengthFunc [IntExpr]
+	| StringListLengthFunc [StringExpr]
+	| UintListLengthFunc [UintExpr]
+	| StringLengthFunc StringExpr
 	deriving (Eq, Ord, Show)
 
 data UintExpr
@@ -47,6 +93,9 @@ data StringExpr
 	= StringConst String
 	| StringVariable
 	| StringListElemFunc [StringExpr] IntExpr
+
+	| StringToLowerFunc StringExpr
+	| StringToUpperFunc StringExpr
 	deriving (Eq, Ord, Show)
 
 data BytesExpr
