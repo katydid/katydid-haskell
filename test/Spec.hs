@@ -28,17 +28,14 @@ getRelapseJson paths = head $ filter (\fname -> (takeExtension fname) == ".json"
 isValidCase :: [FilePath] -> Bool
 isValidCase paths = 1 == (length $ filter (\fname -> (takeBaseName fname) == "valid") paths)
 
-getJson :: [FilePath] -> FilePath
-getJson paths = head $ filter (\fname -> (takeExtension fname) == ".json" && (takeBaseName fname) /= "relapse") paths
-
-getXML :: [FilePath] -> FilePath
-getXML paths = head $ filter (\fname -> (takeExtension fname) == ".xml" && (takeBaseName fname) /= "relapse") paths
+filepathWithExt :: [FilePath] -> String -> FilePath
+filepathWithExt paths ext = head $ filter (\fname -> (takeExtension fname) == ext && (takeBaseName fname) /= "relapse") paths
 
 readJsonTest :: FilePath -> IO TestSuiteCase
 readJsonTest path = do {
     files <- ls path;
     grammar <- readFile $ getRelapseJson files;
-    jsonData <- readFile $ getJson files;
+    jsonData <- readFile $ filepathWithExt files ".json";
     return $ TestSuiteCase (takeBaseName path) grammar (JsonData (decodeJSON jsonData)) (isValidCase files)
 }
 
@@ -46,7 +43,7 @@ readXMLTest :: FilePath -> IO TestSuiteCase
 readXMLTest path = do {
     files <- ls path;
     grammar <- readFile $ getRelapseJson files;
-    xmlData <- readFile $ getXML files;
+    xmlData <- readFile $ filepathWithExt files ".xml";
     return $ TestSuiteCase (takeBaseName path) grammar (XMLData (decodeXML xmlData)) (isValidCase files)
 }
 
@@ -67,7 +64,8 @@ main = do {
     path <- testPath;
     jsondirs <- ls $ path </> "json";
     xmldirs <- ls $ path </> "xml";
-    testCases <- mapM readXMLTest xmldirs;
-    putStrLn $ show $ head testCases;
+    xmlTestCases <- mapM readXMLTest xmldirs;
+    jsonTestCases <- mapM readJsonTest jsondirs;
+    putStrLn $ show $ head (xmlTestCases ++ jsonTestCases);
     return ()
 }
