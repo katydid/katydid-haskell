@@ -1,10 +1,16 @@
 module Values where
 
+import Data.List (isInfixOf)
+
 import Parsers
 
 data BoolExpr
 	= BoolConst Bool
 	| BoolVariable
+
+	| OrFunc BoolExpr BoolExpr
+	| AndFunc BoolExpr BoolExpr
+	| NotFunc BoolExpr
 
 	| BoolEqualFunc BoolExpr BoolExpr
 	| DoubleEqualFunc DoubleExpr DoubleExpr
@@ -12,10 +18,6 @@ data BoolExpr
 	| UintEqualFunc UintExpr UintExpr
 	| StringEqualFunc StringExpr StringExpr
 	| BytesEqualFunc BytesExpr BytesExpr
-
-	| OrFunc BoolExpr BoolExpr
-	| AndFunc BoolExpr BoolExpr
-	| NotFunc BoolExpr
 
 	| IntListContainsFunc IntExpr [IntExpr]
 	| StringListContainsFunc StringExpr [StringExpr]
@@ -135,14 +137,11 @@ eval e l = case evalBool e l of
 	(Err errStr) -> error errStr
 
 evalBool :: BoolExpr -> Label -> Value Bool
+
 evalBool (BoolConst b) _ = Value b
 evalBool BoolVariable (Bool b) = Value b
 evalBool BoolVariable _ = Err "not a bool"
-evalBool (BoolEqualFunc e1 e2) v = do {
-	b1 <- evalBool e1 v;
-	b2 <- evalBool e2 v;
-	return $ b1 == b2
-}
+
 evalBool (OrFunc e1 e2) v = do {
 	b1 <- evalBool e1 v;
 	b2 <- evalBool e2 v;
@@ -157,6 +156,73 @@ evalBool (NotFunc e) v = do {
 	b <- evalBool e v;
 	return $ not b
 }
+
+evalBool (BoolEqualFunc e1 e2) v = do {
+	v1 <- evalBool e1 v;
+	v2 <- evalBool e2 v;
+	return $ v1 == v2
+}
+evalBool (DoubleEqualFunc e1 e2) v = do {
+	v1 <- evalDouble e1 v;
+	v2 <- evalDouble e2 v;
+	return $ v1 == v2
+}
+evalBool (IntEqualFunc e1 e2) v = do {
+	v1 <- evalInt e1 v;
+	v2 <- evalInt e2 v;
+	return $ v1 == v2
+}
+evalBool (UintEqualFunc e1 e2) v = do {
+	v1 <- evalUint e1 v;
+	v2 <- evalUint e2 v;
+	return $ v1 == v2
+}
+evalBool (StringEqualFunc e1 e2) v = do {
+	v1 <- evalString e1 v;
+	v2 <- evalString e2 v;
+	return $ v1 == v2
+}
+evalBool (BytesEqualFunc e1 e2) v = do {
+	v1 <- evalBytes e1 v;
+	v2 <- evalBytes e2 v;
+	return $ v1 == v2
+}
+
+evalBool (IntListContainsFunc e es) v = do {
+	e' <- evalInt e v;
+	es' <- mapM ((flip evalInt) v) es;
+	return $ elem e es
+}
+evalBool (StringListContainsFunc e es) v = do {
+	e' <- evalString e v;
+	es' <- mapM ((flip evalString) v) es;
+	return $ elem e es
+}
+evalBool (UintListContainsFunc e es) v = do {
+	e' <- evalUint e v;
+	es' <- mapM ((flip evalUint) v) es;
+	return $ elem e es
+}
+evalBool (StringContainsFunc s sub) v = do {
+	s' <- evalString s v;
+	sub' <- evalString sub v;
+	return $ isInfixOf sub' s'
+}
+
+evalDouble :: DoubleExpr -> Label -> Value Rational
+evalDouble = error "todo"
+
+evalInt :: IntExpr -> Label -> Value Rational
+evalInt = error "todo"
+
+evalUint :: UintExpr -> Label -> Value Rational
+evalUint = error "todo"
+
+evalString :: StringExpr -> Label -> Value String
+evalString = error "todo"
+
+evalBytes :: BytesExpr -> Label -> Value String
+evalBytes = error "todo"
 
 simplifyBoolExpr :: BoolExpr -> BoolExpr
 simplifyBoolExpr e@(BoolEqualFunc (BoolConst b1) (BoolConst b2)) = BoolConst $ b1 == b2
