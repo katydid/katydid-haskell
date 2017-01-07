@@ -168,7 +168,7 @@ uList :: [(String, JSValue)] -> Expr
 uList = error "todo"
 
 uFunction :: [(String, JSValue)] -> Expr
-uFunction = error "todo"
+uFunction kvs = newFunction (getString kvs "Name") (map uExprs (getArrayOfObjects kvs "Params"))
 
 newFunction :: String -> [Expr] -> Expr
 newFunction = error "todo"
@@ -201,10 +201,20 @@ getString :: [(String, JSValue)] -> String -> String
 getString pairs name = let v = getField pairs name in 
 	case v of
 	(JSString s) -> fromJSString s
-	otherwise -> error $ name ++ " is not a string, but a " ++ show v
+	otherwise -> error $ name ++ " is not a JSString, but a " ++ show v
+
+getArrayOfObjects :: [(String, JSValue)] -> String -> [[(String, JSValue)]]
+getArrayOfObjects pairs name = let v = getField pairs name in 
+	case v of
+	(JSArray vs) -> map assertObject vs
+	otherwise -> error $ name ++ " is not a JSArray, but a " ++ show v
+
+assertObject :: JSValue -> [(String, JSValue)]
+assertObject (JSObject o) = fromJSObject o
+assertObject v = error $ "not an JSObject, but a " ++ show v
 
 getObject :: [(String, JSValue)] -> String -> [(String, JSValue)]
 getObject pairs name = let v = getField pairs name in 
 	case v of
 	(JSObject o) -> fromJSObject o
-	otherwise -> error $ name ++ " is not an object, but a " ++ show v
+	otherwise -> error $ name ++ " is not an JSObject, but a " ++ show v
