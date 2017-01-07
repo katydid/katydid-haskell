@@ -2,6 +2,7 @@ module ParsePatterns where
 
 import Text.JSON (decode, Result(Error,Ok), JSValue(JSNull, JSBool, JSRational, JSString, JSArray, JSObject), fromJSString, fromJSObject)
 
+import Parsers
 import Patterns
 import Values
 
@@ -26,18 +27,18 @@ uPatternDecl kvs = newRef (getString kvs "Name") (uPattern $ getObject kvs "Patt
 
 uPattern :: [(String, JSValue)] -> Pattern
 uPattern [("Empty", _)] = Empty
-uPattern [("TreeNode", (JSObject v))] = uTreeNode (fromJSObject v)
-uPattern [("LeafNode", (JSObject v))] = uLeafNode (fromJSObject v)
-uPattern [("Concat", (JSObject v))] = uConcat (fromJSObject v)
-uPattern [("Or", (JSObject v))] = uOr (fromJSObject v)
-uPattern [("And", (JSObject v))] = uAnd (fromJSObject v)
-uPattern [("ZeroOrMore", (JSObject v))] = uZeroOrMore (fromJSObject v)
-uPattern [("Reference", (JSObject v))] = uReference (fromJSObject v)
-uPattern [("Not", (JSObject v))] = uNot (fromJSObject v)
-uPattern [("ZAny", (JSObject v))] = ZAny
-uPattern [("Contains", (JSObject v))] = uContains (fromJSObject v)
-uPattern [("Optional", (JSObject v))] = uOptional (fromJSObject v)
-uPattern [("Interleave", (JSObject v))] = uInterleave (fromJSObject v)
+uPattern [("TreeNode", JSObject o)] = uTreeNode (fromJSObject o)
+uPattern [("LeafNode", JSObject o)] = uLeafNode (fromJSObject o)
+uPattern [("Concat", JSObject o)] = uConcat (fromJSObject o)
+uPattern [("Or", JSObject o)] = uOr (fromJSObject o)
+uPattern [("And", JSObject o)] = uAnd (fromJSObject o)
+uPattern [("ZeroOrMore", JSObject o)] = uZeroOrMore (fromJSObject o)
+uPattern [("Reference", JSObject o)] = uReference (fromJSObject o)
+uPattern [("Not", JSObject o)] = uNot (fromJSObject o)
+uPattern [("ZAny", JSObject o)] = ZAny
+uPattern [("Contains", JSObject o)] = uContains (fromJSObject o)
+uPattern [("Optional", JSObject o)] = uOptional (fromJSObject o)
+uPattern [("Interleave", JSObject o)] = uInterleave (fromJSObject o)
 
 uTreeNode :: [(String, JSValue)] -> Pattern
 uTreeNode kvs = Node (uNameExpr $ getObject kvs "Name") (uPattern $ getObject kvs "Pattern")
@@ -73,10 +74,52 @@ uInterleave :: [(String, JSValue)] -> Pattern
 uInterleave kvs = Interleave (uPattern $ getObject kvs "LeftPattern") (uPattern $ getObject kvs "RightPattern") 
 
 uNameExpr :: [(String, JSValue)] -> Value
-uNameExpr = error "todo"
+uNameExpr [("Name", JSObject o)] = uName (fromJSObject o)
+uNameExpr [("AnyName", JSObject o)] = AnyValue
+uNameExpr [("AnyNameExcept", JSObject o)] = uNameExcept (fromJSObject o)
+uNameExpr [("NameChoice", JSObject o)] = uNameChoice (fromJSObject o)
+
+uName :: [(String, JSValue)] -> Value
+uName kvs = uName' $ head $ filter (\(k,v) -> (k /= "Before")) kvs
+
+uName' :: (String, JSValue) -> Value
+uName' ("DoubleValue", (JSRational _ num)) = Equal $ Number num
+uName' ("IntValue", (JSRational _ num)) = Equal $ Number num
+uName' ("UintValue", (JSRational _ num)) = Equal $ Number num
+uName' ("BoolValue", (JSBool b)) = Equal $ Bool b
+uName' ("StringValue", (JSString s)) = Equal $ String $ fromJSString s
+uName' ("BytesValue", (JSString s)) = Equal $ String $ fromJSString s
+
+uNameExcept :: [(String, JSValue)] -> Value
+uNameExcept kvs = NotValue (uNameExpr $ getObject kvs "Except")
+
+uNameChoice :: [(String, JSValue)] -> Value
+uNameChoice kvs = OrValue (uNameExpr $ getObject kvs "Left") (uNameExpr $ getObject kvs "Right")
 
 uExpr :: [(String, JSValue)] -> Value
-uExpr = error "todo"
+uExpr kvs = uExpr' $ head $ filter (\(k,v) -> k /= "RightArrow" && k /= "Comma") kvs
+
+uExpr' :: (String, JSValue) -> Value
+uExpr' ("Terminal", (JSObject o)) = uTerminal $ fromJSObject o
+uExpr' ("List", (JSObject o)) = uList $ fromJSObject o
+uExpr' ("Function", (JSObject o)) = uFunction $ fromJSObject o
+uExpr' ("BuiltIn", (JSObject o)) = uBuiltIn $ fromJSObject o
+
+uTerminal :: [(String, JSValue)] -> Value
+uTerminal kvs = uTerminal' $ head $ filter (\(k,v) -> k /= "Before" && k /= "Literal") kvs
+
+uTerminal' :: (String, JSValue) -> Value
+uTerminal' ("DoubleValue", JSRational _ n) = error "todo"
+
+uList :: [(String, JSValue)] -> Value
+uList = error "todo"
+
+uFunction :: [(String, JSValue)] -> Value
+uFunction = error "todo"
+
+uBuiltIn :: [(String, JSValue)] -> Value
+uBuiltIn = error "todo"
+
 -- JSON helper functions
 
 getField :: [(String, JSValue)] -> String -> JSValue
