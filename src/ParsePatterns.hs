@@ -170,8 +170,24 @@ uList = error "todo"
 uFunction :: [(String, JSValue)] -> Expr
 uFunction = error "todo"
 
+newFunction :: String -> [Expr] -> Expr
+newFunction = error "todo"
+
 uBuiltIn :: [(String, JSValue)] -> Expr
-uBuiltIn = error "todo"
+uBuiltIn kvs = newFunction (funcName (getString (getObject kvs "Symbol") "Value")) [uExprs $ getObject kvs "Expr"]
+
+funcName :: String -> String
+funcName "==" = "eq"
+funcName "!=" = "ne"
+funcName "<" = "lt"
+funcName ">" = "gt"
+funcName "<=" = "le"
+funcName ">=" = "ge"
+funcName "~=" = "regex"
+funcName "*=" = "contains"
+funcName "^=" = "hasPrefix"
+funcName "$=" = "hasSuffix"
+funcName "::" = "type"
 
 -- JSON helper functions
 
