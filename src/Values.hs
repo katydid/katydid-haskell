@@ -1,6 +1,7 @@
 module Values where
 
 import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
+import Data.Char (toLower, toUpper)
 
 import Parsers
 
@@ -369,6 +370,7 @@ evalDouble :: DoubleExpr -> Label -> Value Rational
 evalDouble (DoubleConst r) _ = Value r
 evalDouble DoubleVariable (Number r) = Value r
 evalDouble DoubleVariable _ = Err "not a double"
+
 evalDouble (DoubleListElemFunc es i) v = do {
 	i' <- evalInt i v;
 	es' <- mapM ((flip evalDouble) v) es;
@@ -419,9 +421,11 @@ evalInt (StringLengthFunc e) v = do {
 	return $ length e'
 }
 
-
-
 evalUint :: UintExpr -> Label -> Value Int
+evalUint (UintConst i) _ = Value i
+evalUint UintVariable (Number r) = Value (truncate r)
+evalUint UintVariable _ = Err "not an uint"
+
 evalUint (UintListElemFunc es i) v = do {
 	i' <- evalInt i v;
 	es' <- mapM ((flip evalUint) v) es;
@@ -429,13 +433,30 @@ evalUint (UintListElemFunc es i) v = do {
 }
 
 evalString :: StringExpr -> Label -> Value String
+evalString (StringConst i) _ = Value i
+evalString StringVariable (String s) = Value s
+evalString StringVariable _ = Err "not a string"
+
 evalString (StringListElemFunc es i) v = do {
 	i' <- evalInt i v;
 	es' <- mapM ((flip evalString) v) es;
 	return $ es' !! i'
 }
 
+evalString (StringToLowerFunc s) v = do {
+	s' <- evalString s v;
+	return $ map toLower s'
+}
+evalString (StringToUpperFunc s) v = do {
+	s' <- evalString s v;
+	return $ map toUpper s'
+}
+
 evalBytes :: BytesExpr -> Label -> Value String
+evalBytes (BytesConst u) _ = Value u
+evalBytes BytesVariable (String s) = Value s
+evalBytes BytesVariable _ = Err "not bytes"
+
 evalBytes (BytesListElemFunc es i) v = do {
 	i' <- evalInt i v;
 	es' <- mapM ((flip evalBytes) v) es;
