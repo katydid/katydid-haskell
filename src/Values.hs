@@ -5,15 +5,22 @@ import Parsers
 data BoolExpr
 	= BoolConst Bool
 	| BoolVariable
+
 	| BoolEqualFunc BoolExpr BoolExpr
 	| DoubleEqualFunc DoubleExpr DoubleExpr
 	| IntEqualFunc IntExpr IntExpr
 	| UintEqualFunc UintExpr UintExpr
 	| StringEqualFunc StringExpr StringExpr
 	| BytesEqualFunc BytesExpr BytesExpr
+
 	| OrFunc BoolExpr BoolExpr
 	| AndFunc BoolExpr BoolExpr
 	| NotFunc BoolExpr
+
+	| IntListContainsFunc IntExpr [IntExpr]
+	| StringListContainsFunc StringExpr [StringExpr]
+	| UintListContainsFunc UintExpr [UintExpr]
+	| StringContainsFunc StringExpr StringExpr
 	deriving (Eq, Ord, Show)
 
 data DoubleExpr

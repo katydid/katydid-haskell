@@ -190,7 +190,10 @@ uFunction :: [(String, JSValue)] -> Expr
 uFunction kvs = newFunction (getString kvs "Name") (map uExprs (getArrayOfObjects kvs "Params"))
 
 newFunction :: String -> [Expr] -> Expr
-newFunction = error "todo"
+newFunction "contains" [IntExpr i,IntListExpr is] = BoolExpr $ IntListContainsFunc i is
+newFunction "contains" [StringExpr s, StringListExpr ss] = BoolExpr $ StringListContainsFunc s ss
+newFunction "contains" [UintExpr u, UintListExpr us] = BoolExpr $ UintListContainsFunc u us
+newFunction "contains" [StringExpr s, StringExpr ss] = BoolExpr $ StringContainsFunc s ss
 
 uBuiltIn :: [(String, JSValue)] -> Expr
 uBuiltIn kvs = newFunction (funcName (getString (getObject kvs "Symbol") "Value")) [uExprs $ getObject kvs "Expr"]
