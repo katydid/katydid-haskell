@@ -4,11 +4,11 @@ import Patterns
 import Values
 import Simplify
 import Zip
-import ParsedTree
+import Parsers
 
 type IfExpr = (Value, Pattern, Pattern)
 
-evalIf :: MyLabel -> IfExpr -> Pattern
+evalIf :: Label -> IfExpr -> Pattern
 evalIf v (value, thn, els) = 
 	if eval value v then thn else els
 
@@ -24,7 +24,7 @@ compileIfExprs :: Refs -> [IfExpr] -> IfExprs
 compileIfExprs _ [] = Ret []
 compileIfExprs refs (e:es) = addIfExpr (simplifyIf refs e) (compileIfExprs refs es)
 
-evalIfExprs :: IfExprs -> MyLabel -> [Pattern]
+evalIfExprs :: IfExprs -> Label -> [Pattern]
 evalIfExprs (Ret ps) _ = ps
 evalIfExprs (Cond c t e) v 
 	| eval c v  = evalIfExprs t v
@@ -62,7 +62,7 @@ zipIfExprs :: IfExprs -> ZippedIfExprs
 zipIfExprs (Cond c t e) = ZippedCond c (zipIfExprs t) (zipIfExprs e)
 zipIfExprs (Ret ps) = let (ps, zs) = zippy ps in ZippedRet ps zs
 
-evalZippedIfExprs :: ZippedIfExprs -> MyLabel -> ([Pattern], Zipper)
+evalZippedIfExprs :: ZippedIfExprs -> Label -> ([Pattern], Zipper)
 evalZippedIfExprs (ZippedRet ps zs) _ = (ps, zs)
 evalZippedIfExprs (ZippedCond c t e) v
 	| eval c v  = evalZippedIfExprs t v

@@ -7,7 +7,7 @@ import Deriv
 import IfExprs
 import Patterns
 import Values
-import ParsedTree
+import Parsers
 
 data Mem = Mem {
 	calls :: [Pattern] -> [IfExpr]
@@ -18,7 +18,7 @@ data Mem = Mem {
 newMem :: Refs -> Mem
 newMem refs = Mem (memoize (derivCalls refs)) (memoize (derivReturns refs)) (memoize (nullable refs))
 
-uderiv :: Mem -> [Pattern] -> DataTree.Tree MyLabel -> [Pattern]
+uderiv :: Mem -> [Pattern] -> DataTree.Tree Label -> [Pattern]
 uderiv mem ps (DataTree.Node label children) =
 	if all unescapable ps then ps else
 	let	ifs = (calls mem) ps

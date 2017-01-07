@@ -4,7 +4,7 @@ import qualified Data.Tree as DataTree
 
 import Patterns
 import Values
-import ParsedTree
+import Parsers
 import Zip
 import IfExprs
 
@@ -72,16 +72,16 @@ derivReturn refs (Optional p) ns =
 	let (derivp, tailns) = derivReturn refs p ns
 	in  (Optional derivp, tailns)
 
-deriv :: ParsedTree a => Refs -> [Pattern] -> a -> [Pattern]
+deriv :: Tree a => Refs -> [Pattern] -> a -> [Pattern]
 deriv refs ps t =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
-		childps = map (evalIf (getMyLabel t)) ifs
-		childres = foldl (deriv refs) childps (getMyChildren t)
+		childps = map (evalIf (getLabel t)) ifs
+		childres = foldl (deriv refs) childps (getChildren t)
 		childns = map (nullable refs) childres
 	in derivReturns refs (ps, childns)
 
-zipderiv :: Refs -> [Pattern] -> DataTree.Tree MyLabel -> [Pattern]
+zipderiv :: Refs -> [Pattern] -> DataTree.Tree Label -> [Pattern]
 zipderiv refs ps (DataTree.Node label children) =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
@@ -105,7 +105,7 @@ thereturn refs current zipper childres =
 		unzipns = unzipby zipper childns
 	in derivReturns refs (current, unzipns)
 
-zipderiv2 :: Refs -> [Pattern] -> DataTree.Tree MyLabel -> [Pattern]
+zipderiv2 :: Refs -> [Pattern] -> DataTree.Tree Label -> [Pattern]
 zipderiv2 refs ps (DataTree.Node label children) =
 	if all unescapable ps then ps else
 	let	zifs = precall refs ps

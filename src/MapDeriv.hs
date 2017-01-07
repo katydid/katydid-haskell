@@ -7,7 +7,7 @@ import Deriv
 import Patterns
 import IfExprs
 import Values
-import ParsedTree
+import Parsers
 
 data Mem = Mem {
 	  calls     :: MemCalls
@@ -46,7 +46,7 @@ type MemReturns = DataMap.Map ([Pattern], [Bool]) [Pattern]
 mderivReturns :: Refs -> MemReturns -> ([Pattern], [Bool]) -> (MemReturns, [Pattern])
 mderivReturns refs = get (derivReturns refs)
 
-mderiv :: Refs -> (Mem, [Pattern]) -> DataTree.Tree MyLabel -> (Mem, [Pattern])
+mderiv :: Refs -> (Mem, [Pattern]) -> DataTree.Tree Label -> (Mem, [Pattern])
 mderiv refs (m, patterns) (DataTree.Node label children) =
 	if all unescapable patterns then (m, patterns) else
 	let	(mcalls', ifs) = mderivCalls refs (calls m) patterns

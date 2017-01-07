@@ -4,10 +4,11 @@ module Main where
 
 import System.Directory (getCurrentDirectory, listDirectory)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
-import Text.XML.HXT.Parser.XmlParsec (xread)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 
-import ParsedTree
+import Parsers
+import Json
+import Xml
 
 data EncodedData 
     = XMLData [XmlTree]
@@ -20,9 +21,6 @@ data TestSuiteCase = TestSuiteCase {
     , input     :: EncodedData
     , valid     :: Bool
 } deriving Show
-
-decodeJson :: String -> [JsonTree]
-decodeJson jsonStr = unmarshal jsonStr
 
 getRelapseJson :: [FilePath] -> FilePath
 getRelapseJson paths = head $ filter (\fname -> (takeExtension fname) == ".json" && (takeBaseName fname) == "relapse") paths
@@ -41,7 +39,7 @@ readJsonTest path = do {
     files <- ls path;
     grammar <- readFile $ getRelapseJson files;
     jsonData <- readFile $ getJson files;
-    return $ TestSuiteCase (takeBaseName path) grammar (JsonData (decodeJson jsonData)) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) grammar (JsonData (decodeJSON jsonData)) (isValidCase files)
 }
 
 readXMLTest :: FilePath -> IO TestSuiteCase
@@ -49,7 +47,7 @@ readXMLTest path = do {
     files <- ls path;
     grammar <- readFile $ getRelapseJson files;
     xmlData <- readFile $ getXML files;
-    return $ TestSuiteCase (takeBaseName path) grammar (XMLData (xread xmlData)) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) grammar (XMLData (decodeXML xmlData)) (isValidCase files)
 }
 
 ls :: FilePath -> IO [FilePath]
