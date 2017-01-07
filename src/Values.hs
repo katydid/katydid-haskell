@@ -41,7 +41,6 @@ data BytesExpr
 	| BytesVariable
 	deriving (Eq, Ord, Show)
 
-
 data Value a = Err String
 	| Value a
 

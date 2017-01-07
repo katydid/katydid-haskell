@@ -44,7 +44,7 @@ uTreeNode :: [(String, JSValue)] -> Pattern
 uTreeNode kvs = Node (uNameExpr $ getObject kvs "Name") (uPattern $ getObject kvs "Pattern")
 
 uLeafNode :: [(String, JSValue)] -> Pattern
-uLeafNode kvs = Node (uExpr $ getObject kvs "Expr") Empty
+uLeafNode kvs = Node (uBoolExpr $ getObject kvs "Expr") Empty
 
 uReference :: [(String, JSValue)] -> Pattern
 uReference kvs = Reference (getString kvs "Name")
@@ -96,28 +96,42 @@ uNameExcept kvs = NotFunc (uNameExpr $ getObject kvs "Except")
 uNameChoice :: [(String, JSValue)] -> BoolExpr
 uNameChoice kvs = OrFunc (uNameExpr $ getObject kvs "Left") (uNameExpr $ getObject kvs "Right")
 
-uExpr :: [(String, JSValue)] -> BoolExpr
-uExpr kvs = uExpr' $ head $ filter (\(k,v) -> k /= "RightArrow" && k /= "Comma") kvs
+uBoolExpr :: [(String, JSValue)] -> BoolExpr
+uBoolExpr kvs = let e = uExprs kvs in case e of
+	(BoolExpr b) -> b
+	otherwise -> error $ "not a bool expr, but a " ++ show e
 
-uExpr' :: (String, JSValue) -> BoolExpr
-uExpr' ("Terminal", (JSObject o)) = uTerminal $ fromJSObject o
-uExpr' ("List", (JSObject o)) = uList $ fromJSObject o
-uExpr' ("Function", (JSObject o)) = uFunction $ fromJSObject o
-uExpr' ("BuiltIn", (JSObject o)) = uBuiltIn $ fromJSObject o
+uExprs :: [(String, JSValue)] -> Expr
+uExprs kvs = uExpr $ head $ filter (\(k,v) -> k /= "RightArrow" && k /= "Comma") kvs 
 
-uTerminal :: [(String, JSValue)] -> BoolExpr
+uExpr :: (String, JSValue) -> Expr
+uExpr ("Terminal", (JSObject o)) = uTerminal $ fromJSObject o
+uExpr ("List", (JSObject o)) = uList $ fromJSObject o
+uExpr ("Function", (JSObject o)) = uFunction $ fromJSObject o
+uExpr ("BuiltIn", (JSObject o)) = uBuiltIn $ fromJSObject o
+
+uTerminal :: [(String, JSValue)] -> Expr
 uTerminal kvs = uTerminal' $ head $ filter (\(k,v) -> k /= "Before" && k /= "Literal") kvs
 
-uTerminal' :: (String, JSValue) -> BoolExpr
+data Expr 
+	= BoolExpr BoolExpr
+	| DoubleExpr DoubleExpr
+	| IntExpr IntExpr
+	| UintExpr UintExpr 
+	| StringExpr StringExpr
+	| BytesExpr BytesExpr
+	deriving Show
+
+uTerminal' :: (String, JSValue) -> Expr
 uTerminal' ("DoubleValue", JSRational _ n) = error "todo"
 
-uList :: [(String, JSValue)] -> BoolExpr
+uList :: [(String, JSValue)] -> Expr
 uList = error "todo"
 
-uFunction :: [(String, JSValue)] -> BoolExpr
+uFunction :: [(String, JSValue)] -> Expr
 uFunction = error "todo"
 
-uBuiltIn :: [(String, JSValue)] -> BoolExpr
+uBuiltIn :: [(String, JSValue)] -> Expr
 uBuiltIn = error "todo"
 
 -- JSON helper functions
