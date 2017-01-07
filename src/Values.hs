@@ -158,13 +158,12 @@ evalBool (NotFunc e) v = do {
 	return $ not b
 }
 
-
-simplifyValue :: BoolExpr -> BoolExpr
-simplifyValue e@(BoolEqualFunc (BoolConst b1) (BoolConst b2)) = BoolConst $ b1 == b2
-simplifyValue (OrFunc v1 v2) = simplifyOrFunc (simplifyValue v1) (simplifyValue v2)
-simplifyValue (AndFunc v1 v2) = simplifyAndFunc (simplifyValue v1) (simplifyValue v2)
-simplifyValue (NotFunc v) = simplifyNotFunc (simplifyValue v)
-simplifyValue v@(BoolConst _) = v
+simplifyBoolExpr :: BoolExpr -> BoolExpr
+simplifyBoolExpr e@(BoolEqualFunc (BoolConst b1) (BoolConst b2)) = BoolConst $ b1 == b2
+simplifyBoolExpr (OrFunc v1 v2) = simplifyOrFunc (simplifyBoolExpr v1) (simplifyBoolExpr v2)
+simplifyBoolExpr (AndFunc v1 v2) = simplifyAndFunc (simplifyBoolExpr v1) (simplifyBoolExpr v2)
+simplifyBoolExpr (NotFunc v) = simplifyNotFunc (simplifyBoolExpr v)
+simplifyBoolExpr v@(BoolConst _) = v
 
 simplifyOrFunc :: BoolExpr -> BoolExpr -> BoolExpr
 simplifyOrFunc true@(BoolConst True) _ = true

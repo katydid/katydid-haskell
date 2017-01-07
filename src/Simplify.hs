@@ -10,7 +10,7 @@ simplify refs p =
 	let simp = simplify' refs
 	in case p of
 	Empty -> Empty
-	(Node v p) -> simplifyNode (simplifyValue v) (simp p)
+	(Node v p) -> simplifyNode (simplifyBoolExpr v) (simp p)
  	(Concat p1 p2) -> simplifyConcat (simp p1) (simp p2)
  	(Or p1 p2) -> simplifyOr refs (simp p1) (simp p2)
  	(And p1 p2) -> simplifyAnd refs (simp p1) (simp p2)
