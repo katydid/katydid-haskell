@@ -7,7 +7,7 @@ import Values
 data Pattern
 	= Empty
 	| ZAny
-	| Node Value Pattern
+	| Node BoolExpr Pattern
 	| Or Pattern Pattern
 	| And Pattern Pattern
 	| Not Pattern

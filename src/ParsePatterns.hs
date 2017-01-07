@@ -73,51 +73,51 @@ uOptional kvs = Optional (uPattern $ getObject kvs "Pattern")
 uInterleave :: [(String, JSValue)] -> Pattern
 uInterleave kvs = Interleave (uPattern $ getObject kvs "LeftPattern") (uPattern $ getObject kvs "RightPattern") 
 
-uNameExpr :: [(String, JSValue)] -> Value
+uNameExpr :: [(String, JSValue)] -> BoolExpr
 uNameExpr [("Name", JSObject o)] = uName (fromJSObject o)
 uNameExpr [("AnyName", JSObject o)] = AnyValue
 uNameExpr [("AnyNameExcept", JSObject o)] = uNameExcept (fromJSObject o)
 uNameExpr [("NameChoice", JSObject o)] = uNameChoice (fromJSObject o)
 
-uName :: [(String, JSValue)] -> Value
+uName :: [(String, JSValue)] -> BoolExpr
 uName kvs = uName' $ head $ filter (\(k,v) -> (k /= "Before")) kvs
 
-uName' :: (String, JSValue) -> Value
-uName' ("DoubleValue", (JSRational _ num)) = Equal $ Number num
-uName' ("IntValue", (JSRational _ num)) = Equal $ Number num
-uName' ("UintValue", (JSRational _ num)) = Equal $ Number num
-uName' ("BoolValue", (JSBool b)) = Equal $ Bool b
-uName' ("StringValue", (JSString s)) = Equal $ String $ fromJSString s
-uName' ("BytesValue", (JSString s)) = Equal $ String $ fromJSString s
+uName' :: (String, JSValue) -> BoolExpr
+uName' ("DoubleValue", (JSRational _ num)) = EqualFunc $ Number num
+uName' ("IntValue", (JSRational _ num)) = EqualFunc $ Number num
+uName' ("UintValue", (JSRational _ num)) = EqualFunc $ Number num
+uName' ("BoolValue", (JSBool b)) = EqualFunc $ Bool b
+uName' ("StringValue", (JSString s)) = EqualFunc $ String $ fromJSString s
+uName' ("BytesValue", (JSString s)) = EqualFunc $ String $ fromJSString s
 
-uNameExcept :: [(String, JSValue)] -> Value
+uNameExcept :: [(String, JSValue)] -> BoolExpr
 uNameExcept kvs = NotValue (uNameExpr $ getObject kvs "Except")
 
-uNameChoice :: [(String, JSValue)] -> Value
+uNameChoice :: [(String, JSValue)] -> BoolExpr
 uNameChoice kvs = OrValue (uNameExpr $ getObject kvs "Left") (uNameExpr $ getObject kvs "Right")
 
-uExpr :: [(String, JSValue)] -> Value
+uExpr :: [(String, JSValue)] -> BoolExpr
 uExpr kvs = uExpr' $ head $ filter (\(k,v) -> k /= "RightArrow" && k /= "Comma") kvs
 
-uExpr' :: (String, JSValue) -> Value
+uExpr' :: (String, JSValue) -> BoolExpr
 uExpr' ("Terminal", (JSObject o)) = uTerminal $ fromJSObject o
 uExpr' ("List", (JSObject o)) = uList $ fromJSObject o
 uExpr' ("Function", (JSObject o)) = uFunction $ fromJSObject o
 uExpr' ("BuiltIn", (JSObject o)) = uBuiltIn $ fromJSObject o
 
-uTerminal :: [(String, JSValue)] -> Value
+uTerminal :: [(String, JSValue)] -> BoolExpr
 uTerminal kvs = uTerminal' $ head $ filter (\(k,v) -> k /= "Before" && k /= "Literal") kvs
 
-uTerminal' :: (String, JSValue) -> Value
+uTerminal' :: (String, JSValue) -> BoolExpr
 uTerminal' ("DoubleValue", JSRational _ n) = error "todo"
 
-uList :: [(String, JSValue)] -> Value
+uList :: [(String, JSValue)] -> BoolExpr
 uList = error "todo"
 
-uFunction :: [(String, JSValue)] -> Value
+uFunction :: [(String, JSValue)] -> BoolExpr
 uFunction = error "todo"
 
-uBuiltIn :: [(String, JSValue)] -> Value
+uBuiltIn :: [(String, JSValue)] -> BoolExpr
 uBuiltIn = error "todo"
 
 -- JSON helper functions

@@ -6,7 +6,7 @@ import Simplify
 import Zip
 import Parsers
 
-type IfExpr = (Value, Pattern, Pattern)
+type IfExpr = (BoolExpr, Pattern, Pattern)
 
 evalIf :: Label -> IfExpr -> Pattern
 evalIf v (value, thn, els) = 
@@ -14,7 +14,7 @@ evalIf v (value, thn, els) =
 
 data IfExprs
 	= Cond {
-		cond :: Value
+		cond :: BoolExpr
 		, thn :: IfExprs
 		, els :: IfExprs
 	}
@@ -52,7 +52,7 @@ addRet p (Cond c thn els) = Cond c (addRet p thn) (addRet p els)
 
 data ZippedIfExprs
 	= ZippedCond {
-		zcond :: Value
+		zcond :: BoolExpr
 		, zthn :: ZippedIfExprs
 		, zels :: ZippedIfExprs
 	}

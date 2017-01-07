@@ -23,7 +23,7 @@ simplify refs p =
 simplify' :: Refs -> Pattern -> Pattern
 simplify' refs p = checkRef refs $ simplify refs p
 
-simplifyNode :: Value -> Pattern -> Pattern
+simplifyNode :: BoolExpr -> Pattern -> Pattern
 simplifyNode (NotValue AnyValue) _ = Not ZAny
 simplifyNode v p = Node v p
 
@@ -112,14 +112,14 @@ checkRef refs p = case reverseLookupRef p refs of
 	Nothing  	-> p
 	(Just k) 	-> Reference k
 
-simplifyValue :: Value -> Value
-simplifyValue e@(Equal _) = e
+simplifyValue :: BoolExpr -> BoolExpr
+simplifyValue e@(EqualFunc _) = e
 simplifyValue (OrValue v1 v2) = simplifyOrValue (simplifyValue v1) (simplifyValue v2)
 simplifyValue (AndValue v1 v2) = simplifyAndValue (simplifyValue v1) (simplifyValue v2)
 simplifyValue (NotValue v) = simplifyNotValue (simplifyValue v)
 simplifyValue AnyValue = AnyValue
 
-simplifyOrValue :: Value -> Value -> Value
+simplifyOrValue :: BoolExpr -> BoolExpr -> BoolExpr
 simplifyOrValue AnyValue _ = AnyValue
 simplifyOrValue _ AnyValue = AnyValue
 simplifyOrValue (NotValue AnyValue) v = v
@@ -130,18 +130,18 @@ simplifyOrValue v1 v2
 	| (NotValue v1) == v2 = AnyValue
 	| otherwise = OrValue v1 v2
 
-simplifyAndValue :: Value -> Value -> Value
+simplifyAndValue :: BoolExpr -> BoolExpr -> BoolExpr
 simplifyAndValue AnyValue v = v
 simplifyAndValue v AnyValue = v
 simplifyAndValue (NotValue AnyValue) _ = NotValue AnyValue
 simplifyAndValue _ (NotValue AnyValue) = NotValue AnyValue
-simplifyAndValue v@(Equal v1) (Equal v2)
+simplifyAndValue v@(EqualFunc v1) (EqualFunc v2)
 	| v1 == v2  = v
 	| otherwise = (NotValue AnyValue)
 simplifyAndValue v1 v2
 	| v1 == v2  = v1
 	| otherwise = AndValue v1 v2
 
-simplifyNotValue :: Value -> Value
+simplifyNotValue :: BoolExpr -> BoolExpr
 simplifyNotValue (NotValue v) = v
 simplifyNotValue v = NotValue v
