@@ -67,12 +67,14 @@ data BoolExpr
 data DoubleExpr
 	= DoubleConst Rational
 	| DoubleVariable
+
 	| DoubleListElemFunc [DoubleExpr] IntExpr
 	deriving (Eq, Ord, Show)
 
 data IntExpr
 	= IntConst Int
 	| IntVariable
+
 	| IntListElemFunc [IntExpr] IntExpr
 
 	| BytesListLengthFunc [BytesExpr]
@@ -88,12 +90,14 @@ data IntExpr
 data UintExpr
  	= UintConst Int
  	| UintVariable
+
  	| UintListElemFunc [UintExpr] IntExpr
  	deriving (Eq, Ord, Show)
 
 data StringExpr
 	= StringConst String
 	| StringVariable
+
 	| StringListElemFunc [StringExpr] IntExpr
 
 	| StringToLowerFunc StringExpr
@@ -103,6 +107,7 @@ data StringExpr
 data BytesExpr
 	= BytesConst String
 	| BytesVariable
+	
 	| BytesListElemFunc [BytesExpr] IntExpr
 	deriving (Eq, Ord, Show)
 
@@ -361,19 +366,81 @@ evalBool (StringTypeFunc e) v = case evalString e v of
 	(Err _) -> Value False
 
 evalDouble :: DoubleExpr -> Label -> Value Rational
-evalDouble = error "todo"
+evalDouble (DoubleConst r) _ = Value r
+evalDouble DoubleVariable (Number r) = Value r
+evalDouble DoubleVariable _ = Err "not a double"
+evalDouble (DoubleListElemFunc es i) v = do {
+	i' <- evalInt i v;
+	es' <- mapM ((flip evalDouble) v) es;
+	return $ es' !! i'
+}
 
 evalInt :: IntExpr -> Label -> Value Int
-evalInt = error "todo"
+evalInt (IntConst i) _ = Value i
+evalInt IntVariable (Number r) = Value (truncate r)
+evalInt IntVariable _ = Err "not an int"
+
+evalInt (IntListElemFunc es i) v = do {
+	i' <- evalInt i v;
+	es' <- mapM ((flip evalInt) v) es;
+	return $ es' !! i'
+}
+
+evalInt (BytesListLengthFunc es) v = do {
+	es' <- mapM ((flip evalBytes) v) es;
+	return $ length es'
+}
+evalInt (BoolListLengthFunc es) v = do {
+	es' <- mapM ((flip evalBool) v) es;
+	return $ length es'
+}
+evalInt (BytesLengthFunc e) v = do {
+	e' <- evalBytes e v;
+	return $ length e'
+}
+evalInt (DoubleListLengthFunc es) v = do {
+	es' <- mapM ((flip evalDouble) v) es;
+	return $ length es'
+}
+evalInt (IntListLengthFunc es) v = do {
+	es' <- mapM ((flip evalInt) v) es;
+	return $ length es'
+}
+evalInt (StringListLengthFunc es) v = do {
+	es' <- mapM ((flip evalString) v) es;
+	return $ length es'
+}
+evalInt (UintListLengthFunc es) v = do {
+	es' <- mapM ((flip evalUint) v) es;
+	return $ length es'
+}
+evalInt (StringLengthFunc e) v = do {
+	e' <- evalString e v;
+	return $ length e'
+}
+
+
 
 evalUint :: UintExpr -> Label -> Value Int
-evalUint = error "todo"
+evalUint (UintListElemFunc es i) v = do {
+	i' <- evalInt i v;
+	es' <- mapM ((flip evalUint) v) es;
+	return $ es' !! i'
+}
 
 evalString :: StringExpr -> Label -> Value String
-evalString = error "todo"
+evalString (StringListElemFunc es i) v = do {
+	i' <- evalInt i v;
+	es' <- mapM ((flip evalString) v) es;
+	return $ es' !! i'
+}
 
 evalBytes :: BytesExpr -> Label -> Value String
-evalBytes = error "todo"
+evalBytes (BytesListElemFunc es i) v = do {
+	i' <- evalInt i v;
+	es' <- mapM ((flip evalBytes) v) es;
+	return $ es' !! i'
+}
 
 simplifyBoolExpr :: BoolExpr -> BoolExpr
 simplifyBoolExpr e@(BoolEqualFunc (BoolConst b1) (BoolConst b2)) = BoolConst $ b1 == b2
