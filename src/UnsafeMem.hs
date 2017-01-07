@@ -2,18 +2,19 @@ module UnsafeMem
     ( memoize
     ) where
 
-import qualified Data.Map as Map
-import Data.IORef
-import System.IO.Unsafe
+import Prelude hiding (lookup)
+import Data.Map (empty, lookup, insert)
+import Data.IORef (newIORef, readIORef, writeIORef)
+import System.IO.Unsafe (unsafePerformIO)
 
 memoize :: Ord a => (a -> b) -> (a -> b)
 memoize f = unsafePerformIO $ do 
-    r <- newIORef Map.empty
+    r <- newIORef empty
     return $ \ x -> unsafePerformIO $ do 
         m <- readIORef r
-        case Map.lookup x m of
+        case lookup x m of
             Just y  -> return y
             Nothing -> do 
                     let y = f x
-                    writeIORef r (Map.insert x y m)
+                    writeIORef r (insert x y m)
                     return y

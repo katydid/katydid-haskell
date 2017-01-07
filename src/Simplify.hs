@@ -1,7 +1,7 @@
 module Simplify where
 
-import qualified Data.Set as Set
-import qualified Data.Map.Strict as Map
+import qualified Data.Set as DataSet
+
 import Patterns
 import Values
 
@@ -45,7 +45,7 @@ simplifyOr _ _ ZAny = ZAny
 simplifyOr _ (Node v1 Empty) (Node v2 Empty) = Node (OrValue v1 v2) Empty
 simplifyOr refs Empty p = if nullable refs p then p else Or Empty p
 simplifyOr refs p Empty = if nullable refs p then p else Or Empty p
-simplifyOr _ p1 p2 = bin Or $ simplifyChildren Or $ Set.toAscList $ setOfOrs p1 `Set.union` setOfOrs p2
+simplifyOr _ p1 p2 = bin Or $ simplifyChildren Or $ DataSet.toAscList $ setOfOrs p1 `DataSet.union` setOfOrs p2
 
 simplifyChildren :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> [Pattern]
 simplifyChildren _ [] = []
@@ -59,9 +59,9 @@ bin :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> Pattern
 bin op (p1:p2:[]) = op p1 p2
 bin op (p:ps) = op p (bin op ps)
 
-setOfOrs :: Pattern -> Set.Set Pattern
-setOfOrs (Or p1 p2) = setOfOrs p1 `Set.union` setOfOrs p2
-setOfOrs p = Set.singleton p
+setOfOrs :: Pattern -> DataSet.Set Pattern
+setOfOrs (Or p1 p2) = setOfOrs p1 `DataSet.union` setOfOrs p2
+setOfOrs p = DataSet.singleton p
 
 simplifyAnd :: Refs -> Pattern -> Pattern -> Pattern
 simplifyAnd _ (Not ZAny) _ = Not ZAny
@@ -71,11 +71,11 @@ simplifyAnd _ p ZAny = p
 simplifyAnd _ (Node v1 Empty) (Node v2 Empty) = Node (AndValue v1 v2) Empty
 simplifyAnd refs Empty p = if nullable refs p then Empty else Not ZAny
 simplifyAnd refs p Empty = if nullable refs p then Empty else Not ZAny
-simplifyAnd _ p1 p2 = bin And $ simplifyChildren And $ Set.toAscList $ setOfAnds p1 `Set.union` setOfAnds p2
+simplifyAnd _ p1 p2 = bin And $ simplifyChildren And $ DataSet.toAscList $ setOfAnds p1 `DataSet.union` setOfAnds p2
 
-setOfAnds :: Pattern -> Set.Set Pattern
-setOfAnds (And p1 p2) = setOfAnds p1 `Set.union` setOfAnds p2
-setOfAnds p = Set.singleton p
+setOfAnds :: Pattern -> DataSet.Set Pattern
+setOfAnds (And p1 p2) = setOfAnds p1 `DataSet.union` setOfAnds p2
+setOfAnds p = DataSet.singleton p
 
 simplifyZeroOrMore :: Pattern -> Pattern
 simplifyZeroOrMore (ZeroOrMore p) = (ZeroOrMore p)
@@ -95,11 +95,11 @@ simplifyInterleave _ (Not ZAny) = Not ZAny
 simplifyInterleave Empty p = p
 simplifyInterleave p Empty = p
 simplifyInterleave ZAny ZAny = ZAny
-simplifyInterleave p1 p2 = bin Interleave $ Set.toAscList $ setOfInterleaves p1 `Set.union` setOfInterleaves p2
+simplifyInterleave p1 p2 = bin Interleave $ DataSet.toAscList $ setOfInterleaves p1 `DataSet.union` setOfInterleaves p2
 
-setOfInterleaves :: Pattern -> Set.Set Pattern
-setOfInterleaves (Interleave p1 p2) = setOfInterleaves p1 `Set.union` setOfInterleaves p2
-setOfInterleaves p = Set.singleton p
+setOfInterleaves :: Pattern -> DataSet.Set Pattern
+setOfInterleaves (Interleave p1 p2) = setOfInterleaves p1 `DataSet.union` setOfInterleaves p2
+setOfInterleaves p = DataSet.singleton p
 
 simplifyContains :: Pattern -> Pattern
 simplifyContains Empty = ZAny
@@ -107,13 +107,8 @@ simplifyContains ZAny = ZAny
 simplifyContains (Not ZAny) = Not ZAny
 simplifyContains p = Contains p
 
-reverseLookup :: Pattern -> Refs -> Maybe String
-reverseLookup p refs = case Map.keys $ Map.filter (== p) refs of
-	[]  	-> Nothing
-	(k:ks) 	-> Just k
-
 checkRef :: Refs -> Pattern -> Pattern
-checkRef refs p = case reverseLookup p refs of
+checkRef refs p = case reverseLookupRef p refs of
 	Nothing  	-> p
 	(Just k) 	-> Reference k
 

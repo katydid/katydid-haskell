@@ -1,17 +1,18 @@
 module Zip where
 
-import qualified Data.Set as Set
-import Data.List
+import qualified Data.Set as DataSet (fromList, delete, toAscList)
+import Data.List (elemIndex)
+
 import Patterns
 
 type Zipper = [Int]
 
 zippy :: [Pattern] -> ([Pattern], Zipper)
 zippy ps = 
-	let	s = Set.fromList ps
-		s' = Set.delete ZAny s
-		s'' = Set.delete (Not ZAny) s
-		l = Set.toAscList s''
+	let	s = DataSet.fromList ps
+		s' = DataSet.delete ZAny s
+		s'' = DataSet.delete (Not ZAny) s
+		l = DataSet.toAscList s''
 	in (l, map (indexOf l) ps)
 
 indexOf :: [Pattern] -> Pattern -> Int

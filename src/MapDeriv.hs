@@ -1,8 +1,9 @@
 module MapDeriv where
 
+import qualified Data.Map.Strict as DataMap
+import qualified Data.Tree as DataTree
+
 import Deriv
-import qualified Data.Map.Strict as Map
-import qualified Data.Tree as Tree
 import Patterns
 import IfExprs
 import Values
@@ -14,7 +15,7 @@ data Mem = Mem {
 	  , nullables :: MemNullable
 }
 
-type MemNullable = Map.Map Pattern Bool
+type MemNullable = DataMap.Map Pattern Bool
 
 mnullable :: Refs -> MemNullable -> Pattern -> (MemNullable, Bool)
 mnullable refs = get (nullable refs)
@@ -26,27 +27,27 @@ mnullables refs m (p:ps) =
 		(m'', ns) = mnullables refs m' ps
 	in 	(m'', n:ns)
 
-mem :: Ord k => (k -> v) -> Map.Map k v -> k -> Map.Map k v
-mem f m k = if Map.member k m
+mem :: Ord k => (k -> v) -> DataMap.Map k v -> k -> DataMap.Map k v
+mem f m k = if DataMap.member k m
 	then m
-	else Map.insert k (f k) m
+	else DataMap.insert k (f k) m
 
-get :: Ord k => (k -> v) -> Map.Map k v -> k -> (Map.Map k v, v)
-get f m k = (m', m' Map.! k)
+get :: Ord k => (k -> v) -> DataMap.Map k v -> k -> (DataMap.Map k v, v)
+get f m k = (m', m' DataMap.! k)
 	where m' = mem f m k
 
-type MemCalls = Map.Map [Pattern] [IfExpr]
+type MemCalls = DataMap.Map [Pattern] [IfExpr]
 
 mderivCalls :: Refs -> MemCalls -> [Pattern] -> (MemCalls, [IfExpr])
 mderivCalls refs = get (derivCalls refs)
 
-type MemReturns = Map.Map ([Pattern], [Bool]) [Pattern]
+type MemReturns = DataMap.Map ([Pattern], [Bool]) [Pattern]
 
 mderivReturns :: Refs -> MemReturns -> ([Pattern], [Bool]) -> (MemReturns, [Pattern])
 mderivReturns refs = get (derivReturns refs)
 
-mderiv :: Refs -> (Mem, [Pattern]) -> Tree.Tree MyLabel -> (Mem, [Pattern])
-mderiv refs (m, patterns) (Tree.Node label children) =
+mderiv :: Refs -> (Mem, [Pattern]) -> DataTree.Tree MyLabel -> (Mem, [Pattern])
+mderiv refs (m, patterns) (DataTree.Node label children) =
 	if all unescapable patterns then (m, patterns) else
 	let	(mcalls', ifs) = mderivCalls refs (calls m) patterns
 		m' = m {calls = mcalls'}

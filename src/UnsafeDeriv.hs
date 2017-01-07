@@ -1,7 +1,7 @@
 module UnsafeDeriv where
 
-import qualified Data.Map.Strict as Map
-import qualified Data.Tree as Tree
+import qualified Data.Tree as DataTree
+
 import UnsafeMem
 import Deriv
 import IfExprs
@@ -18,8 +18,8 @@ data Mem = Mem {
 newMem :: Refs -> Mem
 newMem refs = Mem (memoize (derivCalls refs)) (memoize (derivReturns refs)) (memoize (nullable refs))
 
-uderiv :: Mem -> [Pattern] -> Tree.Tree MyLabel -> [Pattern]
-uderiv mem ps (Tree.Node label children) =
+uderiv :: Mem -> [Pattern] -> DataTree.Tree MyLabel -> [Pattern]
+uderiv mem ps (DataTree.Node label children) =
 	if all unescapable ps then ps else
 	let	ifs = (calls mem) ps
 		childps = map (evalIf label) ifs

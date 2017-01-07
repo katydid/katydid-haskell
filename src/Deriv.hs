@@ -1,7 +1,7 @@
 module Deriv where
 
-import qualified Data.Map.Strict as Map
-import qualified Data.Tree as Tree
+import qualified Data.Tree as DataTree
+
 import Patterns
 import Values
 import ParsedTree
@@ -22,7 +22,7 @@ derivCall refs (Or l r) = (derivCall refs l) ++ (derivCall refs r)
 derivCall refs (And l r) = (derivCall refs l) ++ (derivCall refs r)
 derivCall refs (Interleave l r) = (derivCall refs l) ++ (derivCall refs r)
 derivCall refs (ZeroOrMore p) = derivCall refs p
-derivCall refs (Reference name) = derivCall refs $ refs Map.! name
+derivCall refs (Reference name) = derivCall refs $ lookupRef refs name
 derivCall refs (Not p) = derivCall refs p
 derivCall refs (Contains p) = derivCall refs p
 derivCall refs (Optional p) = derivCall refs p
@@ -61,7 +61,7 @@ derivReturn refs (Interleave l r) ns =
 derivReturn refs (ZeroOrMore p) ns = 
 	let	(derivp, tailns) = derivReturn refs p ns
 	in  (Concat derivp p, tailns)
-derivReturn refs (Reference name) ns = derivReturn refs (refs Map.! name) ns
+derivReturn refs (Reference name) ns = derivReturn refs (lookupRef refs name) ns
 derivReturn refs (Not p) ns =
 	let (derivp, tailns) = derivReturn refs p ns
 	in  (Not derivp, tailns)
@@ -81,8 +81,8 @@ deriv refs ps t =
 		childns = map (nullable refs) childres
 	in derivReturns refs (ps, childns)
 
-zipderiv :: Refs -> [Pattern] -> Tree.Tree MyLabel -> [Pattern]
-zipderiv refs ps (Tree.Node label children) =
+zipderiv :: Refs -> [Pattern] -> DataTree.Tree MyLabel -> [Pattern]
+zipderiv refs ps (DataTree.Node label children) =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
 		compIfs = (compileIfExprs refs ifs)
@@ -105,8 +105,8 @@ thereturn refs current zipper childres =
 		unzipns = unzipby zipper childns
 	in derivReturns refs (current, unzipns)
 
-zipderiv2 :: Refs -> [Pattern] -> Tree.Tree MyLabel -> [Pattern]
-zipderiv2 refs ps (Tree.Node label children) =
+zipderiv2 :: Refs -> [Pattern] -> DataTree.Tree MyLabel -> [Pattern]
+zipderiv2 refs ps (DataTree.Node label children) =
 	if all unescapable ps then ps else
 	let	zifs = precall refs ps
 		(zipps, zipper) = evalZippedIfExprs zifs label

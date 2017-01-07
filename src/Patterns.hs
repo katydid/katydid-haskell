@@ -1,6 +1,7 @@
 module Patterns where
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict as DataMap
+
 import Values
 
 data Pattern
@@ -18,7 +19,15 @@ data Pattern
 	| Reference String
 	deriving (Eq, Ord, Show)
 
-type Refs = Map.Map String Pattern
+newtype Refs = Refs (DataMap.Map String Pattern)
+
+lookupRef :: Refs -> String -> Pattern
+lookupRef (Refs m) name = m DataMap.! name
+
+reverseLookupRef :: Pattern -> Refs -> Maybe String
+reverseLookupRef p (Refs m) = case DataMap.keys $ DataMap.filter (== p) m of
+	[]  	-> Nothing
+	(k:ks) 	-> Just k
 
 nullable :: Refs -> Pattern -> Bool
 nullable refs Empty = True
@@ -32,7 +41,7 @@ nullable refs (Interleave l r) = nullable refs l && nullable refs r
 nullable refs (ZeroOrMore _) = True
 nullable refs (Optional _) = True
 nullable refs (Contains p) = nullable refs p
-nullable refs (Reference name) = nullable refs $ refs Map.! name
+nullable refs (Reference name) = nullable refs $ lookupRef refs name
 
 -- unescapable is used for short circuiting.
 -- A part of the tree can be skipped if all patterns are unescapable.

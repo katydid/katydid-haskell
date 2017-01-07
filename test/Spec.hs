@@ -2,11 +2,12 @@
 
 module Main where
 
-import System.Directory
-import System.FilePath
+import System.Directory (getCurrentDirectory, listDirectory)
+import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
+import Text.XML.HXT.Parser.XmlParsec (xread)
+import Text.XML.HXT.DOM.TypeDefs (XmlTree)
+
 import ParsedTree
-import Text.XML.HXT.Parser.XmlParsec
-import Text.XML.HXT.DOM.TypeDefs
 
 data EncodedData 
     = XMLData [XmlTree]

@@ -2,10 +2,10 @@
 
 module ParsedTree where
 
-import Text.JSON
+import Text.JSON (decode, Result(Error,Ok), JSValue(JSNull, JSBool, JSRational, JSString, JSArray, JSObject), fromJSString, fromJSObject)
 import qualified Data.Tree as DataTree
-import Text.XML.HXT.DOM.TypeDefs
-import Data.Tree.NTree.TypeDefs
+import Text.XML.HXT.DOM.TypeDefs (XmlTree, XNode)
+import Data.Tree.NTree.TypeDefs (NTree(..))
 
 data MyLabel
 	= String String
@@ -24,7 +24,7 @@ instance ParsedTree JsonTree where
 type JsonTree = DataTree.Tree MyLabel
 
 unmarshal :: String -> [JsonTree]
-unmarshal s = unmarshal' $ (decode s :: Result JSValue)
+unmarshal s = unmarshal' $ decode s
 
 unmarshal' :: Result JSValue -> [JsonTree]
 unmarshal' (Error s) = error s
