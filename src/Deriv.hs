@@ -1,7 +1,5 @@
 module Deriv where
 
-import qualified Data.Tree as DataTree
-
 import Patterns
 import Values
 import Parsers
@@ -72,23 +70,23 @@ derivReturn refs (Optional p) ns =
 	let (derivp, tailns) = derivReturn refs p ns
 	in  (Optional derivp, tailns)
 
-deriv :: Tree a => Refs -> [Pattern] -> a -> [Pattern]
-deriv refs ps t =
+deriv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+deriv refs ps tree =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
-		childps = map (evalIf (getLabel t)) ifs
-		childres = foldl (deriv refs) childps (getChildren t)
+		childps = map (evalIf (getLabel tree)) ifs
+		childres = foldl (deriv refs) childps (getChildren tree)
 		childns = map (nullable refs) childres
 	in derivReturns refs (ps, childns)
 
-zipderiv :: Refs -> [Pattern] -> DataTree.Tree Label -> [Pattern]
-zipderiv refs ps (DataTree.Node label children) =
+zipderiv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+zipderiv refs ps tree =
 	if all unescapable ps then ps else
 	let	ifs = derivCalls refs ps
 		compIfs = (compileIfExprs refs ifs)
-		childps = evalIfExprs compIfs label
+		childps = evalIfExprs compIfs (getLabel tree)
 		(zipps, zipper) = zippy childps
-		childres = foldl (zipderiv refs) zipps children
+		childres = foldl (zipderiv refs) zipps (getChildren tree)
 		childns = map (nullable refs) childres
 		unzipns = unzipby zipper childns
 	in derivReturns refs (ps, unzipns)
@@ -105,10 +103,10 @@ thereturn refs current zipper childres =
 		unzipns = unzipby zipper childns
 	in derivReturns refs (current, unzipns)
 
-zipderiv2 :: Refs -> [Pattern] -> DataTree.Tree Label -> [Pattern]
-zipderiv2 refs ps (DataTree.Node label children) =
+zipderiv2 :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+zipderiv2 refs ps tree =
 	if all unescapable ps then ps else
 	let	zifs = precall refs ps
-		(zipps, zipper) = evalZippedIfExprs zifs label
-		childres = foldl (zipderiv2 refs) zipps children
+		(zipps, zipper) = evalZippedIfExprs zifs (getLabel tree)
+		childres = foldl (zipderiv2 refs) zipps (getChildren tree)
 	in thereturn refs ps zipper childres

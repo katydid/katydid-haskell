@@ -1,7 +1,6 @@
 module MapDeriv where
 
 import qualified Data.Map.Strict as DataMap
-import qualified Data.Tree as DataTree
 
 import Deriv
 import Patterns
@@ -46,13 +45,13 @@ type MemReturns = DataMap.Map ([Pattern], [Bool]) [Pattern]
 mderivReturns :: Refs -> MemReturns -> ([Pattern], [Bool]) -> (MemReturns, [Pattern])
 mderivReturns refs = get (derivReturns refs)
 
-mderiv :: Refs -> (Mem, [Pattern]) -> DataTree.Tree Label -> (Mem, [Pattern])
-mderiv refs (m, patterns) (DataTree.Node label children) =
+mderiv :: Tree t => Refs -> (Mem, [Pattern]) -> t -> (Mem, [Pattern])
+mderiv refs (m, patterns) tree =
 	if all unescapable patterns then (m, patterns) else
 	let	(mcalls', ifs) = mderivCalls refs (calls m) patterns
 		m' = m {calls = mcalls'}
-		childps = map (evalIf label) ifs
-		(m'', childres) = foldl (mderiv refs) (m', childps) children
+		childps = map (evalIf (getLabel tree)) ifs
+		(m'', childres) = foldl (mderiv refs) (m', childps) (getChildren tree)
 		(mnulls, childns) = mnullables refs (nullables m'') childres
 		m''' = m { nullables = mnulls }
 		(mreturns, res) = mderivReturns refs ( returns m ) (patterns, childns)
