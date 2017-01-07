@@ -19,16 +19,6 @@ data Pattern
 	| Reference String
 	deriving (Eq, Ord, Show)
 
-newtype Refs = Refs (DataMap.Map String Pattern)
-
-lookupRef :: Refs -> String -> Pattern
-lookupRef (Refs m) name = m DataMap.! name
-
-reverseLookupRef :: Pattern -> Refs -> Maybe String
-reverseLookupRef p (Refs m) = case DataMap.keys $ DataMap.filter (== p) m of
-	[]  	-> Nothing
-	(k:ks) 	-> Just k
-
 nullable :: Refs -> Pattern -> Bool
 nullable refs Empty = True
 nullable refs ZAny = True
@@ -49,3 +39,20 @@ unescapable :: Pattern -> Bool
 unescapable ZAny = True
 unescapable (Not ZAny) = True
 unescapable _ = False
+
+newtype Refs = Refs (DataMap.Map String Pattern)
+
+lookupRef :: Refs -> String -> Pattern
+lookupRef (Refs m) name = m DataMap.! name
+
+reverseLookupRef :: Pattern -> Refs -> Maybe String
+reverseLookupRef p (Refs m) = case DataMap.keys $ DataMap.filter (== p) m of
+	[]  	-> Nothing
+	(k:ks) 	-> Just k
+
+newRef :: String -> Pattern -> Refs
+newRef key value = Refs $ DataMap.singleton key value
+
+union :: Refs -> Refs -> Refs
+union (Refs m1) (Refs m2) = Refs $ DataMap.union m1 m2 
+
