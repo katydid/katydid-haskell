@@ -103,6 +103,12 @@ data Expr
 	| UintExpr UintExpr 
 	| StringExpr StringExpr
 	| BytesExpr BytesExpr
+	| BoolListExpr [BoolExpr]
+	| DoubleListExpr [DoubleExpr]
+	| IntListExpr [IntExpr]
+	| UintListExpr [UintExpr]
+	| StringListExpr [StringExpr]
+	| BytesListExpr [BytesExpr]
 	deriving Show
 
 uBoolExpr :: [(String, JSValue)] -> BoolExpr
@@ -165,7 +171,20 @@ uVariable [("Type", JSRational _ 109)] = StringExpr StringVariable
 uVariable [("Type", JSRational _ 112)] = BytesExpr BytesVariable
 
 uList :: [(String, JSValue)] -> Expr
-uList = error "todo"
+uList kvs = case getInt kvs "Type" of
+	101 -> DoubleListExpr $ map uDoubleExpr (getArrayOfObjects kvs "Elems")
+	103 -> IntListExpr $ map uIntExpr (getArrayOfObjects kvs "Elems")
+	104 -> UintListExpr $ map uUintExpr (getArrayOfObjects kvs "Elems")
+	108 -> BoolListExpr $ map uBoolExpr (getArrayOfObjects kvs "Elems")
+	109 -> StringListExpr $ map uStringExpr (getArrayOfObjects kvs "Elems")
+	112 -> BytesListExpr $ map uBytesExpr (getArrayOfObjects kvs "Elems")
+
+	201 -> DoubleListExpr $ map uDoubleExpr (getArrayOfObjects kvs "Elems")
+	203 -> IntListExpr $ map uIntExpr (getArrayOfObjects kvs "Elems")
+	204 -> UintListExpr $ map uUintExpr (getArrayOfObjects kvs "Elems")
+	208 -> BoolListExpr $ map uBoolExpr (getArrayOfObjects kvs "Elems")
+	209 -> StringListExpr $ map uStringExpr (getArrayOfObjects kvs "Elems")
+	212 -> BytesListExpr $ map uBytesExpr (getArrayOfObjects kvs "Elems")
 
 uFunction :: [(String, JSValue)] -> Expr
 uFunction kvs = newFunction (getString kvs "Name") (map uExprs (getArrayOfObjects kvs "Params"))
@@ -202,6 +221,12 @@ getString pairs name = let v = getField pairs name in
 	case v of
 	(JSString s) -> fromJSString s
 	otherwise -> error $ name ++ " is not a JSString, but a " ++ show v
+
+getInt :: [(String, JSValue)] -> String -> Int
+getInt pairs name = let v = getField pairs name in 
+	case v of
+	(JSRational _ n) -> truncate n
+	otherwise -> error $ name ++ " is not a JSRational, but a " ++ show v
 
 getArrayOfObjects :: [(String, JSValue)] -> String -> [[(String, JSValue)]]
 getArrayOfObjects pairs name = let v = getField pairs name in 
