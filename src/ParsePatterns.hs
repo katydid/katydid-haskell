@@ -96,23 +96,6 @@ uNameExcept kvs = NotFunc (uNameExpr $ getObject kvs "Except")
 uNameChoice :: [(String, JSValue)] -> BoolExpr
 uNameChoice kvs = OrFunc (uNameExpr $ getObject kvs "Left") (uNameExpr $ getObject kvs "Right")
 
-uBoolExpr :: [(String, JSValue)] -> BoolExpr
-uBoolExpr kvs = let e = uExprs kvs in case e of
-	(BoolExpr b) -> b
-	otherwise -> error $ "not a bool expr, but a " ++ show e
-
-uExprs :: [(String, JSValue)] -> Expr
-uExprs kvs = uExpr $ head $ filter (\(k,v) -> k /= "RightArrow" && k /= "Comma") kvs 
-
-uExpr :: (String, JSValue) -> Expr
-uExpr ("Terminal", (JSObject o)) = uTerminal $ fromJSObject o
-uExpr ("List", (JSObject o)) = uList $ fromJSObject o
-uExpr ("Function", (JSObject o)) = uFunction $ fromJSObject o
-uExpr ("BuiltIn", (JSObject o)) = uBuiltIn $ fromJSObject o
-
-uTerminal :: [(String, JSValue)] -> Expr
-uTerminal kvs = uTerminal' $ head $ filter (\(k,v) -> k /= "Before" && k /= "Literal") kvs
-
 data Expr 
 	= BoolExpr BoolExpr
 	| DoubleExpr DoubleExpr
@@ -122,8 +105,64 @@ data Expr
 	| BytesExpr BytesExpr
 	deriving Show
 
-uTerminal' :: (String, JSValue) -> Expr
-uTerminal' ("DoubleValue", JSRational _ n) = error "todo"
+uBoolExpr :: [(String, JSValue)] -> BoolExpr
+uBoolExpr kvs = let e = uExprs kvs in case e of
+	(BoolExpr v) -> v
+	otherwise -> error $ "not a BoolExpr, but a " ++ show e
+
+uDoubleExpr :: [(String, JSValue)] -> DoubleExpr
+uDoubleExpr kvs = let e = uExprs kvs in case e of
+	(DoubleExpr v) -> v
+	otherwise -> error $ "not a DoubleExpr, but a " ++ show e
+
+uIntExpr :: [(String, JSValue)] -> IntExpr
+uIntExpr kvs = let e = uExprs kvs in case e of
+	(IntExpr v) -> v
+	otherwise -> error $ "not a IntExpr, but a " ++ show e
+
+uUintExpr :: [(String, JSValue)] -> UintExpr
+uUintExpr kvs = let e = uExprs kvs in case e of
+	(UintExpr v) -> v
+	otherwise -> error $ "not a UintExpr, but a " ++ show e
+
+uStringExpr :: [(String, JSValue)] -> StringExpr
+uStringExpr kvs = let e = uExprs kvs in case e of
+	(StringExpr v) -> v
+	otherwise -> error $ "not a StringExpr, but a " ++ show e
+
+uBytesExpr :: [(String, JSValue)] -> BytesExpr
+uBytesExpr kvs = let e = uExprs kvs in case e of
+	(BytesExpr v) -> v
+	otherwise -> error $ "not a BytesExpr, but a " ++ show e
+
+uExprs :: [(String, JSValue)] -> Expr
+uExprs kvs = uExpr $ head $ filter (\(k,v) -> k /= "RightArrow" && k /= "Comma") kvs 
+
+uExpr :: (String, JSValue) -> Expr
+uExpr ("Terminal", (JSObject o)) = uTerminals $ fromJSObject o
+uExpr ("List", (JSObject o)) = uList $ fromJSObject o
+uExpr ("Function", (JSObject o)) = uFunction $ fromJSObject o
+uExpr ("BuiltIn", (JSObject o)) = uBuiltIn $ fromJSObject o
+
+uTerminals :: [(String, JSValue)] -> Expr
+uTerminals kvs = uTerminal $ head $ filter (\(k,v) -> k /= "Before" && k /= "Literal") kvs
+
+uTerminal :: (String, JSValue) -> Expr
+uTerminal ("DoubleValue", JSRational _ n) = DoubleExpr (DoubleConst n)
+uTerminal ("IntValue", JSRational _ n) = IntExpr (IntConst $ truncate n)
+uTerminal ("UintValue", JSRational _ n) = UintExpr (UintConst $ truncate n)
+uTerminal ("BoolValue", JSBool b) = BoolExpr (BoolConst b)
+uTerminal ("StringValue", JSString s) = StringExpr (StringConst $ fromJSString s)
+uTerminal ("BytesValue", JSString s) = BytesExpr (BytesConst $ fromJSString s)
+uTerminal ("Variable", JSObject o) = uVariable $ (fromJSObject o)
+
+uVariable :: [(String, JSValue)] -> Expr
+uVariable [("Type", JSRational _ 101)] = DoubleExpr DoubleVariable
+uVariable [("Type", JSRational _ 103)] = IntExpr IntVariable
+uVariable [("Type", JSRational _ 104)] = UintExpr UintVariable
+uVariable [("Type", JSRational _ 108)] = BoolExpr BoolVariable
+uVariable [("Type", JSRational _ 109)] = StringExpr StringVariable
+uVariable [("Type", JSRational _ 112)] = BytesExpr BytesVariable
 
 uList :: [(String, JSValue)] -> Expr
 uList = error "todo"
