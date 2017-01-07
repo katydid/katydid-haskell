@@ -9,8 +9,7 @@ import Parsers
 type IfExpr = (BoolExpr, Pattern, Pattern)
 
 evalIf :: Label -> IfExpr -> Pattern
-evalIf v (value, thn, els) = 
-	if eval value v then thn else els
+evalIf v (value, thn, els) = if eval value v then thn else els
 
 data IfExprs
 	= Cond {
@@ -26,7 +25,7 @@ compileIfExprs refs (e:es) = addIfExpr (simplifyIf refs e) (compileIfExprs refs 
 
 evalIfExprs :: IfExprs -> Label -> [Pattern]
 evalIfExprs (Ret ps) _ = ps
-evalIfExprs (Cond c t e) v 
+evalIfExprs (Cond c t e) v
 	| eval c v  = evalIfExprs t v
 	| otherwise = evalIfExprs e v
 

@@ -83,12 +83,12 @@ uName :: [(String, JSValue)] -> BoolExpr
 uName kvs = uName' $ head $ filter (\(k,v) -> (k /= "Before")) kvs
 
 uName' :: (String, JSValue) -> BoolExpr
-uName' ("DoubleValue", (JSRational _ num)) = EqualFunc $ Number num
-uName' ("IntValue", (JSRational _ num)) = EqualFunc $ Number num
-uName' ("UintValue", (JSRational _ num)) = EqualFunc $ Number num
-uName' ("BoolValue", (JSBool b)) = EqualFunc $ Bool b
-uName' ("StringValue", (JSString s)) = EqualFunc $ String $ fromJSString s
-uName' ("BytesValue", (JSString s)) = EqualFunc $ String $ fromJSString s
+uName' ("DoubleValue", (JSRational _ num)) = DoubleEqualFunc (DoubleConst num) DoubleVariable
+uName' ("IntValue", (JSRational _ num)) = IntEqualFunc (IntConst $ truncate num) IntVariable
+uName' ("UintValue", (JSRational _ num)) = UintEqualFunc (UintConst $ truncate num) UintVariable
+uName' ("BoolValue", (JSBool b)) = BoolEqualFunc (BoolConst b) BoolVariable
+uName' ("StringValue", (JSString s)) = StringEqualFunc (StringConst $ fromJSString s) StringVariable
+uName' ("BytesValue", (JSString s)) = BytesEqualFunc (BytesConst $ fromJSString s) BytesVariable
 
 uNameExcept :: [(String, JSValue)] -> BoolExpr
 uNameExcept kvs = NotFunc (uNameExpr $ getObject kvs "Except")
