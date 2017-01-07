@@ -310,6 +310,56 @@ evalBool (UintLessThanFunc e1 e2) v = do {
 	return $ v1 < v2
 }
 
+evalBool (BoolNotEqualFunc e1 e2) v = do {
+	v1 <- evalBool e1 v;
+	v2 <- evalBool e2 v;
+	return $ v1 /= v2
+}
+evalBool (DoubleNotEqualFunc e1 e2) v = do {
+	v1 <- evalDouble e1 v;
+	v2 <- evalDouble e2 v;
+	return $ v1 /= v2
+}
+evalBool (IntNotEqualFunc e1 e2) v = do {
+	v1 <- evalInt e1 v;
+	v2 <- evalInt e2 v;
+	return $ v1 /= v2
+}
+evalBool (UintNotEqualFunc e1 e2) v = do {
+	v1 <- evalUint e1 v;
+	v2 <- evalUint e2 v;
+	return $ v1 /= v2
+}
+evalBool (StringNotEqualFunc e1 e2) v = do {
+	v1 <- evalString e1 v;
+	v2 <- evalString e2 v;
+	return $ v1 /= v2
+}
+evalBool (BytesNotEqualFunc e1 e2) v = do {
+	v1 <- evalBytes e1 v;
+	v2 <- evalBytes e2 v;
+	return $ v1 /= v2
+}
+
+evalBool (BytesTypeFunc e) v = case evalBytes e v of
+	(Value _) -> Value True
+	(Err _) -> Value False
+evalBool (BoolTypeFunc e) v = case evalBool e v of
+	(Value _) -> Value True
+	(Err _) -> Value False
+evalBool (DoubleTypeFunc e) v = case evalDouble e v of
+	(Value _) -> Value True
+	(Err _) -> Value False
+evalBool (IntTypeFunc e) v = case evalInt e v of
+	(Value _) -> Value True
+	(Err _) -> Value False
+evalBool (UintTypeFunc e) v = case evalUint e v of
+	(Value _) -> Value True
+	(Err _) -> Value False
+evalBool (StringTypeFunc e) v = case evalString e v of
+	(Value _) -> Value True
+	(Err _) -> Value False
+
 evalDouble :: DoubleExpr -> Label -> Value Rational
 evalDouble = error "todo"
 
