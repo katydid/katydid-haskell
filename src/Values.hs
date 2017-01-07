@@ -1,6 +1,6 @@
 module Values where
 
-import Data.List (isInfixOf)
+import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 
 import Parsers
 
@@ -209,13 +209,114 @@ evalBool (StringContainsFunc s sub) v = do {
 	return $ isInfixOf sub' s'
 }
 
+evalBool (BoolListElemFunc es i) v = do {
+	i' <- evalInt i v;
+	es' <- mapM ((flip evalBool) v) es;
+	return $ es' !! i'
+}
+
+evalBool (BytesGreaterOrEqualFunc e1 e2) v = do {
+	v1 <- evalBytes e1 v;
+	v2 <- evalBytes e2 v;
+	return $ v1 >= v2
+}
+evalBool (DoubleGreaterOrEqualFunc e1 e2) v = do {
+	v1 <- evalDouble e1 v;
+	v2 <- evalDouble e2 v;
+	return $ v1 >= v2
+}
+evalBool (IntGreaterOrEqualFunc e1 e2) v = do {
+	v1 <- evalInt e1 v;
+	v2 <- evalInt e2 v;
+	return $ v1 >= v2
+}
+evalBool (UintGreaterOrEqualFunc e1 e2) v = do {
+	v1 <- evalUint e1 v;
+	v2 <- evalUint e2 v;
+	return $ v1 >= v2
+}
+
+evalBool (BytesGreaterThanFunc e1 e2) v = do {
+	v1 <- evalBytes e1 v;
+	v2 <- evalBytes e2 v;
+	return $ v1 > v2
+}
+evalBool (DoubleGreaterThanFunc e1 e2) v = do {
+	v1 <- evalDouble e1 v;
+	v2 <- evalDouble e2 v;
+	return $ v1 > v2
+}
+evalBool (IntGreaterThanFunc e1 e2) v = do {
+	v1 <- evalInt e1 v;
+	v2 <- evalInt e2 v;
+	return $ v1 > v2
+}
+evalBool (UintGreaterThanFunc e1 e2) v = do {
+	v1 <- evalUint e1 v;
+	v2 <- evalUint e2 v;
+	return $ v1 > v2
+}
+
+evalBool (StringHasPrefixFunc e1 e2) v = do {
+	v1 <- evalString e1 v;
+	v2 <- evalString e2 v;
+	return $ isPrefixOf v2 v1
+}
+evalBool (StringHasSuffixFunc e1 e2) v = do {
+	v1 <- evalString e1 v;
+	v2 <- evalString e2 v;
+	return $ isSuffixOf v2 v1
+}
+
+evalBool (BytesLessOrEqualFunc e1 e2) v = do {
+	v1 <- evalBytes e1 v;
+	v2 <- evalBytes e2 v;
+	return $ v1 <= v2
+}
+evalBool (DoubleLessOrEqualFunc e1 e2) v = do {
+	v1 <- evalDouble e1 v;
+	v2 <- evalDouble e2 v;
+	return $ v1 <= v2
+}
+evalBool (IntLessOrEqualFunc e1 e2) v = do {
+	v1 <- evalInt e1 v;
+	v2 <- evalInt e2 v;
+	return $ v1 <= v2
+}
+evalBool (UintLessOrEqualFunc e1 e2) v = do {
+	v1 <- evalUint e1 v;
+	v2 <- evalUint e2 v;
+	return $ v1 <= v2
+}
+
+evalBool (BytesLessThanFunc e1 e2) v = do {
+	v1 <- evalBytes e1 v;
+	v2 <- evalBytes e2 v;
+	return $ v1 < v2
+}
+evalBool (DoubleLessThanFunc e1 e2) v = do {
+	v1 <- evalDouble e1 v;
+	v2 <- evalDouble e2 v;
+	return $ v1 < v2
+}
+evalBool (IntLessThanFunc e1 e2) v = do {
+	v1 <- evalInt e1 v;
+	v2 <- evalInt e2 v;
+	return $ v1 < v2
+}
+evalBool (UintLessThanFunc e1 e2) v = do {
+	v1 <- evalUint e1 v;
+	v2 <- evalUint e2 v;
+	return $ v1 < v2
+}
+
 evalDouble :: DoubleExpr -> Label -> Value Rational
 evalDouble = error "todo"
 
-evalInt :: IntExpr -> Label -> Value Rational
+evalInt :: IntExpr -> Label -> Value Int
 evalInt = error "todo"
 
-evalUint :: UintExpr -> Label -> Value Rational
+evalUint :: UintExpr -> Label -> Value Int
 evalUint = error "todo"
 
 evalString :: StringExpr -> Label -> Value String
