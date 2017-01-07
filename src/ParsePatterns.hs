@@ -75,7 +75,7 @@ uInterleave kvs = Interleave (uPattern $ getObject kvs "LeftPattern") (uPattern 
 
 uNameExpr :: [(String, JSValue)] -> BoolExpr
 uNameExpr [("Name", JSObject o)] = uName (fromJSObject o)
-uNameExpr [("AnyName", JSObject o)] = AnyValue
+uNameExpr [("AnyName", JSObject o)] = (BoolConst True)
 uNameExpr [("AnyNameExcept", JSObject o)] = uNameExcept (fromJSObject o)
 uNameExpr [("NameChoice", JSObject o)] = uNameChoice (fromJSObject o)
 
