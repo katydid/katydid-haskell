@@ -91,10 +91,10 @@ uName' ("StringValue", (JSString s)) = EqualFunc $ String $ fromJSString s
 uName' ("BytesValue", (JSString s)) = EqualFunc $ String $ fromJSString s
 
 uNameExcept :: [(String, JSValue)] -> BoolExpr
-uNameExcept kvs = NotValue (uNameExpr $ getObject kvs "Except")
+uNameExcept kvs = NotFunc (uNameExpr $ getObject kvs "Except")
 
 uNameChoice :: [(String, JSValue)] -> BoolExpr
-uNameChoice kvs = OrValue (uNameExpr $ getObject kvs "Left") (uNameExpr $ getObject kvs "Right")
+uNameChoice kvs = OrFunc (uNameExpr $ getObject kvs "Left") (uNameExpr $ getObject kvs "Right")
 
 uExpr :: [(String, JSValue)] -> BoolExpr
 uExpr kvs = uExpr' $ head $ filter (\(k,v) -> k /= "RightArrow" && k /= "Comma") kvs

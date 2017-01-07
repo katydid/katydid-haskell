@@ -42,8 +42,8 @@ addIfExpr (c, t, e) (Ret ps) =
 	Cond c (Ret (t:ps)) (Ret (e:ps))
 addIfExpr (c, t, e) (Cond cs ts es)
 	| c == cs = Cond cs (addRet t ts) (addRet e es)
-	| (BoolConst False) == (simplifyValue (AndValue c cs)) = Cond cs (addRet e ts) (addIfExpr (c, t, e) es)
-	| (BoolConst False) == (simplifyValue (AndValue (NotValue c) cs)) = Cond cs (addIfExpr (c, t, e) ts) (addRet t es)
+	| (BoolConst False) == (simplifyValue (AndFunc c cs)) = Cond cs (addRet e ts) (addIfExpr (c, t, e) es)
+	| (BoolConst False) == (simplifyValue (AndFunc (NotFunc c) cs)) = Cond cs (addIfExpr (c, t, e) ts) (addRet t es)
 	| otherwise = Cond cs (addIfExpr (c, t, e) ts) (addIfExpr (c, t, e) es)
 
 addRet :: Pattern -> IfExprs -> IfExprs
