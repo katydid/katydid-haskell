@@ -21,31 +21,38 @@ data BoolExpr
 	| StringListContainsFunc StringExpr [StringExpr]
 	| UintListContainsFunc UintExpr [UintExpr]
 	| StringContainsFunc StringExpr StringExpr
+
+	| BoolListElemFunc [BoolExpr] IntExpr
 	deriving (Eq, Ord, Show)
 
 data DoubleExpr
 	= DoubleConst Rational
 	| DoubleVariable
+	| DoubleListElemFunc [DoubleExpr] IntExpr
 	deriving (Eq, Ord, Show)
 
 data IntExpr
 	= IntConst Int
 	| IntVariable
+	| IntListElemFunc [IntExpr] IntExpr
 	deriving (Eq, Ord, Show)
 
 data UintExpr
  	= UintConst Int
  	| UintVariable
+ 	| UintListElemFunc [UintExpr] IntExpr
  	deriving (Eq, Ord, Show)
 
 data StringExpr
 	= StringConst String
 	| StringVariable
+	| StringListElemFunc [StringExpr] IntExpr
 	deriving (Eq, Ord, Show)
 
 data BytesExpr
 	= BytesConst String
 	| BytesVariable
+	| BytesListElemFunc [BytesExpr] IntExpr
 	deriving (Eq, Ord, Show)
 
 data Value a = Err String

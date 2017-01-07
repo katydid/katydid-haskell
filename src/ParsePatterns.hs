@@ -194,6 +194,13 @@ newFunction "contains" [IntExpr i,IntListExpr is] = BoolExpr $ IntListContainsFu
 newFunction "contains" [StringExpr s, StringListExpr ss] = BoolExpr $ StringListContainsFunc s ss
 newFunction "contains" [UintExpr u, UintListExpr us] = BoolExpr $ UintListContainsFunc u us
 newFunction "contains" [StringExpr s, StringExpr ss] = BoolExpr $ StringContainsFunc s ss
+newFunction "elem" [BytesListExpr es, IntExpr i] = BytesExpr $ BytesListElemFunc es i
+newFunction "elem" [BoolListExpr es, IntExpr i] = BoolExpr $ BoolListElemFunc es i
+newFunction "elem" [DoubleListExpr es, IntExpr i] = DoubleExpr $ DoubleListElemFunc es i
+newFunction "elem" [IntListExpr es, IntExpr i] = IntExpr $ IntListElemFunc es i
+newFunction "elem" [StringListExpr es, IntExpr i] = StringExpr $ StringListElemFunc es i
+newFunction "elem" [UintListExpr es, IntExpr i] = UintExpr $ UintListElemFunc es i
+
 
 uBuiltIn :: [(String, JSValue)] -> Expr
 uBuiltIn kvs = newFunction (funcName (getString (getObject kvs "Symbol") "Value")) [uExprs $ getObject kvs "Expr"]
