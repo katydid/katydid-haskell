@@ -200,6 +200,14 @@ newFunction "elem" [DoubleListExpr es, IntExpr i] = DoubleExpr $ DoubleListElemF
 newFunction "elem" [IntListExpr es, IntExpr i] = IntExpr $ IntListElemFunc es i
 newFunction "elem" [StringListExpr es, IntExpr i] = StringExpr $ StringListElemFunc es i
 newFunction "elem" [UintListExpr es, IntExpr i] = UintExpr $ UintListElemFunc es i
+newFunction "eq" [BytesExpr v1, BytesExpr v2] = BoolExpr $ BytesEqualFunc v1 v2
+newFunction "eq" [BoolExpr v1, BoolExpr v2] = BoolExpr $ BoolEqualFunc v1 v2
+newFunction "eq" [DoubleExpr v1, DoubleExpr v2] = BoolExpr $ DoubleEqualFunc v1 v2
+newFunction "eq" [IntExpr v1, IntExpr v2] = BoolExpr $ IntEqualFunc v1 v2
+newFunction "eq" [StringExpr v1, StringExpr v2] = BoolExpr $ StringEqualFunc v1 v2
+newFunction "eq" [UintExpr v1, UintExpr v2] = BoolExpr $ UintEqualFunc v1 v2
+
+
 
 
 uBuiltIn :: [(String, JSValue)] -> Expr
