@@ -69,23 +69,26 @@ readTestCases = do {
     xmldirs <- ls $ path </> "xml";
     xmlTestCases <- mapM readXMLTest xmldirs;
     jsonTestCases <- mapM readJsonTest jsondirs;
-    return $ xmlTestCases ++ jsonTestCases
+    return $ jsonTestCases
 }
 
-testDeriv :: Tree t => Refs -> t -> Bool -> Bool
-testDeriv g t want = let got = all (nullable g) $ deriv g [(lookupRef g "main")] t
+testDeriv :: Tree t => String -> Refs -> t -> Bool -> Bool
+testDeriv name g t want = 
+    let top = (lookupRef g "main")
+        res = deriv g [top] t
+        got = all (nullable g) res
     in if want /= got then
-        error $ "want " ++ show want ++ " got " ++ show got
+        error $ name ++ ": want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show res ++ "\ninput derivative = " ++ show top
     else
         True
 
 testACase :: TestSuiteCase -> Bool
-testACase (TestSuiteCase name g (XMLData t) want) = testDeriv g t want
-testACase (TestSuiteCase name g (JsonData t) want) = testDeriv g t want
+testACase (TestSuiteCase name g (XMLData t) want) = testDeriv name g t want
+testACase (TestSuiteCase name g (JsonData t) want) = testDeriv name g t want
 
 main :: IO ()
 main = do {
     testSuiteCases <- readTestCases;
-    putStrLn $ show $ testACase $ head testSuiteCases;
+    putStrLn $ show $ map testACase testSuiteCases;
     return ()
 }

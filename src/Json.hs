@@ -25,8 +25,12 @@ uValue JSNull = []
 uValue (JSBool b) = [DataTree.Node (Bool b) []]
 uValue (JSRational _ r) = [DataTree.Node (Number r) []]
 uValue (JSString s) = [DataTree.Node (String (fromJSString s)) []]
-uValue (JSArray vs) = concatMap uValue vs
+uValue (JSArray vs) = uArray 0 vs
 uValue (JSObject o) = uObject $ fromJSObject o
+
+uArray :: Int -> [JSValue] -> [JsonTree]
+uArray index [] = []
+uArray index (v:vs) = (DataTree.Node (Number (toRational index)) (uValue v)):(uArray (index+1) vs)
 
 uObject :: [(String, JSValue)] -> [JsonTree]
 uObject keyValues = map uKeyValue keyValues

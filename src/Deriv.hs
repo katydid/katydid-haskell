@@ -14,8 +14,8 @@ derivCall _ Empty = []
 derivCall _ ZAny = []
 derivCall _ (Node v p) = [(v, p, Not ZAny)]
 derivCall refs (Concat l r) = if nullable refs l
-	then (derivCall refs l) ++ (derivCall refs r)
-	else derivCall refs l
+    then (derivCall refs l) ++ (derivCall refs r)
+    else derivCall refs l
 derivCall refs (Or l r) = (derivCall refs l) ++ (derivCall refs r)
 derivCall refs (And l r) = (derivCall refs l) ++ (derivCall refs r)
 derivCall refs (Interleave l r) = (derivCall refs l) ++ (derivCall refs r)
@@ -28,85 +28,85 @@ derivCall refs (Optional p) = derivCall refs p
 derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 derivReturns refs ([], []) = []
 derivReturns refs ((p:tailps), ns) =
-	let (dp, tailns) = derivReturn refs p ns
-	in  dp:(derivReturns refs (tailps, tailns))
+    let (dp, tailns) = derivReturn refs p ns
+    in  dp:(derivReturns refs (tailps, tailns))
 
 derivReturn :: Refs -> Pattern -> [Bool] -> (Pattern, [Bool])
 derivReturn refs Empty ns = (Not ZAny, ns)
 derivReturn refs ZAny ns = (ZAny, ns)
 derivReturn refs (Node v p) ns = if head ns 
-	then (Empty, tail ns)
-	else (Not ZAny, tail ns)
+    then (Empty, tail ns)
+    else (Not ZAny, tail ns)
 derivReturn refs (Concat l r) ns = 
-	let	(leftDeriv, leftTail) = derivReturn refs l ns
-		(rightDeriv, rightTail) = derivReturn refs r leftTail
-		leftConcat = Concat leftDeriv r
-	in if not $ nullable refs l
-	then (Or leftConcat rightDeriv, rightTail)
-	else (leftConcat, leftTail)
+    if nullable refs l
+    then    let (leftDeriv, leftTail) = derivReturn refs l ns
+                (rightDeriv, rightTail) = derivReturn refs r leftTail
+            in  (Or (Concat leftDeriv r) rightDeriv, rightTail)
+    else    let (leftDeriv, leftTail) = derivReturn refs l ns
+            in  (Concat leftDeriv r, leftTail)
 derivReturn refs (Or l r) ns = 
-	let	(leftDeriv, leftTail) = derivReturn refs l ns
-		(rightDeriv, rightTail) = derivReturn refs r leftTail
-	in (Or leftDeriv rightDeriv, rightTail)
+    let (leftDeriv, leftTail) = derivReturn refs l ns
+        (rightDeriv, rightTail) = derivReturn refs r leftTail
+    in (Or leftDeriv rightDeriv, rightTail)
 derivReturn refs (And l r) ns = 
-	let	(leftDeriv, leftTail) = derivReturn refs l ns
-		(rightDeriv, rightTail) = derivReturn refs r leftTail
-	in (And leftDeriv rightDeriv, rightTail)
+    let (leftDeriv, leftTail) = derivReturn refs l ns
+        (rightDeriv, rightTail) = derivReturn refs r leftTail
+    in (And leftDeriv rightDeriv, rightTail)
 derivReturn refs (Interleave l r) ns = 
-	let	(leftDeriv, leftTail) = derivReturn refs l ns
-		(rightDeriv, rightTail) = derivReturn refs r leftTail
-	in (Or (Interleave leftDeriv r) (Interleave rightDeriv l), rightTail)
+    let (leftDeriv, leftTail) = derivReturn refs l ns
+        (rightDeriv, rightTail) = derivReturn refs r leftTail
+    in (Or (Interleave leftDeriv r) (Interleave rightDeriv l), rightTail)
 derivReturn refs (ZeroOrMore p) ns = 
-	let	(derivp, tailns) = derivReturn refs p ns
-	in  (Concat derivp p, tailns)
+    let (derivp, tailns) = derivReturn refs p ns
+    in  (Concat derivp p, tailns)
 derivReturn refs (Reference name) ns = derivReturn refs (lookupRef refs name) ns
 derivReturn refs (Not p) ns =
-	let (derivp, tailns) = derivReturn refs p ns
-	in  (Not derivp, tailns)
+    let (derivp, tailns) = derivReturn refs p ns
+    in  (Not derivp, tailns)
 derivReturn refs (Contains p) ns =
-	let (derivp, tailns) = derivReturn refs p ns
-	in  (Contains derivp, tailns)
+    let (derivp, tailns) = derivReturn refs p ns
+    in  (Contains derivp, tailns)
 derivReturn refs (Optional p) ns =
-	let (derivp, tailns) = derivReturn refs p ns
-	in  (Optional derivp, tailns)
+    let (derivp, tailns) = derivReturn refs p ns
+    in  (Optional derivp, tailns)
 
 deriv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
 deriv refs ps tree =
-	if all unescapable ps then ps else
-	let	ifs = derivCalls refs ps
-		childps = map (evalIf (getLabel tree)) ifs
-		childres = foldl (deriv refs) childps (getChildren tree)
-		childns = map (nullable refs) childres
-	in derivReturns refs (ps, childns)
+    if all unescapable ps then ps else
+    let ifs = derivCalls refs ps
+        childps = map (evalIf (getLabel tree)) ifs
+        childres = foldl (deriv refs) childps (getChildren tree)
+        childns = map (nullable refs) childres
+    in derivReturns refs (ps, childns)
 
 zipderiv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
 zipderiv refs ps tree =
-	if all unescapable ps then ps else
-	let	ifs = derivCalls refs ps
-		compIfs = (compileIfExprs refs ifs)
-		childps = evalIfExprs compIfs (getLabel tree)
-		(zipps, zipper) = zippy childps
-		childres = foldl (zipderiv refs) zipps (getChildren tree)
-		childns = map (nullable refs) childres
-		unzipns = unzipby zipper childns
-	in derivReturns refs (ps, unzipns)
+    if all unescapable ps then ps else
+    let ifs = derivCalls refs ps
+        compIfs = (compileIfExprs refs ifs)
+        childps = evalIfExprs compIfs (getLabel tree)
+        (zipps, zipper) = zippy childps
+        childres = foldl (zipderiv refs) zipps (getChildren tree)
+        childns = map (nullable refs) childres
+        unzipns = unzipby zipper childns
+    in derivReturns refs (ps, unzipns)
 
 precall :: Refs -> [Pattern] -> ZippedIfExprs
 precall refs current = 
-	let	ifs = derivCalls refs current
-		compIfs = (compileIfExprs refs ifs)
-	in  zipIfExprs compIfs
+    let ifs = derivCalls refs current
+        compIfs = (compileIfExprs refs ifs)
+    in  zipIfExprs compIfs
 
 thereturn :: Refs -> [Pattern] -> Zipper -> [Pattern] -> [Pattern]
 thereturn refs current zipper childres =
-	let	childns = map (nullable refs) childres
-		unzipns = unzipby zipper childns
-	in derivReturns refs (current, unzipns)
+    let childns = map (nullable refs) childres
+        unzipns = unzipby zipper childns
+    in derivReturns refs (current, unzipns)
 
 zipderiv2 :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
 zipderiv2 refs ps tree =
-	if all unescapable ps then ps else
-	let	zifs = precall refs ps
-		(zipps, zipper) = evalZippedIfExprs zifs (getLabel tree)
-		childres = foldl (zipderiv2 refs) zipps (getChildren tree)
-	in thereturn refs ps zipper childres
+    if all unescapable ps then ps else
+    let zifs = precall refs ps
+        (zipps, zipper) = evalZippedIfExprs zifs (getLabel tree)
+        childres = foldl (zipderiv2 refs) zipps (getChildren tree)
+    in thereturn refs ps zipper childres
