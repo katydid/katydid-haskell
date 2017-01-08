@@ -146,7 +146,7 @@ evalBool :: BoolExpr -> Label -> Value Bool
 
 evalBool (BoolConst b) _ = Value b
 evalBool BoolVariable (Bool b) = Value b
-evalBool BoolVariable _ = Err "not a bool"
+evalBool BoolVariable l = Err $ "not a bool, but " ++ show l
 
 evalBool (OrFunc e1 e2) v = do {
 	b1 <- evalBool e1 v;
@@ -369,7 +369,7 @@ evalBool (StringTypeFunc e) v = case evalString e v of
 evalDouble :: DoubleExpr -> Label -> Value Rational
 evalDouble (DoubleConst r) _ = Value r
 evalDouble DoubleVariable (Number r) = Value r
-evalDouble DoubleVariable _ = Err "not a double"
+evalDouble DoubleVariable l = Err $ "not a double, but " ++ show l
 
 evalDouble (DoubleListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -380,7 +380,7 @@ evalDouble (DoubleListElemFunc es i) v = do {
 evalInt :: IntExpr -> Label -> Value Int
 evalInt (IntConst i) _ = Value i
 evalInt IntVariable (Number r) = Value (truncate r)
-evalInt IntVariable _ = Err "not an int"
+evalInt IntVariable l = Err $ "not an int, but " ++ show l
 
 evalInt (IntListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -424,7 +424,7 @@ evalInt (StringLengthFunc e) v = do {
 evalUint :: UintExpr -> Label -> Value Int
 evalUint (UintConst i) _ = Value i
 evalUint UintVariable (Number r) = Value (truncate r)
-evalUint UintVariable _ = Err "not an uint"
+evalUint UintVariable l = Err $ "not a uint, but " ++ show l
 
 evalUint (UintListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -435,7 +435,7 @@ evalUint (UintListElemFunc es i) v = do {
 evalString :: StringExpr -> Label -> Value String
 evalString (StringConst i) _ = Value i
 evalString StringVariable (String s) = Value s
-evalString StringVariable _ = Err "not a string"
+evalString StringVariable l = Err $ "not a string, but " ++ show l
 
 evalString (StringListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -455,7 +455,7 @@ evalString (StringToUpperFunc s) v = do {
 evalBytes :: BytesExpr -> Label -> Value String
 evalBytes (BytesConst u) _ = Value u
 evalBytes BytesVariable (String s) = Value s
-evalBytes BytesVariable _ = Err "not bytes"
+evalBytes BytesVariable l = Err $ "not bytes, but " ++ show l
 
 evalBytes (BytesListElemFunc es i) v = do {
 	i' <- evalInt i v;

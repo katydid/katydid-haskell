@@ -2,6 +2,8 @@
 
 module Main where
 
+import qualified Test.HUnit as HUnit
+
 import System.Directory (getCurrentDirectory, listDirectory)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
@@ -72,7 +74,7 @@ readTestCases = do {
     return $ jsonTestCases
 }
 
-testDeriv :: Tree t => String -> Refs -> t -> Bool -> Bool
+testDeriv :: Tree t => String -> Refs -> t -> Bool -> IO ()
 testDeriv name g t want = 
     let top = (lookupRef g "main")
         res = deriv g [top] t
@@ -80,15 +82,24 @@ testDeriv name g t want =
     in if want /= got then
         error $ name ++ ": want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show res ++ "\ninput derivative = " ++ show top
     else
-        True
+        return ()
 
-testACase :: TestSuiteCase -> Bool
+testACase :: TestSuiteCase -> IO ()
 testACase (TestSuiteCase name g (XMLData t) want) = testDeriv name g t want
 testACase (TestSuiteCase name g (JsonData t) want) = testDeriv name g t want
+
+newTestCaseList :: [TestSuiteCase] -> HUnit.Test
+newTestCaseList suite = HUnit.TestList $ map newTestCase suite
+
+newTestCase :: TestSuiteCase -> HUnit.Test
+newTestCase (TestSuiteCase name g (XMLData t) want) = HUnit.TestLabel name $ HUnit.TestCase $ testDeriv name g t want
+newTestCase (TestSuiteCase name g (JsonData t) want) = HUnit.TestLabel name $ HUnit.TestCase $ testDeriv name g t want
 
 main :: IO ()
 main = do {
     testSuiteCases <- readTestCases;
-    putStrLn $ show $ map testACase testSuiteCases;
+    -- mapM testACase testSuiteCases;
+    counts <- HUnit.runTestTT $ newTestCaseList testSuiteCases;
+    putStrLn $ show counts;
     return ()
 }
