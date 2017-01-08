@@ -6,8 +6,8 @@ import Parsers
 import Patterns
 import Values
 
-decodeJSON :: String -> Refs
-decodeJSON s = unmarshal $ decode s
+fromJson :: String -> Refs
+fromJson s = unmarshal $ decode s
 
 unmarshal :: Result JSValue -> Refs
 unmarshal (Error s) = error s
@@ -15,11 +15,14 @@ unmarshal (Ok (JSObject o)) = uRefs $ fromJSObject o
 unmarshal (Ok j) = error $ "unexpected jsvalue = " ++ show j
 
 uRefs :: [(String, JSValue)] -> Refs
+uRefs [] = emptyRef
 uRefs (("TopPattern", (JSObject pattern)):pairs) = newRef "main" (uPattern (fromJSObject pattern)) `union` uRefs pairs
 uRefs (("PatternDecls", (JSArray patternDecls)):pairs) = uPatternDecls patternDecls `union` uRefs pairs
 uRefs (_:pairs) = uRefs pairs
 
+
 uPatternDecls :: [JSValue] -> Refs
+uPatternDecls [] = emptyRef
 uPatternDecls ((JSObject o):patternDecls) = uPatternDecl (fromJSObject o) `union` uPatternDecls patternDecls
 
 uPatternDecl :: [(String, JSValue)] -> Refs
@@ -270,8 +273,22 @@ newFunction "type" [IntExpr b] = BoolExpr $ IntTypeFunc b
 newFunction "type" [UintExpr b] = BoolExpr $ UintTypeFunc b
 newFunction "type" [StringExpr b] = BoolExpr $ StringTypeFunc b
 
+newFunction s t = error $ "unknown function: " ++ s ++ " for types: " ++ show t
+
 uBuiltIn :: [(String, JSValue)] -> Expr
-uBuiltIn kvs = newFunction (funcName (getString (getObject kvs "Symbol") "Value")) [uExprs $ getObject kvs "Expr"]
+uBuiltIn kvs = let
+	varExpr = uExprs $ getObject kvs "Expr"
+	constExpr = constToVar varExpr
+	name = funcName (getString (getObject kvs "Symbol") "Value")
+	in newFunction name [constExpr, varExpr]
+
+constToVar :: Expr -> Expr
+constToVar (BoolExpr (BoolConst _)) = BoolExpr BoolVariable
+constToVar (DoubleExpr (DoubleConst _)) = DoubleExpr DoubleVariable
+constToVar (IntExpr (IntConst _)) = IntExpr IntVariable
+constToVar (UintExpr (UintConst _)) = UintExpr UintVariable
+constToVar (BytesExpr (BytesConst _)) = BytesExpr BytesVariable
+constToVar (StringExpr (StringConst _)) = StringExpr StringVariable
 
 funcName :: String -> String
 funcName "==" = "eq"

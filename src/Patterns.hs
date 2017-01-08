@@ -41,6 +41,7 @@ unescapable (Not ZAny) = True
 unescapable _ = False
 
 newtype Refs = Refs (DataMap.Map String Pattern)
+	deriving Show
 
 lookupRef :: Refs -> String -> Pattern
 lookupRef (Refs m) name = m DataMap.! name
@@ -52,6 +53,9 @@ reverseLookupRef p (Refs m) = case DataMap.keys $ DataMap.filter (== p) m of
 
 newRef :: String -> Pattern -> Refs
 newRef key value = Refs $ DataMap.singleton key value
+
+emptyRef :: Refs
+emptyRef = Refs DataMap.empty
 
 union :: Refs -> Refs -> Refs
 union (Refs m1) (Refs m2) = Refs $ DataMap.union m1 m2 

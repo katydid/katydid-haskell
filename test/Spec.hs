@@ -7,6 +7,8 @@ import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirect
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 
 import Parsers
+import ParsePatterns
+import Patterns
 import Json
 import Xml
 
@@ -17,7 +19,7 @@ data EncodedData
 
 data TestSuiteCase = TestSuiteCase {
     name        :: String
-    , grammar   :: String
+    , grammar   :: Refs
     , input     :: EncodedData
     , valid     :: Bool
 } deriving Show
@@ -34,17 +36,17 @@ filepathWithExt paths ext = head $ filter (\fname -> (takeExtension fname) == ex
 readJsonTest :: FilePath -> IO TestSuiteCase
 readJsonTest path = do {
     files <- ls path;
-    grammar <- readFile $ getRelapseJson files;
+    grammarData <- readFile $ getRelapseJson files;
     jsonData <- readFile $ filepathWithExt files ".json";
-    return $ TestSuiteCase (takeBaseName path) grammar (JsonData (decodeJSON jsonData)) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (JsonData (decodeJSON jsonData)) (isValidCase files)
 }
 
 readXMLTest :: FilePath -> IO TestSuiteCase
 readXMLTest path = do {
     files <- ls path;
-    grammar <- readFile $ getRelapseJson files;
+    grammarData <- readFile $ getRelapseJson files;
     xmlData <- readFile $ filepathWithExt files ".xml";
-    return $ TestSuiteCase (takeBaseName path) grammar (XMLData (decodeXML xmlData)) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (XMLData (decodeXML xmlData)) (isValidCase files)
 }
 
 ls :: FilePath -> IO [FilePath]
