@@ -16,8 +16,8 @@ import Xml
 import Deriv
 
 data EncodedData 
-    = XMLData XmlTree
-    | JsonData JsonTree
+    = XMLData [XmlTree]
+    | JsonData [JsonTree]
     deriving Show
 
 data TestSuiteCase = TestSuiteCase {
@@ -41,7 +41,7 @@ readJsonTest path = do {
     files <- ls path;
     grammarData <- readFile $ getRelapseJson files;
     jsonData <- readFile $ filepathWithExt files ".json";
-    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (JsonData $ head $ decodeJSON jsonData) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (JsonData $ decodeJSON jsonData) (isValidCase files)
 }
 
 readXMLTest :: FilePath -> IO TestSuiteCase
@@ -49,7 +49,7 @@ readXMLTest path = do {
     files <- ls path;
     grammarData <- readFile $ getRelapseJson files;
     xmlData <- readFile $ filepathWithExt files ".xml";
-    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (XMLData $ head $ decodeXML xmlData) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (XMLData $ decodeXML xmlData) (isValidCase files)
 }
 
 ls :: FilePath -> IO [FilePath]
@@ -74,13 +74,12 @@ readTestCases = do {
     return $ jsonTestCases -- TODO add xmlTestCases
 }
 
-testDeriv :: Tree t => String -> Refs -> t -> Bool -> IO ()
-testDeriv name g t want = 
-    let top = (lookupRef g "main")
-        res = deriv g [top] t
-        got = all (nullable g) res
+testDeriv :: Tree t => String -> Refs -> [t] -> Bool -> IO ()
+testDeriv name g ts want = 
+    let res = derivs g ts
+        got = nullable g res
     in if want /= got then
-        error $ name ++ ": want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show res ++ "\ninput derivative = " ++ show top
+        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show res
     else
         return ()
 
@@ -91,9 +90,14 @@ testACase (TestSuiteCase name g (JsonData t) want) = testDeriv name g t want
 newTestCaseList :: [TestSuiteCase] -> HUnit.Test
 newTestCaseList suite = HUnit.TestList $ map newTestCase suite
 
+testName :: TestSuiteCase -> String
+testName (TestSuiteCase name g t want) = name ++ ":" ++ "input tree = " ++ show t
+
 newTestCase :: TestSuiteCase -> HUnit.Test
-newTestCase (TestSuiteCase name g (XMLData t) want) = HUnit.TestLabel name $ HUnit.TestCase $ testDeriv name g t want
-newTestCase (TestSuiteCase name g (JsonData t) want) = HUnit.TestLabel name $ HUnit.TestCase $ testDeriv name g t want
+newTestCase c@(TestSuiteCase name g (XMLData t) want) = 
+    HUnit.TestLabel (testName c) $ HUnit.TestCase $ testDeriv name g t want
+newTestCase c@(TestSuiteCase name g (JsonData t) want) = 
+    HUnit.TestLabel (testName c) $ HUnit.TestCase $ testDeriv name g t want
 
 main :: IO ()
 main = do {

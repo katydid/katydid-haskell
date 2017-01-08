@@ -70,6 +70,11 @@ derivReturn refs (Optional p) ns =
     let (derivp, tailns) = derivReturn refs p ns
     in  (Optional derivp, tailns)
 
+derivs :: Tree t => Refs -> [t] -> Pattern
+derivs g ts = case foldl (deriv g) [lookupRef g "main"] ts of
+    [r] -> r
+    rs -> error $ "should never happen.  Number of patterns is not one, but " ++ show rs
+
 deriv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
 deriv refs ps tree =
     if all unescapable ps then ps else
