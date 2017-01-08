@@ -1,5 +1,7 @@
 module Deriv where
 
+import Debug.Trace
+
 import Patterns
 import Values
 import Parsers
@@ -76,7 +78,11 @@ derivs g ts = case foldl (deriv g) [lookupRef g "main"] ts of
     rs -> error $ "should never happen.  Number of patterns is not one, but " ++ show rs
 
 deriv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
-deriv refs ps tree =
+deriv g ps t = let ret = deriv' g ps t
+    in trace ("deriv(" ++ show g ++ "," ++ show ret ++ ")" ) ret
+
+deriv' :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+deriv' refs ps tree =
     if all unescapable ps then ps else
     let ifs = derivCalls refs ps
         childps = map (evalIf (getLabel tree)) ifs

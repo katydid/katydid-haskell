@@ -32,7 +32,6 @@ library
                      , containers
                      , json
                      , hxt
-                     , aeson
   default-language:    Haskell2010
 
 executable haslapse-exe
