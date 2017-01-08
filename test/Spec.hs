@@ -11,10 +11,11 @@ import ParsePatterns
 import Patterns
 import Json
 import Xml
+import Deriv
 
 data EncodedData 
-    = XMLData [XmlTree]
-    | JsonData [JsonTree]
+    = XMLData XmlTree
+    | JsonData JsonTree
     deriving Show
 
 data TestSuiteCase = TestSuiteCase {
@@ -38,7 +39,7 @@ readJsonTest path = do {
     files <- ls path;
     grammarData <- readFile $ getRelapseJson files;
     jsonData <- readFile $ filepathWithExt files ".json";
-    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (JsonData (decodeJSON jsonData)) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (JsonData $ head $ decodeJSON jsonData) (isValidCase files)
 }
 
 readXMLTest :: FilePath -> IO TestSuiteCase
@@ -46,7 +47,7 @@ readXMLTest path = do {
     files <- ls path;
     grammarData <- readFile $ getRelapseJson files;
     xmlData <- readFile $ filepathWithExt files ".xml";
-    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (XMLData (decodeXML xmlData)) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (XMLData $ head $ decodeXML xmlData) (isValidCase files)
 }
 
 ls :: FilePath -> IO [FilePath]
@@ -61,13 +62,30 @@ testPath = do {
      return $ (takeDirectory path) </> "testsuite" </> "relapse" </> "tests"
 }
 
-main :: IO ()
-main = do {
+readTestCases :: IO [TestSuiteCase]
+readTestCases = do {
     path <- testPath;
     jsondirs <- ls $ path </> "json";
     xmldirs <- ls $ path </> "xml";
     xmlTestCases <- mapM readXMLTest xmldirs;
     jsonTestCases <- mapM readJsonTest jsondirs;
-    putStrLn $ show $ head (xmlTestCases ++ jsonTestCases);
+    return $ xmlTestCases ++ jsonTestCases
+}
+
+testDeriv :: Tree t => Refs -> t -> Bool -> Bool
+testDeriv g t want = let got = all (nullable g) $ deriv g [(lookupRef g "main")] t
+    in if want /= got then
+        error $ "want " ++ show want ++ " got " ++ show got
+    else
+        True
+
+testACase :: TestSuiteCase -> Bool
+testACase (TestSuiteCase name g (XMLData t) want) = testDeriv g t want
+testACase (TestSuiteCase name g (JsonData t) want) = testDeriv g t want
+
+main :: IO ()
+main = do {
+    testSuiteCases <- readTestCases;
+    putStrLn $ show $ testACase $ head testSuiteCases;
     return ()
 }
