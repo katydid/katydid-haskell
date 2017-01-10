@@ -11,6 +11,7 @@ import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 import Parsers
 import ParsePatterns
 import Patterns
+import Values
 import Json
 import Xml
 import Deriv
@@ -71,17 +72,17 @@ readTestCases = do {
     xmldirs <- ls $ path </> "xml";
     xmlTestCases <- mapM readXMLTest xmldirs;
     jsonTestCases <- mapM readJsonTest jsondirs;
-    return $ take 4 jsonTestCases -- TODO add xmlTestCases
+    return $ tail $ tail $ tail $ take 4 jsonTestCases -- TODO add xmlTestCases
 }
 
 testDeriv :: Tree t => String -> Refs -> [t] -> Bool -> IO ()
-testDeriv name g ts want = 
-    let res = derivs g ts
-        got = nullable g res
-    in if want /= got then
-        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show res
-    else
-        return ()
+testDeriv name g ts want = case derivs g ts of
+    (Value p)   ->  let got = nullable g p
+                    in if want /= got then
+                        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+                    else
+                        return ()
+    (Err e)     ->  error e
 
 testACase :: TestSuiteCase -> IO ()
 testACase (TestSuiteCase name g (XMLData t) want) = testDeriv name g t want

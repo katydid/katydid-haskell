@@ -114,6 +114,7 @@ data BytesExpr
 
 data Value a = Err String
 	| Value a
+	deriving Show
 
 -- instance Functor Value where
 --   fmap = liftM
@@ -137,10 +138,8 @@ instance Monad Value where
     fail e = Err e
     return v = Value v
 
-eval :: BoolExpr -> Label -> Bool
-eval e l = case evalBool e l of
-	(Value v) -> v
-	(Err errStr) -> error errStr
+eval :: BoolExpr -> Label -> Value Bool
+eval = evalBool
 
 evalBool :: BoolExpr -> Label -> Value Bool
 
@@ -183,11 +182,12 @@ evalBool (UintEqualFunc e1 e2) v = do {
 	v2 <- evalUint e2 v;
 	return $ v1 == v2
 }
-evalBool (StringEqualFunc e1 e2) v = do {
-	v1 <- evalString e1 v;
-	v2 <- evalString e2 v;
-	return $ v1 == v2
-}
+evalBool (StringEqualFunc e1 e2) v =
+	case (evalString e1 v, evalString e2 v) of
+	((Value v1'), (Value v2')) -> return $ v1' == v2'
+	((Err _), _) -> return False
+	(_, (Err _)) -> return False
+
 evalBool (BytesEqualFunc e1 e2) v = do {
 	v1 <- evalBytes e1 v;
 	v2 <- evalBytes e2 v;

@@ -45,15 +45,15 @@ type MemReturns = DataMap.Map ([Pattern], [Bool]) [Pattern]
 mderivReturns :: Refs -> MemReturns -> ([Pattern], [Bool]) -> (MemReturns, [Pattern])
 mderivReturns refs = get (derivReturns refs)
 
-mderiv :: Tree t => Refs -> (Mem, [Pattern]) -> t -> (Mem, [Pattern])
-mderiv refs (m, patterns) tree =
-	if all unescapable patterns then (m, patterns) else
-	let	(mcalls', ifs) = mderivCalls refs (calls m) patterns
-		m' = m {calls = mcalls'}
-		childps = map (evalIf (getLabel tree)) ifs
-		(m'', childres) = foldl (mderiv refs) (m', childps) (getChildren tree)
-		(mnulls, childns) = mnullables refs (nullables m'') childres
-		m''' = m { nullables = mnulls }
-		(mreturns, res) = mderivReturns refs ( returns m ) (patterns, childns)
-		m'''' = m { returns = mreturns }
-	in (m'''', res)
+-- mderiv :: Tree t => Refs -> (Mem, [Pattern]) -> t -> (Mem, [Pattern])
+-- mderiv refs (m, patterns) tree =
+-- 	if all unescapable patterns then (m, patterns) else
+-- 	let	(mcalls', ifs) = mderivCalls refs (calls m) patterns
+-- 		m' = m {calls = mcalls'}
+-- 		childps = map (evalIf (getLabel tree)) ifs
+-- 		(m'', childres) = foldl (mderiv refs) (m', childps) (getChildren tree)
+-- 		(mnulls, childns) = mnullables refs (nullables m'') childres
+-- 		m''' = m { nullables = mnulls }
+-- 		(mreturns, res) = mderivReturns refs ( returns m ) (patterns, childns)
+-- 		m'''' = m { returns = mreturns }
+-- 	in (m'''', res)

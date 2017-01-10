@@ -1,6 +1,7 @@
 module Deriv where
 
 import Debug.Trace
+import Data.Foldable
 
 import Patterns
 import Values
@@ -72,52 +73,55 @@ derivReturn refs (Optional p) ns =
     let (derivp, tailns) = derivReturn refs p ns
     in  (Optional derivp, tailns)
 
-derivs :: Tree t => Refs -> [t] -> Pattern
-derivs g ts = case foldl (deriv g) [lookupRef g "main"] ts of
-    [r] -> r
-    rs -> error $ "should never happen.  Number of patterns is not one, but " ++ show rs
+derivs :: Tree t => Refs -> [t] -> Value Pattern
+derivs g ts = case foldlM (deriv g) [lookupRef g "main"] ts of
+    (Value [r]) -> Value r
+    (Err e) -> Err e
+    (Value rs) -> error $ "Number of patterns is not one, but " ++ show rs
 
-deriv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+deriv :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
 deriv g ps t = let ret = deriv' g ps t
-    in trace ("deriv(" ++ show g ++ "," ++ show ret ++ ")" ) ret
+    in trace ("Deriv{\n\tLabel:" ++ show (getLabel t) ++ "\n\tInput:" ++ show ps ++ "\n\tOutput:" ++ show ret ++ "\n}" ) ret
 
-deriv' :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+deriv' :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
 deriv' refs ps tree =
-    if all unescapable ps then ps else
+    if all unescapable ps then Value ps else
     let ifs = derivCalls refs ps
-        childps = map (evalIf (getLabel tree)) ifs
-        childres = foldl (deriv refs) childps (getChildren tree)
-        childns = map (nullable refs) childres
-    in derivReturns refs (ps, childns)
+    in do {
+        childps <- mapM (evalIf (getLabel tree)) ifs;
+        childres <- foldlM (deriv refs) childps (getChildren tree);
+        childns <- return $ map (nullable refs) childres;
+        return $ derivReturns refs (ps, childns)
+    }
 
-zipderiv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
-zipderiv refs ps tree =
-    if all unescapable ps then ps else
-    let ifs = derivCalls refs ps
-        compIfs = (compileIfExprs refs ifs)
-        childps = evalIfExprs compIfs (getLabel tree)
-        (zipps, zipper) = zippy childps
-        childres = foldl (zipderiv refs) zipps (getChildren tree)
-        childns = map (nullable refs) childres
-        unzipns = unzipby zipper childns
-    in derivReturns refs (ps, unzipns)
+-- zipderiv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+-- zipderiv refs ps tree =
+--     if all unescapable ps then ps else
+--     let ifs = derivCalls refs ps
+--         compIfs = (compileIfExprs refs ifs)
+--         childps = evalIfExprs compIfs (getLabel tree)
+--         (zipps, zipper) = zippy childps
+--         childres = foldl (zipderiv refs) zipps (getChildren tree)
+--         childns = map (nullable refs) childres
+--         unzipns = unzipby zipper childns
+--     in derivReturns refs (ps, unzipns)
 
-precall :: Refs -> [Pattern] -> ZippedIfExprs
-precall refs current = 
-    let ifs = derivCalls refs current
-        compIfs = (compileIfExprs refs ifs)
-    in  zipIfExprs compIfs
+-- precall :: Refs -> [Pattern] -> ZippedIfExprs
+-- precall refs current = 
+--     let ifs = derivCalls refs current
+--         compIfs = (compileIfExprs refs ifs)
+--     in  zipIfExprs compIfs
 
-thereturn :: Refs -> [Pattern] -> Zipper -> [Pattern] -> [Pattern]
-thereturn refs current zipper childres =
-    let childns = map (nullable refs) childres
-        unzipns = unzipby zipper childns
-    in derivReturns refs (current, unzipns)
+-- thereturn :: Refs -> [Pattern] -> Zipper -> [Pattern] -> [Pattern]
+-- thereturn refs current zipper childres =
+--     let childns = map (nullable refs) childres
+--         unzipns = unzipby zipper childns
+--     in derivReturns refs (current, unzipns)
 
-zipderiv2 :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
-zipderiv2 refs ps tree =
-    if all unescapable ps then ps else
-    let zifs = precall refs ps
-        (zipps, zipper) = evalZippedIfExprs zifs (getLabel tree)
-        childres = foldl (zipderiv2 refs) zipps (getChildren tree)
-    in thereturn refs ps zipper childres
+-- zipderiv2 :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+-- zipderiv2 refs ps tree =
+--     if all unescapable ps then ps else
+--     let zifs = precall refs ps
+--         (zipps, zipper) = evalZippedIfExprs zifs (getLabel tree)
+--         childres = foldl (zipderiv2 refs) zipps (getChildren tree)
+--     in thereturn refs ps zipper childres

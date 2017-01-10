@@ -8,8 +8,11 @@ import Parsers
 
 type IfExpr = (BoolExpr, Pattern, Pattern)
 
-evalIf :: Label -> IfExpr -> Pattern
-evalIf v (value, thn, els) = if eval value v then thn else els
+evalIf :: Label -> IfExpr -> Value Pattern
+evalIf v (value, thn, els) = do {
+	b <- eval value v;
+	return $ if b then thn else els
+}
 
 data IfExprs
 	= Cond {
@@ -23,11 +26,12 @@ compileIfExprs :: Refs -> [IfExpr] -> IfExprs
 compileIfExprs _ [] = Ret []
 compileIfExprs refs (e:es) = addIfExpr (simplifyIf refs e) (compileIfExprs refs es)
 
-evalIfExprs :: IfExprs -> Label -> [Pattern]
-evalIfExprs (Ret ps) _ = ps
-evalIfExprs (Cond c t e) v
-	| eval c v  = evalIfExprs t v
-	| otherwise = evalIfExprs e v
+evalIfExprs :: IfExprs -> Label -> Value [Pattern]
+evalIfExprs (Ret ps) _ = Value ps
+evalIfExprs (Cond c t e) v = do {
+	b <- eval c v;
+	if b then evalIfExprs t v else evalIfExprs e v
+}
 
 simplifyIf :: Refs -> IfExpr -> IfExpr
 simplifyIf refs (cond, thn, els) = 
@@ -61,10 +65,11 @@ zipIfExprs :: IfExprs -> ZippedIfExprs
 zipIfExprs (Cond c t e) = ZippedCond c (zipIfExprs t) (zipIfExprs e)
 zipIfExprs (Ret ps) = let (ps, zs) = zippy ps in ZippedRet ps zs
 
-evalZippedIfExprs :: ZippedIfExprs -> Label -> ([Pattern], Zipper)
-evalZippedIfExprs (ZippedRet ps zs) _ = (ps, zs)
-evalZippedIfExprs (ZippedCond c t e) v
-	| eval c v  = evalZippedIfExprs t v
-	| otherwise = evalZippedIfExprs e v
+evalZippedIfExprs :: ZippedIfExprs -> Label -> Value ([Pattern], Zipper)
+evalZippedIfExprs (ZippedRet ps zs) _ = Value (ps, zs)
+evalZippedIfExprs (ZippedCond c t e) v = do {
+	b <- eval c v;
+	if b then evalZippedIfExprs t v else evalZippedIfExprs e v
+}
 
 
