@@ -195,47 +195,15 @@ evalBool (BoolListElemFunc es i) v = do {
 	return $ es' !! i'
 }
 
-evalBool (BytesGreaterOrEqualFunc e1 e2) v = do {
-	v1 <- evalBytes e1 v;
-	v2 <- evalBytes e2 v;
-	return $ v1 >= v2
-}
-evalBool (DoubleGreaterOrEqualFunc e1 e2) v = do {
-	v1 <- evalDouble e1 v;
-	v2 <- evalDouble e2 v;
-	return $ v1 >= v2
-}
-evalBool (IntGreaterOrEqualFunc e1 e2) v = do {
-	v1 <- evalInt e1 v;
-	v2 <- evalInt e2 v;
-	return $ v1 >= v2
-}
-evalBool (UintGreaterOrEqualFunc e1 e2) v = do {
-	v1 <- evalUint e1 v;
-	v2 <- evalUint e2 v;
-	return $ v1 >= v2
-}
+evalBool (DoubleGreaterOrEqualFunc e1 e2) v = ge (evalDouble e1 v) (evalDouble e2 v)
+evalBool (IntGreaterOrEqualFunc e1 e2) v = ge (evalInt e1 v) (evalInt e2 v)
+evalBool (UintGreaterOrEqualFunc e1 e2) v = ge (evalUint e1 v) (evalUint e2 v)
+evalBool (BytesGreaterOrEqualFunc e1 e2) v = ge (evalBytes e1 v) (evalBytes e2 v)
 
-evalBool (BytesGreaterThanFunc e1 e2) v = do {
-	v1 <- evalBytes e1 v;
-	v2 <- evalBytes e2 v;
-	return $ v1 > v2
-}
-evalBool (DoubleGreaterThanFunc e1 e2) v = do {
-	v1 <- evalDouble e1 v;
-	v2 <- evalDouble e2 v;
-	return $ v1 > v2
-}
-evalBool (IntGreaterThanFunc e1 e2) v = do {
-	v1 <- evalInt e1 v;
-	v2 <- evalInt e2 v;
-	return $ v1 > v2
-}
-evalBool (UintGreaterThanFunc e1 e2) v = do {
-	v1 <- evalUint e1 v;
-	v2 <- evalUint e2 v;
-	return $ v1 > v2
-}
+evalBool (DoubleGreaterThanFunc e1 e2) v = gt (evalDouble e1 v) (evalDouble e2 v)
+evalBool (IntGreaterThanFunc e1 e2) v = gt (evalInt e1 v) (evalInt e2 v)
+evalBool (UintGreaterThanFunc e1 e2) v = gt (evalUint e1 v) (evalUint e2 v)
+evalBool (BytesGreaterThanFunc e1 e2) v = gt (evalBytes e1 v) (evalBytes e2 v)
 
 evalBool (StringHasPrefixFunc e1 e2) v = do {
 	v1 <- evalString e1 v;
@@ -248,78 +216,22 @@ evalBool (StringHasSuffixFunc e1 e2) v = do {
 	return $ isSuffixOf v2 v1
 }
 
-evalBool (BytesLessOrEqualFunc e1 e2) v = do {
-	v1 <- evalBytes e1 v;
-	v2 <- evalBytes e2 v;
-	return $ v1 <= v2
-}
-evalBool (DoubleLessOrEqualFunc e1 e2) v = do {
-	v1 <- evalDouble e1 v;
-	v2 <- evalDouble e2 v;
-	return $ v1 <= v2
-}
-evalBool (IntLessOrEqualFunc e1 e2) v = do {
-	v1 <- evalInt e1 v;
-	v2 <- evalInt e2 v;
-	return $ v1 <= v2
-}
-evalBool (UintLessOrEqualFunc e1 e2) v = do {
-	v1 <- evalUint e1 v;
-	v2 <- evalUint e2 v;
-	return $ v1 <= v2
-}
+evalBool (DoubleLessOrEqualFunc e1 e2) v = le (evalDouble e1 v) (evalDouble e2 v)
+evalBool (IntLessOrEqualFunc e1 e2) v = le (evalInt e1 v) (evalInt e2 v)
+evalBool (UintLessOrEqualFunc e1 e2) v = le (evalUint e1 v) (evalUint e2 v)
+evalBool (BytesLessOrEqualFunc e1 e2) v = le (evalBytes e1 v) (evalBytes e2 v)
 
-evalBool (BytesLessThanFunc e1 e2) v = do {
-	v1 <- evalBytes e1 v;
-	v2 <- evalBytes e2 v;
-	return $ v1 < v2
-}
-evalBool (DoubleLessThanFunc e1 e2) v = do {
-	v1 <- evalDouble e1 v;
-	v2 <- evalDouble e2 v;
-	return $ v1 < v2
-}
-evalBool (IntLessThanFunc e1 e2) v = do {
-	v1 <- evalInt e1 v;
-	v2 <- evalInt e2 v;
-	return $ v1 < v2
-}
-evalBool (UintLessThanFunc e1 e2) v = do {
-	v1 <- evalUint e1 v;
-	v2 <- evalUint e2 v;
-	return $ v1 < v2
-}
+evalBool (DoubleLessThanFunc e1 e2) v = lt (evalDouble e1 v) (evalDouble e2 v)
+evalBool (IntLessThanFunc e1 e2) v = lt (evalInt e1 v) (evalInt e2 v)
+evalBool (UintLessThanFunc e1 e2) v = lt (evalUint e1 v) (evalUint e2 v)
+evalBool (BytesLessThanFunc e1 e2) v = lt (evalBytes e1 v) (evalBytes e2 v)
 
-evalBool (BoolNotEqualFunc e1 e2) v = do {
-	v1 <- evalBool e1 v;
-	v2 <- evalBool e2 v;
-	return $ v1 /= v2
-}
-evalBool (DoubleNotEqualFunc e1 e2) v = do {
-	v1 <- evalDouble e1 v;
-	v2 <- evalDouble e2 v;
-	return $ v1 /= v2
-}
-evalBool (IntNotEqualFunc e1 e2) v = do {
-	v1 <- evalInt e1 v;
-	v2 <- evalInt e2 v;
-	return $ v1 /= v2
-}
-evalBool (UintNotEqualFunc e1 e2) v = do {
-	v1 <- evalUint e1 v;
-	v2 <- evalUint e2 v;
-	return $ v1 /= v2
-}
-evalBool (StringNotEqualFunc e1 e2) v = do {
-	v1 <- evalString e1 v;
-	v2 <- evalString e2 v;
-	return $ v1 /= v2
-}
-evalBool (BytesNotEqualFunc e1 e2) v = do {
-	v1 <- evalBytes e1 v;
-	v2 <- evalBytes e2 v;
-	return $ v1 /= v2
-}
+evalBool (BoolNotEqualFunc e1 e2) v = ne (evalBool e1 v) (evalBool e2 v)
+evalBool (DoubleNotEqualFunc e1 e2) v = ne (evalDouble e1 v) (evalDouble e2 v)
+evalBool (IntNotEqualFunc e1 e2) v = ne (evalInt e1 v) (evalInt e2 v)
+evalBool (UintNotEqualFunc e1 e2) v = ne (evalUint e1 v) (evalUint e2 v)
+evalBool (StringNotEqualFunc e1 e2) v = ne (evalString e1 v) (evalString e2 v)
+evalBool (BytesNotEqualFunc e1 e2) v = ne (evalBytes e1 v) (evalBytes e2 v)
 
 evalBool (BytesTypeFunc e) v = case evalBytes e v of
 	(Value _) -> Value True
@@ -344,6 +256,31 @@ eq :: (Eq a) => (Value a) -> (Value a) -> Value Bool
 eq (Value v1) (Value v2) = return $ v1 == v2
 eq (Err _) _ = return False
 eq _ (Err _) = return False
+
+ge :: (Ord a) => (Value a) -> (Value a) -> Value Bool
+ge (Value v1) (Value v2) = return $ v1 >= v2
+ge (Err _) _ = return False
+ge _ (Err _) = return False
+
+gt :: (Ord a) => (Value a) -> (Value a) -> Value Bool
+gt (Value v1) (Value v2) = return $ v1 > v2
+gt (Err _) _ = return False
+gt _ (Err _) = return False
+
+le :: (Ord a) => (Value a) -> (Value a) -> Value Bool
+le (Value v1) (Value v2) = return $ v1 <= v2
+le (Err _) _ = return False
+le _ (Err _) = return False
+
+lt :: (Ord a) => (Value a) -> (Value a) -> Value Bool
+lt (Value v1) (Value v2) = return $ v1 < v2
+lt (Err _) _ = return False
+lt _ (Err _) = return False
+
+ne :: (Eq a) => (Value a) -> (Value a) -> Value Bool
+ne (Value v1) (Value v2) = return $ v1 /= v2
+ne (Err _) _ = return False
+ne _ (Err _) = return False
 
 evalDouble :: DoubleExpr -> Label -> Value Rational
 evalDouble (DoubleConst r) _ = Value r
