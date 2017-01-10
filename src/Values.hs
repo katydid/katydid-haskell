@@ -157,42 +157,16 @@ evalBool (AndFunc e1 e2) v = do {
 	b2 <- evalBool e2 v;
 	return $ b1 && b2
 }
-evalBool (NotFunc e) v = do {
-	b <- evalBool e v;
-	return $ not b
-}
+evalBool (NotFunc e) v = case evalBool e v of
+	(Value True) -> return False
+	_ -> return True
 
-evalBool (BoolEqualFunc e1 e2) v = do {
-	v1 <- evalBool e1 v;
-	v2 <- evalBool e2 v;
-	return $ v1 == v2
-}
-evalBool (DoubleEqualFunc e1 e2) v = do {
-	v1 <- evalDouble e1 v;
-	v2 <- evalDouble e2 v;
-	return $ v1 == v2
-}
-evalBool (IntEqualFunc e1 e2) v = do {
-	v1 <- evalInt e1 v;
-	v2 <- evalInt e2 v;
-	return $ v1 == v2
-}
-evalBool (UintEqualFunc e1 e2) v = do {
-	v1 <- evalUint e1 v;
-	v2 <- evalUint e2 v;
-	return $ v1 == v2
-}
-evalBool (StringEqualFunc e1 e2) v =
-	case (evalString e1 v, evalString e2 v) of
-	((Value v1'), (Value v2')) -> return $ v1' == v2'
-	((Err _), _) -> return False
-	(_, (Err _)) -> return False
-
-evalBool (BytesEqualFunc e1 e2) v = do {
-	v1 <- evalBytes e1 v;
-	v2 <- evalBytes e2 v;
-	return $ v1 == v2
-}
+evalBool (BoolEqualFunc e1 e2) v = eq (evalBool e1 v) (evalBool e2 v)
+evalBool (DoubleEqualFunc e1 e2) v = eq (evalDouble e1 v) (evalDouble e2 v)
+evalBool (IntEqualFunc e1 e2) v = eq (evalInt e1 v) (evalInt e2 v)
+evalBool (UintEqualFunc e1 e2) v = eq (evalUint e1 v) (evalUint e2 v)
+evalBool (StringEqualFunc e1 e2) v = eq (evalString e1 v) (evalString e2 v)
+evalBool (BytesEqualFunc e1 e2) v = eq (evalBytes e1 v) (evalBytes e2 v)
 
 evalBool (IntListContainsFunc e es) v = do {
 	e' <- evalInt e v;
@@ -365,6 +339,11 @@ evalBool (UintTypeFunc e) v = case evalUint e v of
 evalBool (StringTypeFunc e) v = case evalString e v of
 	(Value _) -> Value True
 	(Err _) -> Value False
+
+eq :: (Eq a) => (Value a) -> (Value a) -> Value Bool
+eq (Value v1) (Value v2) = return $ v1 == v2
+eq (Err _) _ = return False
+eq _ (Err _) = return False
 
 evalDouble :: DoubleExpr -> Label -> Value Rational
 evalDouble (DoubleConst r) _ = Value r
