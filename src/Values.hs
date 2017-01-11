@@ -382,6 +382,7 @@ evalBytes (BytesListElemFunc es i) v = do {
 simplifyBoolExpr :: BoolExpr -> BoolExpr
 simplifyBoolExpr e@(BoolEqualFunc (BoolConst b1) (BoolConst b2)) = BoolConst $ b1 == b2
 simplifyBoolExpr v@(BoolConst _) = v
+simplifyBoolExpr v@BoolVariable = v
 
 simplifyBoolExpr (OrFunc v1 v2) = simplifyOrFunc (simplifyBoolExpr v1) (simplifyBoolExpr v2)
 simplifyBoolExpr (AndFunc v1 v2) = simplifyAndFunc (simplifyBoolExpr v1) (simplifyBoolExpr v2)
