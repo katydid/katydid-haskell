@@ -72,7 +72,7 @@ readTestCases = do {
     xmldirs <- ls $ path </> "xml";
     xmlTestCases <- mapM readXMLTest xmldirs;
     jsonTestCases <- mapM readJsonTest jsondirs;
-    return $ tail $ tail $ tail $ take 4 jsonTestCases -- TODO add xmlTestCases
+    return $ take 10 jsonTestCases -- TODO add xmlTestCases
 }
 
 testDeriv :: Tree t => String -> Refs -> [t] -> Bool -> IO ()

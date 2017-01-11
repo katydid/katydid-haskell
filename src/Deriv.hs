@@ -6,6 +6,7 @@ import Data.Foldable
 import Patterns
 import Values
 import Parsers
+import Simplify
 import Zip
 import IfExprs
 
@@ -89,9 +90,11 @@ deriv' refs ps tree =
     let ifs = derivCalls refs ps
     in do {
         childps <- mapM (evalIf (getLabel tree)) ifs;
-        childres <- foldlM (deriv refs) childps (getChildren tree);
+        simpcs <- return $ map (simplify refs) childps;
+        childres <- foldlM (deriv refs) simpcs (getChildren tree);
         childns <- return $ map (nullable refs) childres;
-        return $ derivReturns refs (ps, childns)
+        res <- return $ derivReturns refs (ps, childns);
+        return $ map (simplify refs) res
     }
 
 -- zipderiv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]

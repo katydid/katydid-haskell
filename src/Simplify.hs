@@ -10,6 +10,7 @@ simplify refs p =
 	let simp = simplify' refs
 	in case p of
 	Empty -> Empty
+	ZAny -> ZAny
 	(Node v p) -> simplifyNode (simplifyBoolExpr v) (simp p)
  	(Concat p1 p2) -> simplifyConcat (simp p1) (simp p2)
  	(Or p1 p2) -> simplifyOr refs (simp p1) (simp p2)
@@ -19,6 +20,7 @@ simplify refs p =
  	(Optional p) -> simplifyOptional (simp p)
  	(Interleave p1 p2) -> simplifyInterleave (simp p1) (simp p2)
  	(Contains p) -> simplifyContains (simp p)
+ 	wtf -> error $ "unexpected pattern: " ++ show wtf
 
 simplify' :: Refs -> Pattern -> Pattern
 simplify' refs p = checkRef refs $ simplify refs p
