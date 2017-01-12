@@ -67,12 +67,8 @@ derivReturn refs (Reference name) ns = derivReturn refs (lookupRef refs name) ns
 derivReturn refs (Not p) ns =
     let (derivp, tailns) = derivReturn refs p ns
     in  (Not derivp, tailns)
-derivReturn refs (Contains p) ns =
-    let (derivp, tailns) = derivReturn refs (Concat ZAny (Concat p ZAny)) ns
-    in  (Contains derivp, tailns)
-derivReturn refs (Optional p) ns =
-    let (derivp, tailns) = derivReturn refs (Or p Empty) ns
-    in  (Optional derivp, tailns)
+derivReturn refs (Contains p) ns = derivReturn refs (Concat ZAny (Concat p ZAny)) ns
+derivReturn refs (Optional p) ns = derivReturn refs (Or p Empty) ns
 
 derivs :: Tree t => Refs -> [t] -> Value Pattern
 derivs g ts = case foldlM (deriv g) [lookupRef g "main"] ts of
