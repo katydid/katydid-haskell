@@ -278,9 +278,11 @@ newFunction s t = error $ "unknown function: " ++ s ++ " for types: " ++ show t
 uBuiltIn :: [(String, JSValue)] -> Expr
 uBuiltIn kvs = let
 	varExpr = uExprs $ getObject kvs "Expr"
-	constExpr = constToVar varExpr
 	name = funcName (getString (getObject kvs "Symbol") "Value")
-	in newFunction name [constExpr, varExpr]
+	in if name /= "type" then
+		newFunction name [(constToVar varExpr), varExpr]
+	else
+		newFunction name [varExpr]
 
 constToVar :: Expr -> Expr
 constToVar (BoolExpr (BoolConst _)) = BoolExpr BoolVariable

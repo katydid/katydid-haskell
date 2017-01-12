@@ -72,7 +72,7 @@ readTestCases = do {
     xmldirs <- ls $ path </> "xml";
     xmlTestCases <- mapM readXMLTest xmldirs;
     jsonTestCases <- mapM readJsonTest jsondirs;
-    return $ take 40 jsonTestCases-- TODO add xmlTestCases
+    return $ jsonTestCases-- TODO add xmlTestCases
     -- return $ [(last $ take 32 jsonTestCases)]
 }
 
