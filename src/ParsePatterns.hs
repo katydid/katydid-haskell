@@ -56,10 +56,10 @@ uConcat :: [(String, JSValue)] -> Pattern
 uConcat kvs = Concat (uPattern $ getObject kvs "LeftPattern") (uPattern $ getObject kvs "RightPattern")
 
 uOr :: [(String, JSValue)] -> Pattern
-uOr kvs = Concat (uPattern $ getObject kvs "LeftPattern") (uPattern $ getObject kvs "RightPattern")
+uOr kvs = Or (uPattern $ getObject kvs "LeftPattern") (uPattern $ getObject kvs "RightPattern")
 
 uAnd :: [(String, JSValue)] -> Pattern
-uAnd kvs = Concat (uPattern $ getObject kvs "LeftPattern") (uPattern $ getObject kvs "RightPattern")
+uAnd kvs = And (uPattern $ getObject kvs "LeftPattern") (uPattern $ getObject kvs "RightPattern")
 
 uZeroOrMore :: [(String, JSValue)] -> Pattern
 uZeroOrMore kvs = ZeroOrMore (uPattern $ getObject kvs "Pattern")
@@ -68,7 +68,7 @@ uNot :: [(String, JSValue)] -> Pattern
 uNot kvs = Not (uPattern $ getObject kvs "Pattern")
 
 uContains :: [(String, JSValue)] -> Pattern
-uContains kvs = Not (uPattern $ getObject kvs "Pattern")
+uContains kvs = Contains (uPattern $ getObject kvs "Pattern")
 
 uOptional :: [(String, JSValue)] -> Pattern
 uOptional kvs = Optional (uPattern $ getObject kvs "Pattern")
@@ -162,7 +162,7 @@ uTerminal ("IntValue", JSRational _ n) = IntExpr (IntConst $ truncate n)
 uTerminal ("UintValue", JSRational _ n) = UintExpr (UintConst $ truncate n)
 uTerminal ("BoolValue", JSBool b) = BoolExpr (BoolConst b)
 uTerminal ("StringValue", JSString s) = StringExpr (StringConst $ fromJSString s)
-uTerminal ("BytesValue", JSString s) = BytesExpr (BytesConst $ fromJSString s)
+uTerminal ("BytesValue", JSString s) = BytesExpr (BytesConst $ fromJSString s) -- TODO bytes
 uTerminal ("Variable", JSObject o) = uVariable $ (fromJSObject o)
 
 uVariable :: [(String, JSValue)] -> Expr

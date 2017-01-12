@@ -26,8 +26,8 @@ derivCall refs (Interleave l r) = (derivCall refs l) ++ (derivCall refs r)
 derivCall refs (ZeroOrMore p) = derivCall refs p
 derivCall refs (Reference name) = derivCall refs $ lookupRef refs name
 derivCall refs (Not p) = derivCall refs p
-derivCall refs (Contains p) = derivCall refs p
-derivCall refs (Optional p) = derivCall refs p
+derivCall refs (Contains p) = derivCall refs (Concat ZAny (Concat p ZAny))
+derivCall refs (Optional p) = derivCall refs (Or p Empty)
 
 derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 derivReturns refs ([], []) = []
@@ -68,10 +68,10 @@ derivReturn refs (Not p) ns =
     let (derivp, tailns) = derivReturn refs p ns
     in  (Not derivp, tailns)
 derivReturn refs (Contains p) ns =
-    let (derivp, tailns) = derivReturn refs p ns
+    let (derivp, tailns) = derivReturn refs (Concat ZAny (Concat p ZAny)) ns
     in  (Contains derivp, tailns)
 derivReturn refs (Optional p) ns =
-    let (derivp, tailns) = derivReturn refs p ns
+    let (derivp, tailns) = derivReturn refs (Or p Empty) ns
     in  (Optional derivp, tailns)
 
 derivs :: Tree t => Refs -> [t] -> Value Pattern
