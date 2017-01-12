@@ -60,9 +60,9 @@ derivReturn refs (Interleave l r) ns =
     let (leftDeriv, leftTail) = derivReturn refs l ns
         (rightDeriv, rightTail) = derivReturn refs r leftTail
     in (Or (Interleave leftDeriv r) (Interleave rightDeriv l), rightTail)
-derivReturn refs (ZeroOrMore p) ns = 
+derivReturn refs z@(ZeroOrMore p) ns = 
     let (derivp, tailns) = derivReturn refs p ns
-    in  (Concat derivp p, tailns)
+    in  (Concat derivp z, tailns)
 derivReturn refs (Reference name) ns = derivReturn refs (lookupRef refs name) ns
 derivReturn refs (Not p) ns =
     let (derivp, tailns) = derivReturn refs p ns
