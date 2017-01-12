@@ -59,6 +59,7 @@ simplifyChildren op (p1@(Node v1 c1):(p2@(Node v2 c2):ps))
 simplifyChildren op (p:ps) = p:(simplifyChildren op ps)
 
 bin :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> Pattern
+bin op [p] = p
 bin op (p1:p2:[]) = op p1 p2
 bin op (p:ps) = op p (bin op ps)
 

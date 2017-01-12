@@ -2,6 +2,7 @@ module Values where
 
 import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 import Data.Char (toLower, toUpper)
+import Text.Regex.TDFA
 
 import Parsers
 
@@ -63,6 +64,8 @@ data BoolExpr
 	| IntTypeFunc  IntExpr
 	| UintTypeFunc UintExpr
 	| StringTypeFunc StringExpr
+
+	| RegexFunc StringExpr StringExpr
 	deriving (Eq, Ord, Show)
 
 data DoubleExpr
@@ -252,6 +255,12 @@ evalBool (StringTypeFunc e) v = case evalString e v of
 	(Value _) -> Value True
 	(Err _) -> Value False
 
+evalBool (RegexFunc e s) v = do {
+	e' <- evalString e v;
+	s' <- evalString s v;
+	return (s' =~ e' :: Bool)
+}
+
 eq :: (Eq a) => (Value a) -> (Value a) -> Value Bool
 eq (Value v1) (Value v2) = return $ v1 == v2
 eq (Err _) _ = return False
@@ -438,6 +447,8 @@ simplifyBoolExpr (DoubleTypeFunc e) = DoubleTypeFunc (simplifyDoubleExpr e)
 simplifyBoolExpr (IntTypeFunc e) = IntTypeFunc (simplifyIntExpr e)
 simplifyBoolExpr (UintTypeFunc e) = UintTypeFunc (simplifyUintExpr e)
 simplifyBoolExpr (StringTypeFunc e) = StringTypeFunc (simplifyStringExpr e)
+
+simplifyBoolExpr (RegexFunc e1 e2) = RegexFunc (simplifyStringExpr e1) (simplifyStringExpr e2)
 
 simplifyOrFunc :: BoolExpr -> BoolExpr -> BoolExpr
 simplifyOrFunc true@(BoolConst True) _ = true

@@ -273,6 +273,8 @@ newFunction "type" [IntExpr b] = BoolExpr $ IntTypeFunc b
 newFunction "type" [UintExpr b] = BoolExpr $ UintTypeFunc b
 newFunction "type" [StringExpr b] = BoolExpr $ StringTypeFunc b
 
+newFunction "regex" [StringExpr v1, StringExpr v2] = BoolExpr $ RegexFunc v1 v2
+
 newFunction s t = error $ "unknown function: " ++ s ++ " for types: " ++ show t
 
 uBuiltIn :: [(String, JSValue)] -> Expr
