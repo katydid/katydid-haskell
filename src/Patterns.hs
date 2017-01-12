@@ -1,6 +1,7 @@
 module Patterns where
 
 import qualified Data.Map.Strict as DataMap
+import qualified Data.Set as DataSet
 
 import Values
 
@@ -60,3 +61,20 @@ emptyRef = Refs DataMap.empty
 union :: Refs -> Refs -> Refs
 union (Refs m1) (Refs m2) = Refs $ DataMap.union m1 m2 
 
+hasRecursion :: Refs -> Bool
+hasRecursion refs = hasRec refs (DataSet.singleton "main") (lookupRef refs "main")
+
+hasRec :: Refs -> DataSet.Set String -> Pattern -> Bool
+hasRec refs set Empty = False
+hasRec refs set ZAny = False
+hasRec refs set (Node _ _) = False
+hasRec refs set (Or l r) = hasRec refs set l || hasRec refs set r
+hasRec refs set (And l r) = hasRec refs set l || hasRec refs set r
+hasRec refs set (Not p) = hasRec refs set p
+hasRec refs set (Concat l r) = hasRec refs set l || hasRec refs set r
+hasRec refs set (Interleave l r) = hasRec refs set l || hasRec refs set r
+hasRec refs set (ZeroOrMore _) = False
+hasRec refs set (Optional p) = hasRec refs set p
+hasRec refs set (Contains p) = hasRec refs set p
+hasRec refs set (Reference name) = if (DataSet.member name set) then True else
+	hasRec refs (DataSet.insert name set) (lookupRef refs name)
