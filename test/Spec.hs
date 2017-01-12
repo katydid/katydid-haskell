@@ -72,8 +72,7 @@ readTestCases = do {
     xmldirs <- ls $ path </> "xml";
     xmlTestCases <- mapM readXMLTest xmldirs;
     jsonTestCases <- mapM readJsonTest jsondirs;
-    return $ xmlTestCases-- TODO bring back jsonTestCases
-    -- return $ [(last $ take 32 xmlTestCases)]
+    return $ jsonTestCases ++ xmlTestCases
 }
 
 testDeriv :: Tree t => String -> Refs -> [t] -> Bool -> IO ()
@@ -105,7 +104,6 @@ main :: IO ()
 main = do {
     testSuiteCases <- readTestCases;
     nonRecursiveTestCases <- return $ filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases;
-    -- mapM testACase testSuiteCases;
     putStrLn $ show $ zip [1..] (map (\(TestSuiteCase name _ _ _) -> name) nonRecursiveTestCases);
     counts <- HUnit.runTestTT $ newTestCaseList nonRecursiveTestCases;
     putStrLn $ show counts;
