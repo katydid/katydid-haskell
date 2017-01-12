@@ -171,17 +171,17 @@ evalBool (BytesEqualFunc e1 e2) v = eq (evalBytes e1 v) (evalBytes e2 v)
 evalBool (IntListContainsFunc e es) v = do {
 	e' <- evalInt e v;
 	es' <- mapM ((flip evalInt) v) es;
-	return $ elem e es
+	return $ elem e' es'
 }
 evalBool (StringListContainsFunc e es) v = do {
 	e' <- evalString e v;
 	es' <- mapM ((flip evalString) v) es;
-	return $ elem e es
+	return $ elem e' es'
 }
 evalBool (UintListContainsFunc e es) v = do {
 	e' <- evalUint e v;
 	es' <- mapM ((flip evalUint) v) es;
-	return $ elem e es
+	return $ elem e' es'
 }
 evalBool (StringContainsFunc s sub) v = do {
 	s' <- evalString s v;
