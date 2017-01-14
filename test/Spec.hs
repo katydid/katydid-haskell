@@ -15,6 +15,7 @@ import Values
 import Json
 import Xml
 import Deriv
+import UnsafeDeriv
 
 data EncodedData 
     = XMLData [XmlTree]
@@ -23,6 +24,7 @@ data EncodedData
 
 data Algo = AlgoDeriv
     | AlgoZip
+    | AlgoUnsafe
     deriving Show
 
 data TestSuiteCase = TestSuiteCase {
@@ -94,6 +96,13 @@ testDeriv AlgoZip name g ts want = case zipderivs g ts of
                     else
                         return ()
     (Err e)     ->  error e
+testDeriv AlgoUnsafe name g ts want = case uderivs g ts of
+    (Value p)   ->  let got = nullable g p
+                    in if want /= got then
+                        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+                    else
+                        return ()
+    (Err e)     ->  error e
 
 testName :: Algo -> TestSuiteCase -> String
 testName algo (TestSuiteCase name g t want) = name ++ "_" ++ show algo
@@ -111,6 +120,7 @@ main = do {
     putStrLn $ show $ zip [1..] (map (\(TestSuiteCase name _ _ _) -> name) nonRecursiveTestCases);
     derivTests <- return $ map (newTestCase AlgoDeriv) nonRecursiveTestCases;
     zipTests <- return $ map (newTestCase AlgoZip) nonRecursiveTestCases;
+    unsafeTests <- return $ map (newTestCase AlgoUnsafe) nonRecursiveTestCases;
     counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests;
     putStrLn $ show counts;
     return ()
