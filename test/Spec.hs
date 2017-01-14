@@ -21,6 +21,10 @@ data EncodedData
     | JsonData [JsonTree]
     deriving Show
 
+data Algo = AlgoDeriv
+    | AlgoZip
+    deriving Show
+
 data TestSuiteCase = TestSuiteCase {
     name        :: String
     , grammar   :: Refs
@@ -75,8 +79,15 @@ readTestCases = do {
     return $ jsonTestCases ++ xmlTestCases
 }
 
-testDeriv :: Tree t => String -> Refs -> [t] -> Bool -> IO ()
-testDeriv name g ts want = case derivs g ts of
+testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
+testDeriv AlgoDeriv name g ts want = case derivs g ts of
+    (Value p)   ->  let got = nullable g p
+                    in if want /= got then
+                        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+                    else
+                        return ()
+    (Err e)     ->  error e
+testDeriv AlgoZip name g ts want = case zipderivs g ts of
     (Value p)   ->  let got = nullable g p
                     in if want /= got then
                         error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
@@ -84,28 +95,23 @@ testDeriv name g ts want = case derivs g ts of
                         return ()
     (Err e)     ->  error e
 
-testACase :: TestSuiteCase -> IO ()
-testACase (TestSuiteCase name g (XMLData t) want) = testDeriv name g t want
-testACase (TestSuiteCase name g (JsonData t) want) = testDeriv name g t want
+testName :: Algo -> TestSuiteCase -> String
+testName algo (TestSuiteCase name g t want) = name ++ "_" ++ show algo
 
-newTestCaseList :: [TestSuiteCase] -> HUnit.Test
-newTestCaseList suite = HUnit.TestList $ map newTestCase suite
-
-testName :: TestSuiteCase -> String
-testName (TestSuiteCase name g t want) = name ++ ":" ++ "input tree = " ++ show t
-
-newTestCase :: TestSuiteCase -> HUnit.Test
-newTestCase c@(TestSuiteCase name g (XMLData t) want) = 
-    HUnit.TestLabel (testName c) $ HUnit.TestCase $ testDeriv name g t want
-newTestCase c@(TestSuiteCase name g (JsonData t) want) = 
-    HUnit.TestLabel (testName c) $ HUnit.TestCase $ testDeriv name g t want
+newTestCase :: Algo -> TestSuiteCase -> HUnit.Test
+newTestCase algo c@(TestSuiteCase name g (XMLData t) want) = 
+    HUnit.TestLabel (testName algo c) $ HUnit.TestCase $ testDeriv algo name g t want
+newTestCase algo c@(TestSuiteCase name g (JsonData t) want) = 
+    HUnit.TestLabel (testName algo c) $ HUnit.TestCase $ testDeriv algo name g t want
 
 main :: IO ()
 main = do {
     testSuiteCases <- readTestCases;
     nonRecursiveTestCases <- return $ filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases;
     putStrLn $ show $ zip [1..] (map (\(TestSuiteCase name _ _ _) -> name) nonRecursiveTestCases);
-    counts <- HUnit.runTestTT $ newTestCaseList nonRecursiveTestCases;
+    derivTests <- return $ map (newTestCase AlgoDeriv) nonRecursiveTestCases;
+    zipTests <- return $ map (newTestCase AlgoZip) nonRecursiveTestCases;
+    counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests;
     putStrLn $ show counts;
     return ()
 }

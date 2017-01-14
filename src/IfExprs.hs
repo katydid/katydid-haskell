@@ -26,11 +26,11 @@ compileIfExprs :: Refs -> [IfExpr] -> IfExprs
 compileIfExprs _ [] = Ret []
 compileIfExprs refs (e:es) = addIfExpr (simplifyIf refs e) (compileIfExprs refs es)
 
-evalIfExprs :: IfExprs -> Label -> Value [Pattern]
-evalIfExprs (Ret ps) _ = Value ps
-evalIfExprs (Cond c t e) v = do {
+evalIfExprs :: Label -> IfExprs -> Value [Pattern]
+evalIfExprs _ (Ret ps) = Value ps
+evalIfExprs v (Cond c t e) = do {
 	b <- eval c v;
-	if b then evalIfExprs t v else evalIfExprs e v
+	if b then evalIfExprs v t else evalIfExprs v e
 }
 
 simplifyIf :: Refs -> IfExpr -> IfExpr

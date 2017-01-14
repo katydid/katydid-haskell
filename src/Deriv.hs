@@ -76,21 +76,42 @@ derivs g ts = case foldlM (deriv g) [lookupRef g "main"] ts of
     (Err e) -> Err e
     (Value rs) -> error $ "Number of patterns is not one, but " ++ show rs
 
-deriv :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
-deriv g ps t = let ret = deriv' g ps t
-    in trace ("Deriv{\n\tLabel:" ++ show (getLabel t) ++ "\n\tInput:" ++ show ps ++ "\n\tOutput:" ++ show ret ++ "\n}" ) ret
+-- deriv :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
+-- deriv g ps t = let ret = deriv' g ps t
+--     in trace ("Deriv{\n\tLabel:" ++ show (getLabel t) ++ "\n\tInput:" ++ show ps ++ "\n\tOutput:" ++ show ret ++ "\n}" ) ret
 
-deriv' :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
-deriv' refs ps tree =
+deriv :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
+deriv refs ps tree =
     if all unescapable ps then Value ps else
     let ifs = derivCalls refs ps
+        simps = map (simplify refs)
+        d = deriv refs
+        nulls = map (nullable refs)
     in do {
         childps <- mapM (evalIf (getLabel tree)) ifs;
-        simpcs <- return $ map (simplify refs) childps;
-        childres <- foldlM (deriv refs) simpcs (getChildren tree);
-        childns <- return $ map (nullable refs) childres;
-        res <- return $ derivReturns refs (ps, childns);
-        return $ map (simplify refs) res
+        childres <- foldlM d (simps childps) (getChildren tree);
+        return $ simps $ derivReturns refs (ps, (nulls childres));
+    }
+
+zipderivs :: Tree t => Refs -> [t] -> Value Pattern
+zipderivs g ts = case foldlM (zipderiv g) [lookupRef g "main"] ts of
+    (Value [r]) -> Value r
+    (Err e) -> Err e
+    (Value rs) -> error $ "Number of patterns is not one, but " ++ show rs
+
+zipderiv :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
+zipderiv refs ps tree =
+    if all unescapable ps then Value ps else
+    let ifs = compileIfExprs refs $ derivCalls refs ps
+        simps = map (simplify refs)
+        d = zipderiv refs
+        nulls = map (nullable refs)
+    in do {
+        childps <- evalIfExprs (getLabel tree) ifs;
+        (zchildps, zipper) <- return $ zippy (simps childps);
+        childres <- foldlM d zchildps (getChildren tree);
+        unzipns <- return $ unzipby zipper (nulls childres);
+        return $ simps $ derivReturns refs (ps, unzipns);
     }
 
 -- zipderiv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
