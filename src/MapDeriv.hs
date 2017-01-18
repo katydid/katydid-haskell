@@ -2,11 +2,14 @@ module MapDeriv where
 
 import qualified Data.Map.Strict as DataMap
 import Control.Monad.State
+import Data.Foldable (foldlM)
 
 import Deriv
 import Patterns
 import IfExprs
 import Values
+import Simplify
+import Zip
 import Parsers
 
 -- data Mem = Mem {
@@ -29,6 +32,9 @@ type DerivReturnsM = DataMap.Map ([Pattern], [Bool]) [Pattern]
 
 type Mem = (NullableM, DerivCallsM, DerivReturnsM)
 
+newMem :: Mem
+newMem = (DataMap.empty, DataMap.empty, DataMap.empty)
+
 mnullable :: Refs -> Pattern -> State Mem Bool
 mnullable refs k = state $ \(n, c, r) -> let (v', n') = mem (nullable refs) k n;
     in (v', (n', c, r))
@@ -40,6 +46,30 @@ mderivCalls refs k = state $ \(n, c, r) -> let (v', c') = mem (derivCalls refs) 
 mderivReturns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
 mderivReturns refs k = state $ \(n, c, r) -> let (v', r') = mem (derivReturns refs) k r;
     in (v', (n, c, r'))
+
+mustEvalIf :: IfExprs -> Label -> [Pattern]
+mustEvalIf ifs l = case evalIfExprs l ifs of
+    (Err e) -> error e
+    (Value v) -> v
+
+mderiv :: Tree t => Refs -> Mem -> [Pattern] -> t -> [Pattern]
+mderiv refs m ps tree =
+    if all unescapable ps then ps else
+    let {
+        ifs = derivCalls refs ps;
+        simps = map (simplify refs);
+        d = mderiv refs m;
+        nulls = map (nullable refs);
+        childps = mustEvalIf ifs (getLabel tree);
+        (zchildps, zipper) = zippy (simps childps);
+        childres = foldl d zchildps (getChildren tree);
+        unzipns = unzipby zipper (nulls childres);
+    } in simps $ derivReturns refs (ps, unzipns);
+
+mderivs :: Tree t => Refs -> [t] -> Value Pattern
+mderivs g ts = case foldl (mderiv g newMem) [lookupRef g "main"] ts of
+    [r] -> Value r
+    rs -> error $ "Number of patterns is not one, but " ++ show rs
 
 -- mderivCalls :: Refs -> [Pattern] -> State (DataMap.Map [Pattern] IfExprs) IfExprs
 -- mderivCalls refs ps = mem (derivCalls refs) ps

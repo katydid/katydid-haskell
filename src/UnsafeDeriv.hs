@@ -23,7 +23,8 @@ newMem refs =
         simps = map simp
         calls = derivCalls refs
         returns = simps . (derivReturns refs)
-    in Mem (memoize calls) (memoize returns) (memoize (nullable refs)) simp
+    in Mem (memoize calls) returns (memoize (nullable refs)) simp
+-- TODO returns should also be memoized
 
 uderivs :: Tree t => Refs -> [t] -> Value Pattern
 uderivs g ts = let m = newMem g 
