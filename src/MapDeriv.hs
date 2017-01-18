@@ -56,14 +56,8 @@ mderiv refs ps tree = do {
     mderivReturns refs (ps, unzipns)
 }
 
-mmderiv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
-mmderiv refs ps t = evalState (mderiv refs ps t) newMem
-
-mmmderiv :: Tree t => Refs -> [Pattern] -> [t] -> [Pattern]
-mmmderiv refs ps ts = evalState (foldlM (mderiv refs) ps ts) newMem
-
 mderivs :: Tree t => Refs -> [t] -> Value Pattern
-mderivs g ts = case mmmderiv g [lookupRef g "main"] ts of
+mderivs refs ts = case evalState (foldlM (mderiv refs) [lookupRef refs "main"] ts) newMem of
     [r] -> Value r
     rs -> error $ "Number of patterns is not one, but " ++ show rs
 
