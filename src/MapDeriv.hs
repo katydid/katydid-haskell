@@ -12,13 +12,6 @@ import Simplify
 import Zip
 import Parsers
 
--- data Mem = Mem {
---       calls     :: MemCalls
---       , returns   :: MemReturns
---       , nullables :: MemNullable
---       , refs :: Refs
--- }
-
 mem :: Ord k => (k -> v) -> k -> DataMap.Map k v -> (v, DataMap.Map k v)
 mem f k m = if DataMap.member k m
     then (m DataMap.! k, m)
@@ -52,56 +45,23 @@ mustEvalIf ifs l = case evalIfExprs l ifs of
     (Err e) -> error e
     (Value v) -> v
 
-mderiv :: Tree t => Refs -> Mem -> [Pattern] -> t -> [Pattern]
-mderiv refs m ps tree =
-    if all unescapable ps then ps else
-    let {
-        ifs = derivCalls refs ps;
-        simps = map (simplify refs);
-        d = mderiv refs m;
-        nulls = map (nullable refs);
-        childps = mustEvalIf ifs (getLabel tree);
-        (zchildps, zipper) = zippy (simps childps);
-        childres = foldl d zchildps (getChildren tree);
-        unzipns = unzipby zipper (nulls childres);
-    } in simps $ derivReturns refs (ps, unzipns);
+mderiv :: Tree t => Refs -> [Pattern] -> t -> State Mem [Pattern]
+mderiv refs ps tree = do {
+    ifs <- mderivCalls refs ps;
+    childps <- return $ mustEvalIf ifs (getLabel tree);
+    childres <- foldlM (mderiv refs) childps (getChildren tree);
+    nulls <- mapM (mnullable refs) childres;
+    mderivReturns refs (ps, nulls)
+}
+
+mmderiv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+mmderiv refs ps t = evalState (mderiv refs ps t) newMem
+
+mmmderiv :: Tree t => Refs -> [Pattern] -> [t] -> [Pattern]
+mmmderiv refs ps ts = evalState (foldlM (mderiv refs) ps ts) newMem
 
 mderivs :: Tree t => Refs -> [t] -> Value Pattern
-mderivs g ts = case foldl (mderiv g newMem) [lookupRef g "main"] ts of
+mderivs g ts = case mmmderiv g [lookupRef g "main"] ts of
     [r] -> Value r
     rs -> error $ "Number of patterns is not one, but " ++ show rs
 
--- mderivCalls :: Refs -> [Pattern] -> State (DataMap.Map [Pattern] IfExprs) IfExprs
--- mderivCalls refs ps = mem (derivCalls refs) ps
-
--- mderivReturns :: Refs -> ([Pattern], [Bool]) -> State (DataMap.Map ([Pattern], [Bool]) [Pattern]) [Pattern]
--- mderivReturns refs = mem (derivReturns refs)
-
--- mnullables :: Refs -> MemNullable -> [Pattern] -> (MemNullable, [Bool])
--- mnullables refs m [] = (m, [])
--- mnullables refs m (p:ps) = 
---     let (m', n) = mnullable refs m p
---         (m'', ns) = mnullables refs m' ps
---     in  (m'', n:ns)
-
--- getValue :: Ord k => (k -> Value v) -> DataMap.Map k v -> k -> (DataMap.Map k v, Value v)
--- getValue f m k = if DataMap.member k m
---     then (m, Value $ m DataMap.! k)
---     else case f k of
---         vv@(Value v) -> (DataMap.insert k v m, vv)
---         e@(Err _) -> (m, e)
-
--- mderiv :: Tree t => Refs -> (Mem, [Pattern]) -> t -> (Mem, Value [Pattern])
--- mderiv refs (m, patterns) tree =
---     if all unescapable patterns then (m, Value patterns) else
---     let (mcalls', ifs) = mderivCalls refs (calls m) patterns
---         m' = m {calls = mcalls'}
---         childps = map (evalIf (getLabel tree)) ifs
---         in case foldl (mderiv refs) (m', childps) (getChildren tree) of
---             (Err e) -> Err e
---             (Value (m'', childres)) -> 
---                 let (mnulls, childns) = mnullables refs (nullables m'') childres
---                     m''' = m { nullables = mnulls }
---                     (mreturns, res) = mderivReturns refs ( returns m ) (patterns, childns)
---                     m'''' = m { returns = mreturns }
---                 in (m'''', res)

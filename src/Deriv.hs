@@ -33,7 +33,8 @@ derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 derivReturns refs ([], []) = []
 derivReturns refs ((p:tailps), ns) =
     let (dp, tailns) = derivReturn refs p ns
-    in  dp:(derivReturns refs (tailps, tailns))
+        sp = simplify refs dp
+    in  sp:(derivReturns refs (tailps, tailns))
 
 derivReturn :: Refs -> Pattern -> [Bool] -> (Pattern, [Bool])
 derivReturn refs Empty ns = (Not ZAny, ns)
@@ -86,7 +87,7 @@ deriv refs ps tree =
     in do {
         childps <- evalIfExprs (getLabel tree) ifs;
         childres <- foldlM d (simps childps) (getChildren tree);
-        return $ simps $ derivReturns refs (ps, (nulls childres));
+        return $ derivReturns refs (ps, (nulls childres));
     }
 
 zipderivs :: Tree t => Refs -> [t] -> Value Pattern
@@ -107,5 +108,5 @@ zipderiv refs ps tree =
         (zchildps, zipper) <- return $ zippy (simps childps);
         childres <- foldlM d zchildps (getChildren tree);
         unzipns <- return $ unzipby zipper (nulls childres);
-        return $ simps $ derivReturns refs (ps, unzipns);
+        return $ derivReturns refs (ps, unzipns);
     }
