@@ -121,7 +121,7 @@ main = do {
     derivTests <- return $ map (newTestCase AlgoDeriv) nonRecursiveTestCases;
     zipTests <- return $ map (newTestCase AlgoZip) nonRecursiveTestCases;
     unsafeTests <- return $ map (newTestCase AlgoUnsafe) nonRecursiveTestCases;
-    counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests;
+    counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests ++ unsafeTests;
     putStrLn $ show counts;
     return ()
 }

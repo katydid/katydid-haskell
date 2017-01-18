@@ -33,6 +33,7 @@ library
                      , json
                      , hxt
                      , regex-tdfa
+                     , mtl
   default-language:    Haskell2010
 
 executable haslapse-exe

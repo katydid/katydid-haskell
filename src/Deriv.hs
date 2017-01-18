@@ -10,8 +10,8 @@ import Simplify
 import Zip
 import IfExprs
 
-derivCalls :: Refs -> [Pattern] -> [IfExpr]
-derivCalls refs ps = concatMap (derivCall refs) ps
+derivCalls :: Refs -> [Pattern] -> IfExprs
+derivCalls refs ps = compileIfExprs refs $ concatMap (derivCall refs) ps
 
 derivCall :: Refs -> Pattern -> [IfExpr]
 derivCall _ Empty = []
@@ -84,7 +84,7 @@ deriv refs ps tree =
         d = deriv refs
         nulls = map (nullable refs)
     in do {
-        childps <- mapM (evalIf (getLabel tree)) ifs;
+        childps <- evalIfExprs (getLabel tree) ifs;
         childres <- foldlM d (simps childps) (getChildren tree);
         return $ simps $ derivReturns refs (ps, (nulls childres));
     }
@@ -98,7 +98,7 @@ zipderivs g ts = case foldlM (zipderiv g) [lookupRef g "main"] ts of
 zipderiv :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
 zipderiv refs ps tree =
     if all unescapable ps then Value ps else
-    let ifs = compileIfExprs refs $ derivCalls refs ps
+    let ifs = derivCalls refs ps
         simps = map (simplify refs)
         d = zipderiv refs
         nulls = map (nullable refs)
