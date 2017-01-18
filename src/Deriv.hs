@@ -100,12 +100,11 @@ zipderiv :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
 zipderiv refs ps tree =
     if all unescapable ps then Value ps else
     let ifs = derivCalls refs ps
-        simps = map (simplify refs)
         d = zipderiv refs
         nulls = map (nullable refs)
     in do {
         childps <- evalIfExprs (getLabel tree) ifs;
-        (zchildps, zipper) <- return $ zippy (simps childps);
+        (zchildps, zipper) <- return $ zippy childps;
         childres <- foldlM d zchildps (getChildren tree);
         unzipns <- return $ unzipby zipper (nulls childres);
         return $ derivReturns refs (ps, unzipns);

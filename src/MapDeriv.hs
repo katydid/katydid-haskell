@@ -49,9 +49,11 @@ mderiv :: Tree t => Refs -> [Pattern] -> t -> State Mem [Pattern]
 mderiv refs ps tree = do {
     ifs <- mderivCalls refs ps;
     childps <- return $ mustEvalIf ifs (getLabel tree);
-    childres <- foldlM (mderiv refs) childps (getChildren tree);
+    (zchildps, zipper) <- return $ zippy childps;
+    childres <- foldlM (mderiv refs) zchildps (getChildren tree);
     nulls <- mapM (mnullable refs) childres;
-    mderivReturns refs (ps, nulls)
+    unzipns <- return $ unzipby zipper nulls;
+    mderivReturns refs (ps, unzipns)
 }
 
 mmderiv :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
