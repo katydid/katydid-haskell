@@ -40,11 +40,6 @@ mderivReturns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
 mderivReturns refs k = state $ \(n, c, r) -> let (v', r') = mem (derivReturns refs) k r;
     in (v', (n, c, r'))
 
-mustEvalIf :: IfExprs -> Label -> [Pattern]
-mustEvalIf ifs l = case evalIfExprs l ifs of
-    (Err e) -> error e
-    (Value v) -> v
-
 mderiv :: Tree t => Refs -> [Pattern] -> t -> State Mem [Pattern]
 mderiv refs ps tree = do {
     ifs <- mderivCalls refs ps;

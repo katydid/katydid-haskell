@@ -33,6 +33,11 @@ evalIfExprs v (Cond c t e) = do {
 	if b then evalIfExprs v t else evalIfExprs v e
 }
 
+mustEvalIf :: IfExprs -> Label -> [Pattern]
+mustEvalIf ifs l = case evalIfExprs l ifs of
+    (Err e) -> error e
+    (Value v) -> v
+
 simplifyIf :: Refs -> IfExpr -> IfExpr
 simplifyIf refs (cond, thn, els) = 
 	let	scond = simplifyBoolExpr cond
