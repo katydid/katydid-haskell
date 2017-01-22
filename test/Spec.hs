@@ -13,7 +13,6 @@ import ParsePatterns
 import Patterns
 import Values
 import Json
-import IfExprs
 import Xml
 import Deriv
 import MapDeriv

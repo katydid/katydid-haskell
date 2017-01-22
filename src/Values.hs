@@ -116,14 +116,28 @@ data BytesExpr
 	| BytesListElemFunc [BytesExpr] IntExpr
 	deriving (Eq, Ord, Show)
 
-eval :: BoolExpr -> Label -> Except String Bool
+data ValueErr
+	= ErrNotABool String
+	| ErrNotAString String
+	| ErrNotAnInt String
+	| ErrNotADouble String
+	| ErrNotAnUint String
+	| ErrNotBytes String
+	deriving (Eq, Ord, Show)
+
+eval :: BoolExpr -> Label -> Except ValueErr Bool
 eval = evalBool
 
-evalBool :: BoolExpr -> Label -> Except String Bool
+must :: (Show e) => Except e v -> v
+must ex = case runExcept ex of
+	(Left e) -> error $ show e
+	(Right v) -> v
+
+evalBool :: BoolExpr -> Label -> Except ValueErr Bool
 
 evalBool (BoolConst b) _ = return b
 evalBool BoolVariable (Bool b) = return b
-evalBool BoolVariable l = throwError $ "not a bool, but " ++ show l
+evalBool BoolVariable l = throwError $ ErrNotABool $ show l
 
 evalBool (OrFunc e1 e2) v = do {
 	b1 <- evalBool e1 v;
@@ -236,40 +250,40 @@ evalBool (RegexFunc e s) v = do {
 	return (s' =~ e' :: Bool)
 }
 
-eq :: (Eq a) => (Either String a) -> (Either String a) -> Except String Bool
+eq :: (Eq a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
 eq (Right v1) (Right v2) = return $ v1 == v2
 eq (Left _) _ = return False
 eq _ (Left _) = return False
 
-ge :: (Ord a) => (Either String a) -> (Either String a) -> Except String Bool
+ge :: (Ord a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
 ge (Right v1) (Right v2) = return $ v1 >= v2
 ge (Left _) _ = return False
 ge _ (Left _) = return False
 
-gt :: (Ord a) => (Either String a) -> (Either String a) -> Except String Bool
+gt :: (Ord a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
 gt (Right v1) (Right v2) = return $ v1 > v2
 gt (Left _) _ = return False
 gt _ (Left _) = return False
 
-le :: (Ord a) => (Either String a) -> (Either String a) -> Except String Bool
+le :: (Ord a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
 le (Right v1) (Right v2) = return $ v1 <= v2
 le (Left _) _ = return False
 le _ (Left _) = return False
 
-lt :: (Ord a) => (Either String a) -> (Either String a) -> Except String Bool
+lt :: (Ord a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
 lt (Right v1) (Right v2) = return $ v1 < v2
 lt (Left _) _ = return False
 lt _ (Left _) = return False
 
-ne :: (Eq a) => (Either String a) -> (Either String a) -> Except String Bool
+ne :: (Eq a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
 ne (Right v1) (Right v2) = return $ v1 /= v2
 ne (Left _) _ = return False
 ne _ (Left _) = return False
 
-evalDouble :: DoubleExpr -> Label -> Except String Rational
+evalDouble :: DoubleExpr -> Label -> Except ValueErr Rational
 evalDouble (DoubleConst r) _ = return r
 evalDouble DoubleVariable (Number r) = return r
-evalDouble DoubleVariable l = throwError $ "not a double, but " ++ show l
+evalDouble DoubleVariable l = throwError $ ErrNotADouble $ show l
 
 evalDouble (DoubleListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -277,10 +291,10 @@ evalDouble (DoubleListElemFunc es i) v = do {
 	return $ es' !! i'
 }
 
-evalInt :: IntExpr -> Label -> Except String Int
+evalInt :: IntExpr -> Label -> Except ValueErr Int
 evalInt (IntConst i) _ = return i
 evalInt IntVariable (Number r) = return (truncate r)
-evalInt IntVariable l = throwError $ "not an int, but " ++ show l
+evalInt IntVariable l = throwError $ ErrNotAnInt $ show l
 
 evalInt (IntListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -321,10 +335,10 @@ evalInt (StringLengthFunc e) v = do {
 	return $ length e'
 }
 
-evalUint :: UintExpr -> Label -> Except String Int
+evalUint :: UintExpr -> Label -> Except ValueErr Int
 evalUint (UintConst i) _ = return i
 evalUint UintVariable (Number r) = return $ truncate r
-evalUint UintVariable l = throwError $ "not a uint, but " ++ show l
+evalUint UintVariable l = throwError $ ErrNotAnUint $ show l
 
 evalUint (UintListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -332,10 +346,10 @@ evalUint (UintListElemFunc es i) v = do {
 	return $ es' !! i'
 }
 
-evalString :: StringExpr -> Label -> Except String String
+evalString :: StringExpr -> Label -> Except ValueErr String
 evalString (StringConst i) _ = return i
 evalString StringVariable (String s) = return s
-evalString StringVariable l = throwError $ "not a string, but " ++ show l
+evalString StringVariable l = throwError $ ErrNotAString $ show l
 
 evalString (StringListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -352,10 +366,10 @@ evalString (StringToUpperFunc s) v = do {
 	return $ map toUpper s'
 }
 
-evalBytes :: BytesExpr -> Label -> Except String String
+evalBytes :: BytesExpr -> Label -> Except ValueErr String
 evalBytes (BytesConst u) _ = return u
 evalBytes BytesVariable (String s) = return s
-evalBytes BytesVariable l = throwError $ "not bytes, but " ++ show l
+evalBytes BytesVariable l = throwError $ ErrNotBytes $ show l
 
 evalBytes (BytesListElemFunc es i) v = do {
 	i' <- evalInt i v;
