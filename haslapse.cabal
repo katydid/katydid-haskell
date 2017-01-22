@@ -15,11 +15,9 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     UnsafeMem
-                     , Patterns
+  exposed-modules:   Patterns
                      , Deriv
                      , MapDeriv
-                     , UnsafeDeriv
                      , Zip
                      , IfExprs
                      , Values

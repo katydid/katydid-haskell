@@ -15,7 +15,6 @@ import Values
 import Json
 import Xml
 import Deriv
-import UnsafeDeriv
 import MapDeriv
 
 data EncodedData 
@@ -25,7 +24,6 @@ data EncodedData
 
 data Algo = AlgoDeriv
     | AlgoZip
-    | AlgoUnsafe
     | AlgoMap
     deriving Show
 
@@ -98,13 +96,6 @@ testDeriv AlgoZip name g ts want = case zipderivs g ts of
                     else
                         return ()
     (Err e)     ->  error e
-testDeriv AlgoUnsafe name g ts want = case uderivs g ts of
-    (Value p)   ->  let got = nullable g p
-                    in if want /= got then
-                        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
-                    else
-                        return ()
-    (Err e)     ->  error e
 testDeriv AlgoMap name g ts want = case mderivs g ts of
     (Value p)   ->  let got = nullable g p
                     in if want /= got then
@@ -129,7 +120,6 @@ main = do {
     putStrLn $ show $ zip [1..] (map (\(TestSuiteCase name _ _ _) -> name) nonRecursiveTestCases);
     derivTests <- return $ map (newTestCase AlgoDeriv) nonRecursiveTestCases;
     zipTests <- return $ map (newTestCase AlgoZip) nonRecursiveTestCases;
-    unsafeTests <- return $ map (newTestCase AlgoUnsafe) nonRecursiveTestCases;
     mapTests <- return $ map (newTestCase AlgoMap) nonRecursiveTestCases;
     counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests ++ mapTests;
     -- TODO remember to add unsafeTests
