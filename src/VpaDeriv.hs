@@ -27,46 +27,46 @@ type DerivCallsM = DataMap.Map VpaState ZippedIfExprs
 type NullableM = DataMap.Map [Pattern] [Bool]
 type DerivReturnsM = DataMap.Map ([Pattern], Zipper, [Bool]) [Pattern]
 
-type Vpa = (NullableM, DerivCallsM, DerivReturnsM)
+type Vpa = (NullableM, DerivCallsM, DerivReturnsM, Refs)
 
-newVpa :: Vpa
-newVpa = (DataMap.empty, DataMap.empty, DataMap.empty)
+newVpa :: Refs -> Vpa
+newVpa refs = (DataMap.empty, DataMap.empty, DataMap.empty, refs)
 
-mnullable :: Refs -> [Pattern] -> State Vpa [Bool]
-mnullable refs key = state $ \(n, c, r) -> let (v', n') = mem (map $ nullable refs) key n;
-    in (v', (n', c, r))
+mnullable :: [Pattern] -> State Vpa [Bool]
+mnullable key = state $ \(n, c, r, refs) -> let (v', n') = mem (map $ nullable refs) key n;
+    in (v', (n', c, r, refs))
 
-mderivCalls :: Refs -> [Pattern] -> State Vpa ZippedIfExprs
-mderivCalls refs key = state $ \(n, c, r) -> let (v', c') = mem (zipIfExprs . derivCalls refs) key c;
-    in (v', (n, c', r))
+mderivCalls :: [Pattern] -> State Vpa ZippedIfExprs
+mderivCalls key = state $ \(n, c, r, refs) -> let (v', c') = mem (zipIfExprs . derivCalls refs) key c;
+    in (v', (n, c', r, refs))
 
-vpacall :: Refs -> VpaState -> Label -> State Vpa (StackElm, VpaState)
-vpacall refs vpastate label = do {
-    zifexprs <- mderivCalls refs vpastate;
+vpacall :: VpaState -> Label -> State Vpa (StackElm, VpaState)
+vpacall vpastate label = do {
+    zifexprs <- mderivCalls vpastate;
     (nextstate, zipper) <- return $ must $ evalZippedIfExprs zifexprs label;
     stackelm <- return $ (vpastate, zipper);
     return (stackelm, nextstate)
 }
 
-mderivReturns :: Refs -> ([Pattern], Zipper, [Bool]) -> State Vpa [Pattern]
-mderivReturns refs key = state $ \(n, c, r) -> let (v', r') = mem (\(ps, zipper, znulls) -> derivReturns refs (ps, unzipby zipper znulls)) key r;
-    in (v', (n, c, r'))
+mderivReturns :: ([Pattern], Zipper, [Bool]) -> State Vpa [Pattern]
+mderivReturns key = state $ \(n, c, r, refs) -> let (v', r') = mem (\(ps, zipper, znulls) -> derivReturns refs (ps, unzipby zipper znulls)) key r;
+    in (v', (n, c, r', refs))
 
-vpareturn :: Refs -> StackElm -> VpaState -> State Vpa VpaState
-vpareturn refs (vpastate, zipper) current = do {
-    zipnulls <- mnullable refs current;
-    mderivReturns refs (vpastate, zipper, zipnulls)
+vpareturn :: StackElm -> VpaState -> State Vpa VpaState
+vpareturn (vpastate, zipper) current = do {
+    zipnulls <- mnullable current;
+    mderivReturns (vpastate, zipper, zipnulls)
 }
 
-vpaderiv :: Tree t => Refs -> VpaState -> t -> State Vpa VpaState
-vpaderiv refs current tree = do {
-    (stackelm, nextstate) <- vpacall refs current (getLabel tree);
-    resstate <- foldlM (vpaderiv refs) nextstate (getChildren tree);
-    vpareturn refs stackelm resstate
+vpaderiv :: Tree t => VpaState -> t -> State Vpa VpaState
+vpaderiv current tree = do {
+    (stackelm, nextstate) <- vpacall current (getLabel tree);
+    resstate <- foldlM vpaderiv nextstate (getChildren tree);
+    vpareturn stackelm resstate
 }
 
 vderivs :: Tree t => Refs -> [t] -> Pattern
-vderivs refs ts = case runState (foldlM (vpaderiv refs) [lookupRef refs "main"] ts) newVpa of
-    ([r], (ns, cs, rs)) -> trace (show $ length ns) r
+vderivs refs ts = case runState (foldlM vpaderiv [lookupRef refs "main"] ts) (newVpa refs) of
+    ([r], (ns, cs, rs, refs)) -> trace (show $ length ns) r
     (rs, s) -> error $ "Number of patterns is not one, but " ++ show rs
 
