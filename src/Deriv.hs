@@ -85,7 +85,7 @@ deriv refs ps tree =
         d = deriv refs
         nulls = map (nullable refs)
     in do {
-        childps <- evalIfExprs (getLabel tree) ifs;
+        childps <- evalIfExprs ifs (getLabel tree);
         childres <- foldlM d (simps childps) (getChildren tree);
         return $ derivReturns refs (ps, (nulls childres));
     }
@@ -103,7 +103,7 @@ zipderiv refs ps tree =
         d = zipderiv refs
         nulls = map (nullable refs)
     in do {
-        childps <- evalIfExprs (getLabel tree) ifs;
+        childps <- evalIfExprs ifs (getLabel tree);
         (zchildps, zipper) <- return $ zippy childps;
         childres <- foldlM d zchildps (getChildren tree);
         unzipns <- return $ unzipby zipper (nulls childres);

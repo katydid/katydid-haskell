@@ -8,9 +8,9 @@ import Parsers
 
 type IfExpr = (BoolExpr, Pattern, Pattern)
 
-evalIf :: Label -> IfExpr -> Value Pattern
-evalIf v (value, thn, els) = do {
-	b <- eval value v;
+evalIf :: IfExpr -> Label -> Value Pattern
+evalIf (value, thn, els) l = do {
+	b <- eval value l;
 	return $ if b then thn else els
 }
 
@@ -26,17 +26,12 @@ compileIfExprs :: Refs -> [IfExpr] -> IfExprs
 compileIfExprs _ [] = Ret []
 compileIfExprs refs (e:es) = addIfExpr (simplifyIf refs e) (compileIfExprs refs es)
 
-evalIfExprs :: Label -> IfExprs -> Value [Pattern]
-evalIfExprs _ (Ret ps) = Value ps
-evalIfExprs v (Cond c t e) = do {
-	b <- eval c v;
-	if b then evalIfExprs v t else evalIfExprs v e
+evalIfExprs :: IfExprs -> Label -> Value [Pattern]
+evalIfExprs (Ret ps) _ = Value ps
+evalIfExprs (Cond c t e) l = do {
+	b <- eval c l;
+	if b then evalIfExprs t l else evalIfExprs e l
 }
-
-mustEvalIf :: IfExprs -> Label -> [Pattern]
-mustEvalIf ifs l = case evalIfExprs l ifs of
-    (Err e) -> error e
-    (Value v) -> v
 
 simplifyIf :: Refs -> IfExpr -> IfExpr
 simplifyIf refs (cond, thn, els) = 
@@ -77,4 +72,7 @@ evalZippedIfExprs (ZippedCond c t e) v = do {
 	if b then evalZippedIfExprs t v else evalZippedIfExprs e v
 }
 
+must :: Value v -> v
+must (Err e) = error e
+must (Value v) = v
 

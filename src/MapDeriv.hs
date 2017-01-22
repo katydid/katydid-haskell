@@ -43,7 +43,7 @@ mderivReturns refs k = state $ \(n, c, r) -> let (v', r') = mem (derivReturns re
 mderiv :: Tree t => Refs -> [Pattern] -> t -> State Mem [Pattern]
 mderiv refs ps tree = do {
     ifs <- mderivCalls refs ps;
-    childps <- return $ mustEvalIf ifs (getLabel tree);
+    childps <- return $ must $ evalIfExprs ifs (getLabel tree);
     (zchildps, zipper) <- return $ zippy childps;
     childres <- foldlM (mderiv refs) zchildps (getChildren tree);
     nulls <- mapM (mnullable refs) childres;
