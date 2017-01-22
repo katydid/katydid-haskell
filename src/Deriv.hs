@@ -84,12 +84,11 @@ deriv :: Tree t => Refs -> [Pattern] -> t -> Except ValueErr [Pattern]
 deriv refs ps tree =
     if all unescapable ps then return ps else
     let ifs = derivCalls refs ps
-        simps = map (simplify refs)
         d = deriv refs
         nulls = map (nullable refs)
     in do {
         childps <- evalIfExprs ifs (getLabel tree);
-        childres <- foldlM d (simps childps) (getChildren tree);
+        childres <- foldlM d childps (getChildren tree);
         return $ derivReturns refs (ps, (nulls childres));
     }
 
