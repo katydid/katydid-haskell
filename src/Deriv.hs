@@ -2,6 +2,7 @@ module Deriv where
 
 import Debug.Trace
 import Data.Foldable (foldlM)
+import Control.Monad.Except (Except, runExcept, mapExcept)
 
 import Patterns
 import Values
@@ -71,15 +72,17 @@ derivReturn refs (Not p) ns =
 derivReturn refs (Contains p) ns = derivReturn refs (Concat ZAny (Concat p ZAny)) ns
 derivReturn refs (Optional p) ns = derivReturn refs (Or p Empty) ns
 
-derivs :: Tree t => Refs -> [t] -> Value Pattern
-derivs g ts = case foldlM (deriv g) [lookupRef g "main"] ts of
-    (Value [r]) -> Value r
-    (Err e) -> Err e
-    (Value rs) -> error $ "Number of patterns is not one, but " ++ show rs
+onePattern :: Either String [Pattern] -> Either String Pattern
+onePattern (Right [r]) = return r
+onePattern (Left e) = Left e
+onePattern (Right rs) = error $ "Number of patterns is not one, but " ++ show rs
 
-deriv :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
+derivs :: Tree t => Refs -> [t] -> Except String Pattern
+derivs g ts = mapExcept onePattern $ foldlM (deriv g) [lookupRef g "main"] ts
+
+deriv :: Tree t => Refs -> [Pattern] -> t -> Except String [Pattern]
 deriv refs ps tree =
-    if all unescapable ps then Value ps else
+    if all unescapable ps then return ps else
     let ifs = derivCalls refs ps
         simps = map (simplify refs)
         d = deriv refs
@@ -90,15 +93,12 @@ deriv refs ps tree =
         return $ derivReturns refs (ps, (nulls childres));
     }
 
-zipderivs :: Tree t => Refs -> [t] -> Value Pattern
-zipderivs g ts = case foldlM (zipderiv g) [lookupRef g "main"] ts of
-    (Value [r]) -> Value r
-    (Err e) -> Err e
-    (Value rs) -> error $ "Number of patterns is not one, but " ++ show rs
+zipderivs :: Tree t => Refs -> [t] -> Except String Pattern
+zipderivs g ts = mapExcept onePattern $ foldlM (zipderiv g) [lookupRef g "main"] ts
 
-zipderiv :: Tree t => Refs -> [Pattern] -> t -> Value [Pattern]
+zipderiv :: Tree t => Refs -> [Pattern] -> t -> Except String [Pattern]
 zipderiv refs ps tree =
-    if all unescapable ps then Value ps else
+    if all unescapable ps then return ps else
     let ifs = derivCalls refs ps
         d = zipderiv refs
         nulls = map (nullable refs)

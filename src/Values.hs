@@ -3,6 +3,7 @@ module Values where
 import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 import Data.Char (toLower, toUpper)
 import Text.Regex.TDFA
+import Control.Monad.Except (Except, runExcept, throwError)
 
 import Parsers
 
@@ -115,40 +116,14 @@ data BytesExpr
 	| BytesListElemFunc [BytesExpr] IntExpr
 	deriving (Eq, Ord, Show)
 
-data Value a = Err String
-	| Value a
-	deriving Show
-
--- instance Functor Value where
---   fmap = liftM
-instance Functor Value where
-	fmap f (Value v) = Value (f v)
-	fmap f (Err s) = Err s
-
--- instance Applicative Value where
---   pure  = return
---   (<*>) = ap
-instance Applicative Value where
-	pure = Value
-	(Value f) <*> (Value v) = Value $ f v
-	(Value _) <*> (Err s) = (Err s)
-	(Err s) <*> (Value _) = (Err s)
-	(Err s1) <*> (Err s2) = (Err $ s1 ++ s2)
-
-instance Monad Value where
-    (Value v) >>= f = f v
-    (Err s) >>= _ = Err s
-    fail e = Err e
-    return v = Value v
-
-eval :: BoolExpr -> Label -> Value Bool
+eval :: BoolExpr -> Label -> Except String Bool
 eval = evalBool
 
-evalBool :: BoolExpr -> Label -> Value Bool
+evalBool :: BoolExpr -> Label -> Except String Bool
 
-evalBool (BoolConst b) _ = Value b
-evalBool BoolVariable (Bool b) = Value b
-evalBool BoolVariable l = Err $ "not a bool, but " ++ show l
+evalBool (BoolConst b) _ = return b
+evalBool BoolVariable (Bool b) = return b
+evalBool BoolVariable l = throwError $ "not a bool, but " ++ show l
 
 evalBool (OrFunc e1 e2) v = do {
 	b1 <- evalBool e1 v;
@@ -160,16 +135,16 @@ evalBool (AndFunc e1 e2) v = do {
 	b2 <- evalBool e2 v;
 	return $ b1 && b2
 }
-evalBool (NotFunc e) v = case evalBool e v of
-	(Value True) -> return False
+evalBool (NotFunc e) v = case runExcept $ evalBool e v of
+	(Right True) -> return False
 	_ -> return True
 
-evalBool (BoolEqualFunc e1 e2) v = eq (evalBool e1 v) (evalBool e2 v)
-evalBool (DoubleEqualFunc e1 e2) v = eq (evalDouble e1 v) (evalDouble e2 v)
-evalBool (IntEqualFunc e1 e2) v = eq (evalInt e1 v) (evalInt e2 v)
-evalBool (UintEqualFunc e1 e2) v = eq (evalUint e1 v) (evalUint e2 v)
-evalBool (StringEqualFunc e1 e2) v = eq (evalString e1 v) (evalString e2 v)
-evalBool (BytesEqualFunc e1 e2) v = eq (evalBytes e1 v) (evalBytes e2 v)
+evalBool (BoolEqualFunc e1 e2) v = eq (runExcept $ evalBool e1 v) (runExcept $ evalBool e2 v)
+evalBool (DoubleEqualFunc e1 e2) v = eq (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
+evalBool (IntEqualFunc e1 e2) v = eq (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
+evalBool (UintEqualFunc e1 e2) v = eq (runExcept $ evalUint e1 v) (runExcept $ evalUint e2 v)
+evalBool (StringEqualFunc e1 e2) v = eq (runExcept $ evalString e1 v) (runExcept $ evalString e2 v)
+evalBool (BytesEqualFunc e1 e2) v = eq (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
 evalBool (IntListContainsFunc e es) v = do {
 	e' <- evalInt e v;
@@ -198,15 +173,15 @@ evalBool (BoolListElemFunc es i) v = do {
 	return $ es' !! i'
 }
 
-evalBool (DoubleGreaterOrEqualFunc e1 e2) v = ge (evalDouble e1 v) (evalDouble e2 v)
-evalBool (IntGreaterOrEqualFunc e1 e2) v = ge (evalInt e1 v) (evalInt e2 v)
-evalBool (UintGreaterOrEqualFunc e1 e2) v = ge (evalUint e1 v) (evalUint e2 v)
-evalBool (BytesGreaterOrEqualFunc e1 e2) v = ge (evalBytes e1 v) (evalBytes e2 v)
+evalBool (DoubleGreaterOrEqualFunc e1 e2) v = ge (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
+evalBool (IntGreaterOrEqualFunc e1 e2) v = ge (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
+evalBool (UintGreaterOrEqualFunc e1 e2) v = ge (runExcept $ evalUint e1 v) (runExcept $ evalUint e2 v)
+evalBool (BytesGreaterOrEqualFunc e1 e2) v = ge (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
-evalBool (DoubleGreaterThanFunc e1 e2) v = gt (evalDouble e1 v) (evalDouble e2 v)
-evalBool (IntGreaterThanFunc e1 e2) v = gt (evalInt e1 v) (evalInt e2 v)
-evalBool (UintGreaterThanFunc e1 e2) v = gt (evalUint e1 v) (evalUint e2 v)
-evalBool (BytesGreaterThanFunc e1 e2) v = gt (evalBytes e1 v) (evalBytes e2 v)
+evalBool (DoubleGreaterThanFunc e1 e2) v = gt (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
+evalBool (IntGreaterThanFunc e1 e2) v = gt (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
+evalBool (UintGreaterThanFunc e1 e2) v = gt (runExcept $ evalUint e1 v) (runExcept $ evalUint e2 v)
+evalBool (BytesGreaterThanFunc e1 e2) v = gt (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
 evalBool (StringHasPrefixFunc e1 e2) v = do {
 	v1 <- evalString e1 v;
@@ -219,41 +194,41 @@ evalBool (StringHasSuffixFunc e1 e2) v = do {
 	return $ isSuffixOf v2 v1
 }
 
-evalBool (DoubleLessOrEqualFunc e1 e2) v = le (evalDouble e1 v) (evalDouble e2 v)
-evalBool (IntLessOrEqualFunc e1 e2) v = le (evalInt e1 v) (evalInt e2 v)
-evalBool (UintLessOrEqualFunc e1 e2) v = le (evalUint e1 v) (evalUint e2 v)
-evalBool (BytesLessOrEqualFunc e1 e2) v = le (evalBytes e1 v) (evalBytes e2 v)
+evalBool (DoubleLessOrEqualFunc e1 e2) v = le (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
+evalBool (IntLessOrEqualFunc e1 e2) v = le (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
+evalBool (UintLessOrEqualFunc e1 e2) v = le (runExcept $ evalUint e1 v) (runExcept $ evalUint e2 v)
+evalBool (BytesLessOrEqualFunc e1 e2) v = le (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
-evalBool (DoubleLessThanFunc e1 e2) v = lt (evalDouble e1 v) (evalDouble e2 v)
-evalBool (IntLessThanFunc e1 e2) v = lt (evalInt e1 v) (evalInt e2 v)
-evalBool (UintLessThanFunc e1 e2) v = lt (evalUint e1 v) (evalUint e2 v)
-evalBool (BytesLessThanFunc e1 e2) v = lt (evalBytes e1 v) (evalBytes e2 v)
+evalBool (DoubleLessThanFunc e1 e2) v = lt (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
+evalBool (IntLessThanFunc e1 e2) v = lt (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
+evalBool (UintLessThanFunc e1 e2) v = lt (runExcept $ evalUint e1 v) (runExcept $ evalUint e2 v)
+evalBool (BytesLessThanFunc e1 e2) v = lt (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
-evalBool (BoolNotEqualFunc e1 e2) v = ne (evalBool e1 v) (evalBool e2 v)
-evalBool (DoubleNotEqualFunc e1 e2) v = ne (evalDouble e1 v) (evalDouble e2 v)
-evalBool (IntNotEqualFunc e1 e2) v = ne (evalInt e1 v) (evalInt e2 v)
-evalBool (UintNotEqualFunc e1 e2) v = ne (evalUint e1 v) (evalUint e2 v)
-evalBool (StringNotEqualFunc e1 e2) v = ne (evalString e1 v) (evalString e2 v)
-evalBool (BytesNotEqualFunc e1 e2) v = ne (evalBytes e1 v) (evalBytes e2 v)
+evalBool (BoolNotEqualFunc e1 e2) v = ne (runExcept $ evalBool e1 v) (runExcept $ evalBool e2 v)
+evalBool (DoubleNotEqualFunc e1 e2) v = ne (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
+evalBool (IntNotEqualFunc e1 e2) v = ne (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
+evalBool (UintNotEqualFunc e1 e2) v = ne (runExcept $ evalUint e1 v) (runExcept $ evalUint e2 v)
+evalBool (StringNotEqualFunc e1 e2) v = ne (runExcept $ evalString e1 v) (runExcept $ evalString e2 v)
+evalBool (BytesNotEqualFunc e1 e2) v = ne (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
-evalBool (BytesTypeFunc e) v = case evalBytes e v of
-	(Value _) -> Value True
-	(Err _) -> Value False
-evalBool (BoolTypeFunc e) v = case evalBool e v of
-	(Value _) -> Value True
-	(Err _) -> Value False
-evalBool (DoubleTypeFunc e) v = case evalDouble e v of
-	(Value _) -> Value True
-	(Err _) -> Value False
-evalBool (IntTypeFunc e) v = case evalInt e v of
-	(Value _) -> Value True
-	(Err _) -> Value False
-evalBool (UintTypeFunc e) v = case evalUint e v of
-	(Value _) -> Value True
-	(Err _) -> Value False
-evalBool (StringTypeFunc e) v = case evalString e v of
-	(Value _) -> Value True
-	(Err _) -> Value False
+evalBool (BytesTypeFunc e) v = case runExcept $ evalBytes e v of
+	(Right _) -> return True
+	(Left _) -> return False
+evalBool (BoolTypeFunc e) v = case runExcept $ evalBool e v of
+	(Right _) -> return True
+	(Left _) -> return False
+evalBool (DoubleTypeFunc e) v = case runExcept $ evalDouble e v of
+	(Right _) -> return True
+	(Left _) -> return False
+evalBool (IntTypeFunc e) v = case runExcept $ evalInt e v of
+	(Right _) -> return True
+	(Left _) -> return False
+evalBool (UintTypeFunc e) v = case runExcept $ evalUint e v of
+	(Right _) -> return True
+	(Left _) -> return False
+evalBool (StringTypeFunc e) v = case runExcept $ evalString e v of
+	(Right _) -> return True
+	(Left _) -> return False
 
 evalBool (RegexFunc e s) v = do {
 	e' <- evalString e v;
@@ -261,40 +236,40 @@ evalBool (RegexFunc e s) v = do {
 	return (s' =~ e' :: Bool)
 }
 
-eq :: (Eq a) => (Value a) -> (Value a) -> Value Bool
-eq (Value v1) (Value v2) = return $ v1 == v2
-eq (Err _) _ = return False
-eq _ (Err _) = return False
+eq :: (Eq a) => (Either String a) -> (Either String a) -> Except String Bool
+eq (Right v1) (Right v2) = return $ v1 == v2
+eq (Left _) _ = return False
+eq _ (Left _) = return False
 
-ge :: (Ord a) => (Value a) -> (Value a) -> Value Bool
-ge (Value v1) (Value v2) = return $ v1 >= v2
-ge (Err _) _ = return False
-ge _ (Err _) = return False
+ge :: (Ord a) => (Either String a) -> (Either String a) -> Except String Bool
+ge (Right v1) (Right v2) = return $ v1 >= v2
+ge (Left _) _ = return False
+ge _ (Left _) = return False
 
-gt :: (Ord a) => (Value a) -> (Value a) -> Value Bool
-gt (Value v1) (Value v2) = return $ v1 > v2
-gt (Err _) _ = return False
-gt _ (Err _) = return False
+gt :: (Ord a) => (Either String a) -> (Either String a) -> Except String Bool
+gt (Right v1) (Right v2) = return $ v1 > v2
+gt (Left _) _ = return False
+gt _ (Left _) = return False
 
-le :: (Ord a) => (Value a) -> (Value a) -> Value Bool
-le (Value v1) (Value v2) = return $ v1 <= v2
-le (Err _) _ = return False
-le _ (Err _) = return False
+le :: (Ord a) => (Either String a) -> (Either String a) -> Except String Bool
+le (Right v1) (Right v2) = return $ v1 <= v2
+le (Left _) _ = return False
+le _ (Left _) = return False
 
-lt :: (Ord a) => (Value a) -> (Value a) -> Value Bool
-lt (Value v1) (Value v2) = return $ v1 < v2
-lt (Err _) _ = return False
-lt _ (Err _) = return False
+lt :: (Ord a) => (Either String a) -> (Either String a) -> Except String Bool
+lt (Right v1) (Right v2) = return $ v1 < v2
+lt (Left _) _ = return False
+lt _ (Left _) = return False
 
-ne :: (Eq a) => (Value a) -> (Value a) -> Value Bool
-ne (Value v1) (Value v2) = return $ v1 /= v2
-ne (Err _) _ = return False
-ne _ (Err _) = return False
+ne :: (Eq a) => (Either String a) -> (Either String a) -> Except String Bool
+ne (Right v1) (Right v2) = return $ v1 /= v2
+ne (Left _) _ = return False
+ne _ (Left _) = return False
 
-evalDouble :: DoubleExpr -> Label -> Value Rational
-evalDouble (DoubleConst r) _ = Value r
-evalDouble DoubleVariable (Number r) = Value r
-evalDouble DoubleVariable l = Err $ "not a double, but " ++ show l
+evalDouble :: DoubleExpr -> Label -> Except String Rational
+evalDouble (DoubleConst r) _ = return r
+evalDouble DoubleVariable (Number r) = return r
+evalDouble DoubleVariable l = throwError $ "not a double, but " ++ show l
 
 evalDouble (DoubleListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -302,10 +277,10 @@ evalDouble (DoubleListElemFunc es i) v = do {
 	return $ es' !! i'
 }
 
-evalInt :: IntExpr -> Label -> Value Int
-evalInt (IntConst i) _ = Value i
-evalInt IntVariable (Number r) = Value (truncate r)
-evalInt IntVariable l = Err $ "not an int, but " ++ show l
+evalInt :: IntExpr -> Label -> Except String Int
+evalInt (IntConst i) _ = return i
+evalInt IntVariable (Number r) = return (truncate r)
+evalInt IntVariable l = throwError $ "not an int, but " ++ show l
 
 evalInt (IntListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -346,10 +321,10 @@ evalInt (StringLengthFunc e) v = do {
 	return $ length e'
 }
 
-evalUint :: UintExpr -> Label -> Value Int
-evalUint (UintConst i) _ = Value i
-evalUint UintVariable (Number r) = Value (truncate r)
-evalUint UintVariable l = Err $ "not a uint, but " ++ show l
+evalUint :: UintExpr -> Label -> Except String Int
+evalUint (UintConst i) _ = return i
+evalUint UintVariable (Number r) = return $ truncate r
+evalUint UintVariable l = throwError $ "not a uint, but " ++ show l
 
 evalUint (UintListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -357,10 +332,10 @@ evalUint (UintListElemFunc es i) v = do {
 	return $ es' !! i'
 }
 
-evalString :: StringExpr -> Label -> Value String
-evalString (StringConst i) _ = Value i
-evalString StringVariable (String s) = Value s
-evalString StringVariable l = Err $ "not a string, but " ++ show l
+evalString :: StringExpr -> Label -> Except String String
+evalString (StringConst i) _ = return i
+evalString StringVariable (String s) = return s
+evalString StringVariable l = throwError $ "not a string, but " ++ show l
 
 evalString (StringListElemFunc es i) v = do {
 	i' <- evalInt i v;
@@ -377,10 +352,10 @@ evalString (StringToUpperFunc s) v = do {
 	return $ map toUpper s'
 }
 
-evalBytes :: BytesExpr -> Label -> Value String
-evalBytes (BytesConst u) _ = Value u
-evalBytes BytesVariable (String s) = Value s
-evalBytes BytesVariable l = Err $ "not bytes, but " ++ show l
+evalBytes :: BytesExpr -> Label -> Except String String
+evalBytes (BytesConst u) _ = return u
+evalBytes BytesVariable (String s) = return s
+evalBytes BytesVariable l = throwError $ "not bytes, but " ++ show l
 
 evalBytes (BytesListElemFunc es i) v = do {
 	i' <- evalInt i v;

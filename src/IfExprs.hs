@@ -5,10 +5,11 @@ import Values
 import Simplify
 import Zip
 import Parsers
+import Control.Monad.Except (Except, runExcept)
 
 type IfExpr = (BoolExpr, Pattern, Pattern)
 
-evalIf :: IfExpr -> Label -> Value Pattern
+evalIf :: IfExpr -> Label -> Except String Pattern
 evalIf (value, thn, els) l = do {
 	b <- eval value l;
 	return $ if b then thn else els
@@ -26,8 +27,8 @@ compileIfExprs :: Refs -> [IfExpr] -> IfExprs
 compileIfExprs _ [] = Ret []
 compileIfExprs refs (e:es) = addIfExpr (simplifyIf refs e) (compileIfExprs refs es)
 
-evalIfExprs :: IfExprs -> Label -> Value [Pattern]
-evalIfExprs (Ret ps) _ = Value ps
+evalIfExprs :: IfExprs -> Label -> Except String [Pattern]
+evalIfExprs (Ret ps) _ = return ps
 evalIfExprs (Cond c t e) l = do {
 	b <- eval c l;
 	if b then evalIfExprs t l else evalIfExprs e l
@@ -65,14 +66,15 @@ zipIfExprs :: IfExprs -> ZippedIfExprs
 zipIfExprs (Cond c t e) = ZippedCond c (zipIfExprs t) (zipIfExprs e)
 zipIfExprs (Ret ps) = let (ps, zs) = zippy ps in ZippedRet ps zs
 
-evalZippedIfExprs :: ZippedIfExprs -> Label -> Value ([Pattern], Zipper)
-evalZippedIfExprs (ZippedRet ps zs) _ = Value (ps, zs)
+evalZippedIfExprs :: ZippedIfExprs -> Label -> Except String ([Pattern], Zipper)
+evalZippedIfExprs (ZippedRet ps zs) _ = return (ps, zs)
 evalZippedIfExprs (ZippedCond c t e) v = do {
 	b <- eval c v;
 	if b then evalZippedIfExprs t v else evalZippedIfExprs e v
 }
 
-must :: Value v -> v
-must (Err e) = error e
-must (Value v) = v
+must :: Except String v -> v
+must ex = case runExcept ex of
+	(Left e) -> error e
+	(Right v) -> v
 

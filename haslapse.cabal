@@ -42,6 +42,7 @@ executable haslapse-exe
                      , haslapse
                      , containers
                      , regex-tdfa
+                     , mtl
   default-language:    Haskell2010
 
 test-suite haslapse-test
