@@ -16,6 +16,7 @@ import Json
 import Xml
 import Deriv
 import MapDeriv
+import VpaDeriv
 
 data EncodedData 
     = XMLData [XmlTree]
@@ -25,6 +26,7 @@ data EncodedData
 data Algo = AlgoDeriv
     | AlgoZip
     | AlgoMap
+    | AlgoVpa
     deriving Show
 
 data TestSuiteCase = TestSuiteCase {
@@ -103,6 +105,13 @@ testDeriv AlgoMap name g ts want  =
         error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
     else
         return ()
+testDeriv AlgoVpa name g ts want  = 
+    let p = vderivs g ts 
+        got = nullable g p
+    in if want /= got then
+        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+    else
+        return ()
 
 testName :: Algo -> TestSuiteCase -> String
 testName algo (TestSuiteCase name g t want) = name ++ "_" ++ show algo
@@ -121,8 +130,8 @@ main = do {
     derivTests <- return $ map (newTestCase AlgoDeriv) nonRecursiveTestCases;
     zipTests <- return $ map (newTestCase AlgoZip) nonRecursiveTestCases;
     mapTests <- return $ map (newTestCase AlgoMap) nonRecursiveTestCases;
-    counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests ++ mapTests;
-    -- TODO remember to add unsafeTests
+    vpaTests <- return $ map (newTestCase AlgoVpa) nonRecursiveTestCases;
+    counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests ++ mapTests ++ vpaTests;
     putStrLn $ show counts;
     return ()
 }

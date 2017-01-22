@@ -26,6 +26,7 @@ library
                      , Xml
                      , Parsers
                      , ParsePatterns
+                     , VpaDeriv
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , json

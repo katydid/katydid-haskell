@@ -64,7 +64,7 @@ data ZippedIfExprs
 
 zipIfExprs :: IfExprs -> ZippedIfExprs
 zipIfExprs (Cond c t e) = ZippedCond c (zipIfExprs t) (zipIfExprs e)
-zipIfExprs (Ret ps) = let (ps, zs) = zippy ps in ZippedRet ps zs
+zipIfExprs (Ret ps) = let (zps, zs) = zippy ps in ZippedRet zps zs
 
 evalZippedIfExprs :: ZippedIfExprs -> Label -> Except ValueErr ([Pattern], Zipper)
 evalZippedIfExprs (ZippedRet ps zs) _ = return (ps, zs)
