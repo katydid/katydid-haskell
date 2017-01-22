@@ -13,6 +13,7 @@ import ParsePatterns
 import Patterns
 import Values
 import Json
+import IfExprs
 import Xml
 import Deriv
 import MapDeriv
@@ -82,27 +83,27 @@ readTestCases = do {
 }
 
 testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
-testDeriv AlgoDeriv name g ts want = case derivs g ts of
-    (Value p)   ->  let got = nullable g p
-                    in if want /= got then
-                        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
-                    else
-                        return ()
-    (Err e)     ->  error e
-testDeriv AlgoZip name g ts want = case zipderivs g ts of
-    (Value p)   ->  let got = nullable g p
-                    in if want /= got then
-                        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
-                    else
-                        return ()
-    (Err e)     ->  error e
-testDeriv AlgoMap name g ts want = case mderivs g ts of
-    (Value p)   ->  let got = nullable g p
-                    in if want /= got then
-                        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
-                    else
-                        return ()
-    (Err e)     ->  error e
+testDeriv AlgoDeriv name g ts want = 
+    let p = must $ derivs g ts 
+        got = nullable g p
+    in if want /= got then
+        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+    else
+        return ()
+testDeriv AlgoZip name g ts want = 
+    let p = must $ zipderivs g ts 
+        got = nullable g p
+    in if want /= got then
+        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+    else
+        return ()
+testDeriv AlgoMap name g ts want  = 
+    let p = mderivs g ts 
+        got = nullable g p
+    in if want /= got then
+        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+    else
+        return ()
 
 testName :: Algo -> TestSuiteCase -> String
 testName algo (TestSuiteCase name g t want) = name ++ "_" ++ show algo
