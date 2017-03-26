@@ -92,6 +92,14 @@ deriv refs ps tree =
         return $ derivReturns refs (ps, (nulls childres));
     }
 
+deriv2 :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
+deriv2 refs ps tree =
+    let derivC = (\refs l -> must $ evalIfExprs (derivCalls refs ps) l)
+        derivR = derivReturns
+        childps = derivC refs (getLabel tree)
+        childres = foldl (deriv2 refs) childps (getChildren tree)
+    in derivR refs (ps, map (nullable refs) childres)
+
 zipderivs :: Tree t => Refs -> [t] -> Except String Pattern
 zipderivs g ts = mapExcept onePattern $ foldlM (zipderiv g) [lookupRef g "main"] ts
 

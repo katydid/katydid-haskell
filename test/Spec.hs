@@ -2,6 +2,7 @@
 
 module Main where
 
+import ParserSpec
 import qualified Test.HUnit as HUnit
 
 import System.Directory (getCurrentDirectory, listDirectory)
@@ -124,6 +125,7 @@ newTestCase algo c@(TestSuiteCase name g (JsonData t) want) =
 
 main :: IO ()
 main = do {
+    putStrLn "TESTING DERIVATIVE ALGORITHMS";
     testSuiteCases <- readTestCases;
     nonRecursiveTestCases <- return $ filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases;
     putStrLn $ show $ zip [1..] (map (\(TestSuiteCase name _ _ _) -> name) nonRecursiveTestCases);
@@ -133,5 +135,10 @@ main = do {
     vpaTests <- return $ map (newTestCase AlgoVpa) nonRecursiveTestCases;
     counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests ++ mapTests ++ vpaTests;
     putStrLn $ show counts;
+
+    putStrLn "TESTING PARSER";
+    parserCounts <- parserSpec;
+    putStrLn $ show parserCounts;
+    
     return ()
 }

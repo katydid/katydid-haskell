@@ -12,3 +12,6 @@ run:
 
 setup:
 	stack setup
+
+ide-setup:
+	stack build intero
