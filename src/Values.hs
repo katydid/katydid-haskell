@@ -70,7 +70,7 @@ data BoolExpr
 	deriving (Eq, Ord, Show)
 
 data DoubleExpr
-	= DoubleConst Rational
+	= DoubleConst Double
 	| DoubleVariable
 
 	| DoubleListElemFunc [DoubleExpr] IntExpr
@@ -280,9 +280,9 @@ ne (Right v1) (Right v2) = return $ v1 /= v2
 ne (Left _) _ = return False
 ne _ (Left _) = return False
 
-evalDouble :: DoubleExpr -> Label -> Except ValueErr Rational
+evalDouble :: DoubleExpr -> Label -> Except ValueErr Double
 evalDouble (DoubleConst r) _ = return r
-evalDouble DoubleVariable (Number r) = return r
+evalDouble DoubleVariable (Number r) = return $ fromRational r
 evalDouble DoubleVariable l = throwError $ ErrNotADouble $ show l
 
 evalDouble (DoubleListElemFunc es i) v = do {

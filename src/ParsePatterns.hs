@@ -20,7 +20,6 @@ uRefs (("TopPattern", (JSObject pattern)):pairs) = newRef "main" (uPattern (from
 uRefs (("PatternDecls", (JSArray patternDecls)):pairs) = uPatternDecls patternDecls `union` uRefs pairs
 uRefs (_:pairs) = uRefs pairs
 
-
 uPatternDecls :: [JSValue] -> Refs
 uPatternDecls [] = emptyRef
 uPatternDecls ((JSObject o):patternDecls) = uPatternDecl (fromJSObject o) `union` uPatternDecls patternDecls
@@ -86,7 +85,7 @@ uName :: [(String, JSValue)] -> BoolExpr
 uName kvs = uName' $ head $ filter (\(k,v) -> (k /= "Before")) kvs
 
 uName' :: (String, JSValue) -> BoolExpr
-uName' ("DoubleValue", (JSRational _ num)) = DoubleEqualFunc (DoubleConst num) DoubleVariable
+uName' ("DoubleValue", (JSRational _ num)) = DoubleEqualFunc (DoubleConst (fromRational num)) DoubleVariable
 uName' ("IntValue", (JSRational _ num)) = IntEqualFunc (IntConst $ truncate num) IntVariable
 uName' ("UintValue", (JSRational _ num)) = UintEqualFunc (UintConst $ truncate num) UintVariable
 uName' ("BoolValue", (JSBool b)) = BoolEqualFunc (BoolConst b) BoolVariable
@@ -157,7 +156,7 @@ uTerminals :: [(String, JSValue)] -> Expr
 uTerminals kvs = uTerminal $ head $ filter (\(k,v) -> k /= "Before" && k /= "Literal") kvs
 
 uTerminal :: (String, JSValue) -> Expr
-uTerminal ("DoubleValue", JSRational _ n) = DoubleExpr (DoubleConst n)
+uTerminal ("DoubleValue", JSRational _ n) = DoubleExpr (DoubleConst (fromRational n))
 uTerminal ("IntValue", JSRational _ n) = IntExpr (IntConst $ truncate n)
 uTerminal ("UintValue", JSRational _ n) = UintExpr (UintConst $ truncate n)
 uTerminal ("BoolValue", JSBool b) = BoolExpr (BoolConst b)
@@ -280,7 +279,12 @@ newFunction s t = error $ "unknown function: " ++ s ++ " for types: " ++ show t
 uBuiltIn :: [(String, JSValue)] -> Expr
 uBuiltIn kvs = let
 	varExpr = uExprs $ getObject kvs "Expr"
-	name = funcName (getString (getObject kvs "Symbol") "Value")
+	symbol = getString (getObject kvs "Symbol") "Value"
+	in newBuiltIn symbol varExpr
+
+newBuiltIn :: String -> Expr -> Expr
+newBuiltIn symbol varExpr =
+	let name = funcName symbol
 	in if name /= "type" then
 		newFunction name [(constToVar varExpr), varExpr]
 	else
@@ -306,6 +310,7 @@ funcName "*=" = "contains"
 funcName "^=" = "hasPrefix"
 funcName "$=" = "hasSuffix"
 funcName "::" = "type"
+funcName name = error $ "unexpected funcName: <" ++ name ++ ">"
 
 -- JSON helper functions
 

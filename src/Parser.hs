@@ -6,6 +6,9 @@ import GHC.Base (ord)
 import Numeric (readDec, readOct, readHex, readFloat)
 import Data.Word
 import Data.Char (chr)
+import Values
+import Patterns
+import ParsePatterns
 
 infixl 4 <++>
 (<++>) :: CharParser () String -> CharParser () String -> CharParser () String
@@ -32,6 +35,10 @@ _comment = char '/' *> (_lineComment <|> _blockComment)
 
 ws :: CharParser () ()
 ws = _comment <|> (spaces *> return ())
+
+bool :: CharParser () Bool
+bool = True <$ string "true"
+    <|> False <$ string "false"
 
 _decimal_lit :: CharParser () Int
 _decimal_lit = _read readDec <$> oneOf "123456789" <::> many digit
@@ -89,11 +96,11 @@ _float_lit = do
 double_cast_lit :: CharParser () Double
 double_cast_lit = string "double(" *> ((*) <$> _optionalSign <*> _float_lit) <* (char ')')
 
-_id :: CharParser () String
-_id = (letter <|> char '_') <::> many (alphaNum <|> char '_')
+id_lit :: CharParser () String
+id_lit = (letter <|> char '_') <::> many (alphaNum <|> char '_')
 
 _qualid :: CharParser () String
-_qualid = _id <++> (concat <$> many (char '.' <::> _id))
+_qualid = id_lit <++> (concat <$> many (char '.' <::> id_lit))
 
 double_var :: CharParser () String
 double_var = string "$double"
@@ -160,3 +167,100 @@ _byte_elem = _byte_lit <|> (between (char '\'') (char '\'') (_unicode_value <|> 
 
 bytes_cast_lit :: CharParser () [Char]
 bytes_cast_lit = string "[]byte{" *> (sepBy (spaces *> _byte_elem <* spaces) (char ',')) <* char '}'
+
+_literal :: CharParser () Expr
+_literal = BoolExpr . BoolConst <$> bool
+    <|> IntExpr . IntConst <$> int_lit
+    <|> UintExpr . UintConst <$> uint_cast_lit
+    <|> DoubleExpr . DoubleConst <$> double_cast_lit
+    <|> StringExpr . StringConst <$> string_lit
+    <|> BytesExpr . BytesConst <$> bytes_cast_lit
+
+_terminal :: CharParser () Expr
+_terminal =
+    BoolExpr BoolVariable <$ bool_var
+    <|> IntExpr IntVariable <$ int_var
+    <|> UintExpr UintVariable <$ uint_var
+    <|> DoubleExpr DoubleVariable <$ double_var
+    <|> StringExpr StringVariable <$ string_var
+    <|> BytesExpr BytesVariable <$ bytes_var
+    <|> _literal
+
+_builtin_symbol :: CharParser () String
+_builtin_symbol = string "==" 
+    <|> string "!=" 
+    <|> char '<' <::> ((string "=") <|> empty)
+    <|> char '>' <::> ((string "=") <|> empty)
+    <|> string "~="
+    <|> string "*="
+    <|> string "^="
+    <|> string "$="
+    <|> string "::"
+
+_builtin :: CharParser () Expr
+_builtin = newBuiltIn <$> _builtin_symbol <*> (spaces *> _expr)
+
+_function :: CharParser () Expr
+_function = newFunction <$> id_lit <*> (char '(' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char ')')
+
+_listType :: CharParser () String
+_listType = string "[]" <++> (
+    string "bool"
+    <|> string "int"
+    <|> string "uint"
+    <|> string "double"
+    <|> string "string"
+    <|> string "[]byte" )
+
+_mustBool :: Expr -> CharParser () BoolExpr
+_mustBool (BoolExpr e) = return e
+_mustBool e = fail $ "want BoolExpr, got: " ++ show e
+
+_mustInt :: Expr -> CharParser () IntExpr
+_mustInt (IntExpr e) = return e
+_mustInt e = fail $ "want IntExpr, got: " ++ show e
+
+_mustUint :: Expr -> CharParser () UintExpr
+_mustUint (UintExpr e) = return e
+_mustUint e = fail $ "want UintExpr, got: " ++ show e
+
+_mustDouble :: Expr -> CharParser () DoubleExpr
+_mustDouble (DoubleExpr e) = return e
+_mustDouble e = fail $ "want DoubleExpr, got: " ++ show e
+
+_mustString :: Expr -> CharParser () StringExpr
+_mustString (StringExpr e) = return e
+_mustString e = fail $ "want StringExpr, got: " ++ show e
+
+_mustBytes :: Expr -> CharParser () BytesExpr
+_mustBytes (BytesExpr e) = return e
+_mustBytes e = fail $ "want BytesExpr, got: " ++ show e
+
+newList :: String -> [Expr] -> CharParser () Expr
+newList "[]bool" es = BoolListExpr <$> mapM _mustBool es
+newList "[]int" es = IntListExpr <$> mapM _mustInt es
+newList "[]uint" es = UintListExpr <$> mapM _mustUint es
+newList "[]double" es = DoubleListExpr <$> mapM _mustDouble es
+newList "[]string" es = StringListExpr <$> mapM _mustString es
+newList "[][]byte" es = BytesListExpr <$> mapM _mustBytes es
+
+_list :: CharParser () Expr
+_list = do {
+    lt <- _listType;
+    es <- (spaces *> char '{' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char '}');
+    newList lt es
+}
+
+_expr :: CharParser () Expr
+_expr = _terminal
+    <|> _list
+    <|> _function
+
+expr :: CharParser () BoolExpr
+expr = do {
+    e <- (_terminal
+        <|> _builtin
+        <|> _function
+    );
+    _mustBool e
+}

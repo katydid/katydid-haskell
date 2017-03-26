@@ -3,6 +3,8 @@ module ParserSpec where
 import Test.HUnit
 import Parser
 import Text.ParserCombinators.Parsec
+import Values
+import Patterns
 
 success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> Test
 success name p input want = TestLabel name $ TestCase $ case parse (p <* eof) "" input of
@@ -77,6 +79,18 @@ tests = TestList [
     failure "bytes too high number" bytes_cast_lit "[]byte{1000000}",
     success "bytes number with spaces" bytes_cast_lit "[]byte{ 46 }" ".",
     success "bytes number with more spaces" bytes_cast_lit "[]byte{ 46 ,    46     , 46}" "...",
+
+    success "id" id_lit "abc" "abc",
+    success "id with number" id_lit "abc123" "abc123",
+    success "id with underscore" id_lit "abc_123" "abc_123",
+    failure "id starts with number" id_lit "123abc",
+
+    success "expr bool var" expr "$bool" BoolVariable,
+    success "expr bool const" expr "true" (BoolConst True),
+    success "expr ==" expr "== true" (BoolEqualFunc BoolVariable (BoolConst True)),
+    success "expr not" expr "not(true)" (NotFunc (BoolConst True)),
+    success "expr eq" expr "eq($bool, true)" (BoolEqualFunc BoolVariable (BoolConst True)),
+    
    (TestCase (return ()))]
 
 parserSpec :: IO Counts
