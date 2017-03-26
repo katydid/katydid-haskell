@@ -5,6 +5,7 @@ import Patterns
 import GHC.Base (ord)
 import Numeric (readDec, readOct, readHex, readFloat)
 import Data.Word
+import Data.Char (chr)
 
 infixl 4 <++>
 (<++>) :: CharParser () String -> CharParser () String -> CharParser () String
@@ -121,39 +122,41 @@ _little_u_value = char 'u' *> (toEnum . (_read readHex) <$> count 4 hexDigit)
 _escaped_char :: CharParser () Char
 _escaped_char = choice (zipWith (\c r -> r <$ char c) "abnfrtv'\\\"/" "\a\b\n\f\r\t\v\'\\\"/")
 
--- _unicode_value :: CharParser () Char
--- _unicode_value = (char '\\' *> 
---     (_big_u_value 
---         <|> _little_u_value 
---         <|> _hex_byte_u_value 
---         <|> _escaped_char)
---     ) <|> _octal_byte_u_value
+_unicode_value :: CharParser () Char
+_unicode_value = (char '\\' *> 
+    (_big_u_value 
+        <|> _little_u_value 
+        <|> _hex_byte_u_value 
+        <|> _escaped_char
+        <|> _octal_byte_u_value)
+    ) <|> noneOf "\\\""
 
--- _interpreted_string :: CharParser () String
--- _interpreted_string = between (char '"') (char '"') (many _unicode_value)
+_interpreted_string :: CharParser () String
+_interpreted_string = between (char '"') (char '"') (many _unicode_value)
 
--- _raw_string :: CharParser () String
--- _raw_string = between (char '`') (char '`') (many anyChar)
+_raw_string :: CharParser () String
+_raw_string = between (char '`') (char '`') (many $ noneOf "`")
 
--- string_lit :: CharParser () String
--- string_lit = _raw_string <|> _interpreted_string
+string_lit :: CharParser () String
+string_lit = _raw_string <|> _interpreted_string
 
--- _hex_byte_u_value :: CharParser () Word8
--- _hex_byte_u_value = char 'x' *> (toEnum . (_read readHex) <$> count 2 hexDigit)
+_hex_byte_u_value :: CharParser () Char
+_hex_byte_u_value = char 'x' *> (chr . (_read readHex) <$> count 2 hexDigit)
 
--- _octal_byte_u_value :: CharParser () Word8
--- _octal_byte_u_value = toEnum . (_read readOct) <$> count 3 octDigit
+_octal_byte_u_value :: CharParser () Char
+_octal_byte_u_value = toEnum . (_read readOct) <$> count 3 octDigit
 
--- _byte_elem :: CharParser () Word8
--- _byte_elem = _int_lit <|> (between (char '\'') (char '\'') (_unicode_value <|> _octal_byte_u_value <|> _hex_byte_u_value))
+_byte_lit :: CharParser () Char
+_byte_lit = do {
+    i <- _int_lit;
+    if i > 255 then
+        fail $ "too large for byte: " ++ (show i)
+    else
+        return $ chr i
+}
 
--- bytes_cast_lit :: CharParser () [Word8]
--- bytes_cast_lit = string "[]byte{" *> spaces *> sepBy _byte_elem (spaces *> char ',' <* spaces) <* spaces <* char '}'
+_byte_elem :: CharParser () Char
+_byte_elem = _byte_lit <|> (between (char '\'') (char '\'') (_unicode_value <|> _octal_byte_u_value <|> _hex_byte_u_value))
 
--- _char_lit	: '\'' (_unicode_value | _byte_value) '\'' ;
-
--- _byte_elem : _int_lit | _char_lit ;
-
--- bytes_cast_lit : _bytes '{' { _ws } [ _byte_elem { { _ws } ',' { _ws } _byte_elem } ] { _ws } '}' ;
-
--- _byte_value       : _octal_byte_u_value | _hex_byte_u_value ;
+bytes_cast_lit :: CharParser () [Char]
+bytes_cast_lit = string "[]byte{" *> (sepBy (spaces *> _byte_elem <* spaces) (char ',')) <* char '}'

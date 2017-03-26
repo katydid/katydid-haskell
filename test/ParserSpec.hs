@@ -50,6 +50,33 @@ tests = TestList [
     success "double exponent" double_cast_lit "double(2E+2)" 200,
     success "double exponent without sign" double_cast_lit "double(2E2)" 200,
     success "double exponent negative sign" double_cast_lit "double(2E-2)" 0.02,
+    success "double exponent and dot" double_cast_lit "double(2.1E-2)" 0.021,
+    failure "double failure" double_cast_lit "double(1/2)",
+
+    success "double var" double_var "$double" "$double",
+    success "bytes var" bytes_var "$[]byte" "$[]byte",
+    
+    success "interpreted string" string_lit "\"abc\"" "abc",
+    success "unicode small" string_lit "\"\\u002E\"" ".",
+    success "unicode big" string_lit "\"\\U0000002E\"" ".",
+    success "hex char" string_lit "\"\\x2E\"" ".",
+    success "octal char" string_lit "\"\\056\"" ".",
+    success "escaped" string_lit "\"\\t\"" "\t",
+    success "mixed interpreted string" string_lit "\"\\u002Eabc\\x2E\"" ".abc.",
+    success "raw string" string_lit "`abc`" "abc",
+    success "raw string with quote" string_lit "`ab\"c`" "ab\"c",
+    failure "raw string failure" string_lit "`a`b`",
+    failure "escaped failure" string_lit "\\/",
+
+    success "bytes char" bytes_cast_lit "[]byte{'a'}" "a",
+    success "bytes string" bytes_cast_lit "[]byte{'a', 'b', 'c'}" "abc",
+    success "bytes unicode char" bytes_cast_lit "[]byte{'\\u002E'}" ".",
+    success "bytes hex char" bytes_cast_lit "[]byte{'\\x2E'}" ".",
+    success "bytes octal char" bytes_cast_lit "[]byte{'\\056'}" ".",
+    success "bytes number" bytes_cast_lit "[]byte{46}" ".",
+    failure "bytes too high number" bytes_cast_lit "[]byte{1000000}",
+    success "bytes number with spaces" bytes_cast_lit "[]byte{ 46 }" ".",
+    success "bytes number with more spaces" bytes_cast_lit "[]byte{ 46 ,    46     , 46}" "...",
    (TestCase (return ()))]
 
 parserSpec :: IO Counts
