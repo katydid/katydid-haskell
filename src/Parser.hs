@@ -254,7 +254,7 @@ _list = do {
 }
 
 _expr :: CharParser () Expr
-_expr = _terminal <|> _list <|> _function
+_expr = try _terminal <|> _list <|> _function
 
 expr :: CharParser () BoolExpr
 expr = (_terminal <|> _builtin <|> _function) >>= _mustBool

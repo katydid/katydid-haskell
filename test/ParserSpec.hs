@@ -87,6 +87,7 @@ tests = TestList [
     success "expr eq bool" expr "eq($bool, true)" (BoolEqualFunc BoolVariable (BoolConst True)),
     success "expr eq int" expr "eq($int, 1)" (IntEqualFunc IntVariable (IntConst 1)),
     failure "expr eq type mismatch" expr "eq($bool, 1)",
+    success "expr list" expr "eq($int, length([]int{1,2}))" (IntEqualFunc IntVariable (IntListLengthFunc [IntConst 1, IntConst 2])),
     
    TestCase (return ())]
 
