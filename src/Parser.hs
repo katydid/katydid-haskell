@@ -41,19 +41,19 @@ bool = True <$ string "true"
     <|> False <$ string "false"
 
 _decimalLit :: CharParser () Int
-_decimalLit = _read readDec <$> oneOf "123456789" <::> many digit
+_decimalLit = oneOf "123456789" <::> many digit >>= _read readDec
 
 _octalLit :: CharParser () Int
-_octalLit = _read readOct <$> many1 octDigit
+_octalLit = many1 octDigit >>= _read readOct
 
 _hexLit :: CharParser () Int
-_hexLit = _read readHex <$> many1 hexDigit
+_hexLit = many1 hexDigit >>= _read readHex
 
-_read :: ReadS a -> String -> a
+_read :: ReadS a -> String -> CharParser () a
 _read read s = case read s of
-    [(n, "")]   -> n
-    ((n, ""):_) -> n
-    _           -> error "digit"
+    [(n, "")]   -> return n
+    ((n, ""):_) -> return n
+    _           -> fail "digit"
 
 _optionalSign :: (Num a) => CharParser () a
 _optionalSign = -1 <$ char '-' <|> return 1
@@ -91,7 +91,7 @@ _floatLit = do
             )
         ) 
         <|> empty
-    return $ _read readFloat (i ++ e)
+    _read readFloat (i ++ e)
 
 doubleCastLit :: CharParser () Double
 doubleCastLit = string "double(" *> ((*) <$> _optionalSign <*> _floatLit) <* char ')'
@@ -103,10 +103,18 @@ _qualid :: CharParser () String
 _qualid = idLit <++> (concat <$> many (char '.' <::> idLit))
 
 _bigUValue :: CharParser () Char
-_bigUValue = char 'U' *> (toEnum . _read readHex <$> count 8 hexDigit)
+_bigUValue = char 'U' *> do {
+    hs <- count 8 hexDigit;
+    n <- _read readHex hs;
+    return $ toEnum n
+}
 
 _littleUValue :: CharParser () Char
-_littleUValue = char 'u' *> (toEnum . _read readHex <$> count 4 hexDigit)
+_littleUValue = char 'u' *> do { 
+    hs <- count 4 hexDigit;
+    n <- _read readHex hs;
+    return $ toEnum n
+}
 
 _escapedChar :: CharParser () Char
 _escapedChar = choice (zipWith (\c r -> r <$ char c) "abnfrtv'\\\"/" "\a\b\n\f\r\t\v\'\\\"/")
@@ -130,10 +138,18 @@ stringLit :: CharParser () String
 stringLit = _rawString <|> _interpretedString
 
 _hexByteUValue :: CharParser () Char
-_hexByteUValue = char 'x' *> (chr . _read readHex <$> count 2 hexDigit)
+_hexByteUValue = char 'x' *> do {
+    hs <- count 2 hexDigit;
+    n <- _read readHex hs;
+    return $ chr n
+}
 
 _octalByteUValue :: CharParser () Char
-_octalByteUValue = toEnum . _read readOct <$> count 3 octDigit
+_octalByteUValue = do {
+    os <- count 3 octDigit;
+    n <- _read readOct os;
+    return $ toEnum n
+}
 
 _byteLit :: CharParser () Char
 _byteLit = do {
@@ -179,21 +195,15 @@ _builtinSymbol = string "=="
     <|> string "$="
     <|> string "::"
 
-checky :: Either String Expr -> CharParser () Expr
-checky (Right r) = return r
-checky (Left l) = fail l
-
-check :: CharParser () (Either String Expr) -> CharParser () Expr
-check c = do {
-    either <- c;
-    checky either
-} 
+check :: Either String Expr -> CharParser () Expr
+check (Right r) = return r
+check (Left l) = fail l
 
 _builtin :: CharParser () Expr
-_builtin = check $ newBuiltIn <$> _builtinSymbol <*> (spaces *> _expr)
+_builtin = newBuiltIn <$> _builtinSymbol <*> (spaces *> _expr) >>= check
 
 _function :: CharParser () Expr
-_function = check $ newFunction <$> idLit <*> (char '(' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char ')')
+_function = newFunction <$> idLit <*> (char '(' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char ')') >>= check
 
 _listType :: CharParser () String
 _listType = string "[]" <++> (
@@ -244,14 +254,7 @@ _list = do {
 }
 
 _expr :: CharParser () Expr
-_expr = _terminal
-    <|> _list
-    <|> _function
+_expr = _terminal <|> _list <|> _function
 
 expr :: CharParser () BoolExpr
-expr = do {
-    e <- _terminal
-        <|> _builtin
-        <|> _function;
-    _mustBool e
-}
+expr = (_terminal <|> _builtin <|> _function) >>= _mustBool
