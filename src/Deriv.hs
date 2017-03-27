@@ -19,11 +19,11 @@ derivCall _ Empty = []
 derivCall _ ZAny = []
 derivCall _ (Node v p) = [(v, p, Not ZAny)]
 derivCall refs (Concat l r) = if nullable refs l
-    then (derivCall refs l) ++ (derivCall refs r)
+    then derivCall refs l ++ derivCall refs r
     else derivCall refs l
-derivCall refs (Or l r) = (derivCall refs l) ++ (derivCall refs r)
-derivCall refs (And l r) = (derivCall refs l) ++ (derivCall refs r)
-derivCall refs (Interleave l r) = (derivCall refs l) ++ (derivCall refs r)
+derivCall refs (Or l r) = derivCall refs l ++ derivCall refs r
+derivCall refs (And l r) = derivCall refs l ++ derivCall refs r
+derivCall refs (Interleave l r) = derivCall refs l ++ derivCall refs r
 derivCall refs (ZeroOrMore p) = derivCall refs p
 derivCall refs (Reference name) = derivCall refs $ lookupRef refs name
 derivCall refs (Not p) = derivCall refs p
@@ -32,10 +32,10 @@ derivCall refs (Optional p) = derivCall refs (Or p Empty)
 
 derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 derivReturns refs ([], []) = []
-derivReturns refs ((p:tailps), ns) =
+derivReturns refs (p:tailps, ns) =
     let (dp, tailns) = derivReturn refs p ns
         sp = simplify refs dp
-    in  sp:(derivReturns refs (tailps, tailns))
+    in  sp:derivReturns refs (tailps, tailns)
 
 derivReturn :: Refs -> Pattern -> [Bool] -> (Pattern, [Bool])
 derivReturn refs Empty ns = (Not ZAny, ns)
@@ -89,12 +89,12 @@ deriv refs ps tree =
     in do {
         childps <- evalIfExprs ifs (getLabel tree);
         childres <- foldlM d childps (getChildren tree);
-        return $ derivReturns refs (ps, (nulls childres));
+        return $ derivReturns refs (ps, nulls childres);
     }
 
 deriv2 :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
 deriv2 refs ps tree =
-    let derivC = (\refs l -> must $ evalIfExprs (derivCalls refs ps) l)
+    let derivC refs l = must $ evalIfExprs (derivCalls refs ps) l
         derivR = derivReturns
         childps = derivC refs (getLabel tree)
         childres = foldl (deriv2 refs) childps (getChildren tree)
@@ -113,6 +113,6 @@ zipderiv refs ps tree =
         childps <- evalIfExprs ifs (getLabel tree);
         (zchildps, zipper) <- return $ zippy childps;
         childres <- foldlM d zchildps (getChildren tree);
-        unzipns <- return $ unzipby zipper (nulls childres);
-        return $ derivReturns refs (ps, unzipns);
+        let unzipns = unzipby zipper (nulls childres)
+        in return $ derivReturns refs (ps, unzipns)
     }

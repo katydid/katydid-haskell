@@ -71,10 +71,9 @@ hasRec refs set (Node _ _) = False
 hasRec refs set (Or l r) = hasRec refs set l || hasRec refs set r
 hasRec refs set (And l r) = hasRec refs set l || hasRec refs set r
 hasRec refs set (Not p) = hasRec refs set p
-hasRec refs set (Concat l r) = hasRec refs set l || ((nullable refs l) && (hasRec refs set r))
+hasRec refs set (Concat l r) = hasRec refs set l || (nullable refs l && hasRec refs set r)
 hasRec refs set (Interleave l r) = hasRec refs set l || hasRec refs set r
 hasRec refs set (ZeroOrMore _) = False
 hasRec refs set (Optional p) = hasRec refs set p
 hasRec refs set (Contains p) = hasRec refs set p
-hasRec refs set (Reference name) = if (DataSet.member name set) then True else
-	hasRec refs (DataSet.insert name set) (lookupRef refs name)
+hasRec refs set (Reference name) = DataSet.member name set || hasRec refs (DataSet.insert name set) (lookupRef refs name)

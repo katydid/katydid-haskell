@@ -8,6 +8,7 @@ import qualified Test.HUnit as HUnit
 import System.Directory (getCurrentDirectory, listDirectory)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
+import Control.Monad (when)
 
 import Parsers
 import ParsePatterns
@@ -38,13 +39,13 @@ data TestSuiteCase = TestSuiteCase {
 } deriving Show
 
 getRelapseJson :: [FilePath] -> FilePath
-getRelapseJson paths = head $ filter (\fname -> (takeExtension fname) == ".json" && (takeBaseName fname) == "relapse") paths
+getRelapseJson paths = head $ filter (\fname -> takeExtension fname == ".json" && takeBaseName fname == "relapse") paths
 
 isValidCase :: [FilePath] -> Bool
-isValidCase paths = 1 == (length $ filter (\fname -> (takeBaseName fname) == "valid") paths)
+isValidCase paths = length (filter (\fname -> takeBaseName fname == "valid") paths) == 1
 
 filepathWithExt :: [FilePath] -> String -> FilePath
-filepathWithExt paths ext = head $ filter (\fname -> (takeExtension fname) == ext && (takeBaseName fname) /= "relapse") paths
+filepathWithExt paths ext = head $ filter (\fname -> takeExtension fname == ext && takeBaseName fname /= "relapse") paths
 
 readJsonTest :: FilePath -> IO TestSuiteCase
 readJsonTest path = do {
@@ -71,7 +72,7 @@ ls path = do {
 testPath :: IO FilePath
 testPath = do {
      path <- getCurrentDirectory;
-     return $ (takeDirectory path) </> "testsuite" </> "relapse" </> "tests"
+     return $ takeDirectory path </> "testsuite" </> "relapse" </> "tests"
 }
 
 readTestCases :: IO [TestSuiteCase]
@@ -88,31 +89,19 @@ testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
 testDeriv AlgoDeriv name g ts want = 
     let p = must $ derivs g ts 
         got = nullable g p
-    in if want /= got then
-        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
-    else
-        return ()
+    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoZip name g ts want = 
     let p = must $ zipderivs g ts 
         got = nullable g p
-    in if want /= got then
-        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
-    else
-        return ()
+    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoMap name g ts want  = 
     let p = mderivs g ts 
         got = nullable g p
-    in if want /= got then
-        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
-    else
-        return ()
+    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoVpa name g ts want  = 
     let p = vderivs g ts 
         got = nullable g p
-    in if want /= got then
-        error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
-    else
-        return ()
+    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 
 testName :: Algo -> TestSuiteCase -> String
 testName algo (TestSuiteCase name g t want) = name ++ "_" ++ show algo

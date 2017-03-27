@@ -162,17 +162,17 @@ evalBool (BytesEqualFunc e1 e2) v = eq (runExcept $ evalBytes e1 v) (runExcept $
 
 evalBool (IntListContainsFunc e es) v = do {
 	e' <- evalInt e v;
-	es' <- mapM ((flip evalInt) v) es;
+	es' <- mapM (`evalInt` v) es;
 	return $ elem e' es'
 }
 evalBool (StringListContainsFunc e es) v = do {
 	e' <- evalString e v;
-	es' <- mapM ((flip evalString) v) es;
+	es' <- mapM (`evalString` v) es;
 	return $ elem e' es'
 }
 evalBool (UintListContainsFunc e es) v = do {
 	e' <- evalUint e v;
-	es' <- mapM ((flip evalUint) v) es;
+	es' <- mapM (`evalUint` v) es;
 	return $ elem e' es'
 }
 evalBool (StringContainsFunc s sub) v = do {
@@ -183,7 +183,7 @@ evalBool (StringContainsFunc s sub) v = do {
 
 evalBool (BoolListElemFunc es i) v = do {
 	i' <- evalInt i v;
-	es' <- mapM ((flip evalBool) v) es;
+	es' <- mapM (`evalBool` v) es;
 	return $ es' !! i'
 }
 
@@ -250,32 +250,32 @@ evalBool (RegexFunc e s) v = do {
 	return (s' =~ e' :: Bool)
 }
 
-eq :: (Eq a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
+eq :: (Eq a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
 eq (Right v1) (Right v2) = return $ v1 == v2
 eq (Left _) _ = return False
 eq _ (Left _) = return False
 
-ge :: (Ord a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
+ge :: (Ord a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
 ge (Right v1) (Right v2) = return $ v1 >= v2
 ge (Left _) _ = return False
 ge _ (Left _) = return False
 
-gt :: (Ord a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
+gt :: (Ord a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
 gt (Right v1) (Right v2) = return $ v1 > v2
 gt (Left _) _ = return False
 gt _ (Left _) = return False
 
-le :: (Ord a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
+le :: (Ord a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
 le (Right v1) (Right v2) = return $ v1 <= v2
 le (Left _) _ = return False
 le _ (Left _) = return False
 
-lt :: (Ord a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
+lt :: (Ord a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
 lt (Right v1) (Right v2) = return $ v1 < v2
 lt (Left _) _ = return False
 lt _ (Left _) = return False
 
-ne :: (Eq a) => (Either ValueErr a) -> (Either ValueErr a) -> Except ValueErr Bool
+ne :: (Eq a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
 ne (Right v1) (Right v2) = return $ v1 /= v2
 ne (Left _) _ = return False
 ne _ (Left _) = return False
@@ -287,7 +287,7 @@ evalDouble DoubleVariable l = throwError $ ErrNotADouble $ show l
 
 evalDouble (DoubleListElemFunc es i) v = do {
 	i' <- evalInt i v;
-	es' <- mapM ((flip evalDouble) v) es;
+	es' <- mapM (`evalDouble` v) es;
 	return $ es' !! i'
 }
 
@@ -298,16 +298,16 @@ evalInt IntVariable l = throwError $ ErrNotAnInt $ show l
 
 evalInt (IntListElemFunc es i) v = do {
 	i' <- evalInt i v;
-	es' <- mapM ((flip evalInt) v) es;
+	es' <- mapM (`evalInt` v) es;
 	return $ es' !! i'
 }
 
 evalInt (BytesListLengthFunc es) v = do {
-	es' <- mapM ((flip evalBytes) v) es;
+	es' <- mapM (`evalBytes` v) es;
 	return $ length es'
 }
 evalInt (BoolListLengthFunc es) v = do {
-	es' <- mapM ((flip evalBool) v) es;
+	es' <- mapM (`evalBool` v) es;
 	return $ length es'
 }
 evalInt (BytesLengthFunc e) v = do {
@@ -315,19 +315,19 @@ evalInt (BytesLengthFunc e) v = do {
 	return $ length e'
 }
 evalInt (DoubleListLengthFunc es) v = do {
-	es' <- mapM ((flip evalDouble) v) es;
+	es' <- mapM (`evalDouble` v) es;
 	return $ length es'
 }
 evalInt (IntListLengthFunc es) v = do {
-	es' <- mapM ((flip evalInt) v) es;
+	es' <- mapM (`evalInt` v) es;
 	return $ length es'
 }
 evalInt (StringListLengthFunc es) v = do {
-	es' <- mapM ((flip evalString) v) es;
+	es' <- mapM (`evalString` v) es;
 	return $ length es'
 }
 evalInt (UintListLengthFunc es) v = do {
-	es' <- mapM ((flip evalUint) v) es;
+	es' <- mapM (`evalUint` v) es;
 	return $ length es'
 }
 evalInt (StringLengthFunc e) v = do {
@@ -342,7 +342,7 @@ evalUint UintVariable l = throwError $ ErrNotAnUint $ show l
 
 evalUint (UintListElemFunc es i) v = do {
 	i' <- evalInt i v;
-	es' <- mapM ((flip evalUint) v) es;
+	es' <- mapM (`evalUint` v) es;
 	return $ es' !! i'
 }
 
@@ -353,7 +353,7 @@ evalString StringVariable l = throwError $ ErrNotAString $ show l
 
 evalString (StringListElemFunc es i) v = do {
 	i' <- evalInt i v;
-	es' <- mapM ((flip evalString) v) es;
+	es' <- mapM (`evalString` v) es;
 	return $ es' !! i'
 }
 
@@ -373,7 +373,7 @@ evalBytes BytesVariable l = throwError $ ErrNotBytes $ show l
 
 evalBytes (BytesListElemFunc es i) v = do {
 	i' <- evalInt i v;
-	es' <- mapM ((flip evalBytes) v) es;
+	es' <- mapM (`evalBytes` v) es;
 	return $ es' !! i'
 }
 
@@ -446,8 +446,8 @@ simplifyOrFunc (BoolConst False) v = v
 simplifyOrFunc v (BoolConst False) = v
 simplifyOrFunc v1 v2
 	| v1 == v2  = v1
-	| v1 == (simplifyNotFunc v2) = BoolConst True
-	| (simplifyNotFunc v1) == v2 = BoolConst True
+	| v1 == simplifyNotFunc v2 = BoolConst True
+	| simplifyNotFunc v1 == v2 = BoolConst True
 	| otherwise = OrFunc v1 v2
 
 simplifyAndFunc :: BoolExpr -> BoolExpr -> BoolExpr
@@ -515,14 +515,14 @@ simplifyAndFunc v1@(UintNotEqualFunc s1 s2) v2@(UintEqualFunc s1' s2') =
 
 simplifyAndFunc v1 v2
 	| v1 == v2  = v1
-	| v1 == (simplifyNotFunc v2) = BoolConst False
-	| (simplifyNotFunc v1) == v2 = BoolConst False
+	| v1 == simplifyNotFunc v2 = BoolConst False
+	| simplifyNotFunc v1 == v2 = BoolConst False
 	| otherwise = AndFunc v1 v2
 
 simplifyNotFunc :: BoolExpr -> BoolExpr
 simplifyNotFunc (NotFunc v) = v
-simplifyNotFunc (BoolConst True) = (BoolConst False)
-simplifyNotFunc (BoolConst False) = (BoolConst True)
+simplifyNotFunc (BoolConst True) = BoolConst False
+simplifyNotFunc (BoolConst False) = BoolConst True
 simplifyNotFunc (AndFunc e1 e2) = simplifyOrFunc (simplifyNotFunc e1) (simplifyNotFunc e2)
 simplifyNotFunc (OrFunc e1 e2) = simplifyAndFunc (simplifyNotFunc e1) (simplifyNotFunc e2)
 simplifyNotFunc v@(BoolEqualFunc e1 e2) = BoolNotEqualFunc e1 e2

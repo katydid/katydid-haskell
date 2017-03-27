@@ -30,10 +30,10 @@ uValue (JSObject o) = uObject $ fromJSObject o
 
 uArray :: Int -> [JSValue] -> [JsonTree]
 uArray index [] = []
-uArray index (v:vs) = (DataTree.Node (Number (toRational index)) (uValue v)):(uArray (index+1) vs)
+uArray index (v:vs) = DataTree.Node (Number (toRational index)) (uValue v):uArray (index+1) vs
 
 uObject :: [(String, JSValue)] -> [JsonTree]
-uObject keyValues = map uKeyValue keyValues
+uObject = map uKeyValue
 
 uKeyValue :: (String, JSValue) -> JsonTree
 uKeyValue (name, value) = DataTree.Node (String name) (uValue value)

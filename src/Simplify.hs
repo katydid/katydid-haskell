@@ -54,13 +54,13 @@ simplifyChildren :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> [Pattern]
 simplifyChildren _ [] = []
 simplifyChildren _ [p] = [p]
 simplifyChildren op (p1@(Node v1 c1):(p2@(Node v2 c2):ps))
-	| v1 == v2 = simplifyChildren op $ (Node v1 (op c1 c2)):ps
-	| otherwise = p1:(simplifyChildren op (p2:ps))
-simplifyChildren op (p:ps) = p:(simplifyChildren op ps)
+	| v1 == v2 = simplifyChildren op $ Node v1 (op c1 c2):ps
+	| otherwise = p1:simplifyChildren op (p2:ps)
+simplifyChildren op (p:ps) = p:simplifyChildren op ps
 
 bin :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> Pattern
 bin op [p] = p
-bin op (p1:p2:[]) = op p1 p2
+bin op [p1,p2] = op p1 p2
 bin op (p:ps) = op p (bin op ps)
 
 setOfOrs :: Pattern -> DataSet.Set Pattern
@@ -82,7 +82,7 @@ setOfAnds (And p1 p2) = setOfAnds p1 `DataSet.union` setOfAnds p2
 setOfAnds p = DataSet.singleton p
 
 simplifyZeroOrMore :: Pattern -> Pattern
-simplifyZeroOrMore (ZeroOrMore p) = (ZeroOrMore p)
+simplifyZeroOrMore (ZeroOrMore p) = ZeroOrMore p
 simplifyZeroOrMore p = ZeroOrMore p
 
 simplifyNot :: Pattern -> Pattern
