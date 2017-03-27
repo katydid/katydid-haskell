@@ -25,10 +25,10 @@ opt :: CharParser () Char -> CharParser () String
 opt p = (:"") <$> p <|> empty
 
 _lineComment :: CharParser () ()
-_lineComment = char '/' *> (many $ noneOf "\n") <* (char '\n') *> return ()
+_lineComment = char '/' *> many (noneOf "\n") <* char '\n' *> return ()
 
 _blockComment :: CharParser () ()
-_blockComment = char '*' *> (many $ noneOf "*") <* (char '*') <* char '/' *> return ()
+_blockComment = char '*' *> many (noneOf "*") <* char '*' <* char '/' *> return ()
 
 _comment :: CharParser () ()
 _comment = char '/' *> (_lineComment <|> _blockComment)
@@ -40,14 +40,14 @@ bool :: CharParser () Bool
 bool = True <$ string "true"
     <|> False <$ string "false"
 
-_decimal_lit :: CharParser () Int
-_decimal_lit = _read readDec <$> oneOf "123456789" <::> many digit
+_decimalLit :: CharParser () Int
+_decimalLit = _read readDec <$> oneOf "123456789" <::> many digit
 
-_octal_lit :: CharParser () Int
-_octal_lit = _read readOct <$> many1 octDigit
+_octalLit :: CharParser () Int
+_octalLit = _read readOct <$> many1 octDigit
 
-_hex_lit :: CharParser () Int
-_hex_lit = _read readHex <$> many1 hexDigit
+_hexLit :: CharParser () Int
+_hexLit = _read readHex <$> many1 hexDigit
 
 _read :: ReadS a -> String -> a
 _read read s = case read s of
@@ -58,29 +58,29 @@ _read read s = case read s of
 _optionalSign :: (Num a) => CharParser () a
 _optionalSign = -1 <$ char '-' <|> return 1
 
-_signed_int_lit :: CharParser () Int
-_signed_int_lit = (*) <$> _optionalSign <*> _int_lit
+_signedIntLit :: CharParser () Int
+_signedIntLit = (*) <$> _optionalSign <*> _intLit
 
-_int_lit :: CharParser () Int
-_int_lit = _decimal_lit 
-    <|> char '0' *> (_octal_lit 
-                    <|> (oneOf "xX" *> _hex_lit)
+_intLit :: CharParser () Int
+_intLit = _decimalLit 
+    <|> char '0' *> (_octalLit 
+                    <|> (oneOf "xX" *> _hexLit)
                     <|> return 0
     )
 
-int_lit :: CharParser () Int
-int_lit = string "int(" *> _signed_int_lit <* char ')'
-    <|> _signed_int_lit
+intLit :: CharParser () Int
+intLit = string "int(" *> _signedIntLit <* char ')'
+    <|> _signedIntLit
     <?> "int_lit"
 
-uint_cast_lit :: CharParser () Int
-uint_cast_lit = string "uint(" *> _int_lit <* char ')'
+uintCastLit :: CharParser () Int
+uintCastLit = string "uint(" *> _intLit <* char ')'
 
 _exponent :: CharParser () String
-_exponent = oneOf "eE" <::> (opt (oneOf "+-")) <++> many1 digit
+_exponent = oneOf "eE" <::> opt (oneOf "+-") <++> many1 digit
 
-_float_lit :: CharParser () Double
-_float_lit = do
+_floatLit :: CharParser () Double
+_floatLit = do
     i <- many1 digit
     e <- _exponent 
         <|> ((string "." <|> empty) <++> 
@@ -93,115 +93,107 @@ _float_lit = do
         <|> empty
     return $ _read readFloat (i ++ e)
 
-double_cast_lit :: CharParser () Double
-double_cast_lit = string "double(" *> ((*) <$> _optionalSign <*> _float_lit) <* (char ')')
+doubleCastLit :: CharParser () Double
+doubleCastLit = string "double(" *> ((*) <$> _optionalSign <*> _floatLit) <* char ')'
 
-id_lit :: CharParser () String
-id_lit = (letter <|> char '_') <::> many (alphaNum <|> char '_')
+idLit :: CharParser () String
+idLit = (letter <|> char '_') <::> many (alphaNum <|> char '_')
 
 _qualid :: CharParser () String
-_qualid = id_lit <++> (concat <$> many (char '.' <::> id_lit))
+_qualid = idLit <++> (concat <$> many (char '.' <::> idLit))
 
-double_var :: CharParser () String
-double_var = string "$double"
+_bigUValue :: CharParser () Char
+_bigUValue = char 'U' *> (toEnum . _read readHex <$> count 8 hexDigit)
 
-int_var :: CharParser () String
-int_var = string "$int"
+_littleUValue :: CharParser () Char
+_littleUValue = char 'u' *> (toEnum . _read readHex <$> count 4 hexDigit)
 
-uint_var :: CharParser () String
-uint_var = string "$uint"
+_escapedChar :: CharParser () Char
+_escapedChar = choice (zipWith (\c r -> r <$ char c) "abnfrtv'\\\"/" "\a\b\n\f\r\t\v\'\\\"/")
 
-bytes_var :: CharParser () String
-bytes_var = string "$[]byte"
-
-string_var :: CharParser () String
-string_var = string "$string"
-
-bool_var :: CharParser () String
-bool_var = string "$bool"
-
-_big_u_value :: CharParser () Char
-_big_u_value = char 'U' *> (toEnum . (_read readHex) <$> count 8 hexDigit)
-
-_little_u_value :: CharParser () Char
-_little_u_value = char 'u' *> (toEnum . (_read readHex) <$> count 4 hexDigit)
-
-_escaped_char :: CharParser () Char
-_escaped_char = choice (zipWith (\c r -> r <$ char c) "abnfrtv'\\\"/" "\a\b\n\f\r\t\v\'\\\"/")
-
-_unicode_value :: CharParser () Char
-_unicode_value = (char '\\' *> 
-    (_big_u_value 
-        <|> _little_u_value 
-        <|> _hex_byte_u_value 
-        <|> _escaped_char
-        <|> _octal_byte_u_value)
+_unicodeValue :: CharParser () Char
+_unicodeValue = (char '\\' *> 
+    (_bigUValue 
+        <|> _littleUValue 
+        <|> _hexByteUValue 
+        <|> _escapedChar
+        <|> _octalByteUValue)
     ) <|> noneOf "\\\""
 
-_interpreted_string :: CharParser () String
-_interpreted_string = between (char '"') (char '"') (many _unicode_value)
+_interpretedString :: CharParser () String
+_interpretedString = between (char '"') (char '"') (many _unicodeValue)
 
-_raw_string :: CharParser () String
-_raw_string = between (char '`') (char '`') (many $ noneOf "`")
+_rawString :: CharParser () String
+_rawString = between (char '`') (char '`') (many $ noneOf "`")
 
-string_lit :: CharParser () String
-string_lit = _raw_string <|> _interpreted_string
+stringLit :: CharParser () String
+stringLit = _rawString <|> _interpretedString
 
-_hex_byte_u_value :: CharParser () Char
-_hex_byte_u_value = char 'x' *> (chr . (_read readHex) <$> count 2 hexDigit)
+_hexByteUValue :: CharParser () Char
+_hexByteUValue = char 'x' *> (chr . _read readHex <$> count 2 hexDigit)
 
-_octal_byte_u_value :: CharParser () Char
-_octal_byte_u_value = toEnum . (_read readOct) <$> count 3 octDigit
+_octalByteUValue :: CharParser () Char
+_octalByteUValue = toEnum . _read readOct <$> count 3 octDigit
 
-_byte_lit :: CharParser () Char
-_byte_lit = do {
-    i <- _int_lit;
+_byteLit :: CharParser () Char
+_byteLit = do {
+    i <- _intLit;
     if i > 255 then
-        fail $ "too large for byte: " ++ (show i)
+        fail $ "too large for byte: " ++ show i
     else
         return $ chr i
 }
 
-_byte_elem :: CharParser () Char
-_byte_elem = _byte_lit <|> (between (char '\'') (char '\'') (_unicode_value <|> _octal_byte_u_value <|> _hex_byte_u_value))
+_byteElem :: CharParser () Char
+_byteElem = _byteLit <|> between (char '\'') (char '\'') (_unicodeValue <|> _octalByteUValue <|> _hexByteUValue)
 
-bytes_cast_lit :: CharParser () [Char]
-bytes_cast_lit = string "[]byte{" *> (sepBy (spaces *> _byte_elem <* spaces) (char ',')) <* char '}'
+bytesCastLit :: CharParser () String
+bytesCastLit = string "[]byte{" *> sepBy (spaces *> _byteElem <* spaces) (char ',') <* char '}'
 
 _literal :: CharParser () Expr
 _literal = BoolExpr . BoolConst <$> bool
-    <|> IntExpr . IntConst <$> int_lit
-    <|> UintExpr . UintConst <$> uint_cast_lit
-    <|> DoubleExpr . DoubleConst <$> double_cast_lit
-    <|> StringExpr . StringConst <$> string_lit
-    <|> BytesExpr . BytesConst <$> bytes_cast_lit
+    <|> IntExpr . IntConst <$> intLit
+    <|> UintExpr . UintConst <$> uintCastLit
+    <|> DoubleExpr . DoubleConst <$> doubleCastLit
+    <|> StringExpr . StringConst <$> stringLit
+    <|> BytesExpr . BytesConst <$> bytesCastLit
 
 _terminal :: CharParser () Expr
-_terminal =
-    BoolExpr BoolVariable <$ bool_var
-    <|> IntExpr IntVariable <$ int_var
-    <|> UintExpr UintVariable <$ uint_var
-    <|> DoubleExpr DoubleVariable <$ double_var
-    <|> StringExpr StringVariable <$ string_var
-    <|> BytesExpr BytesVariable <$ bytes_var
+_terminal = (char '$' *> (
+    BoolExpr BoolVariable <$ string "bool"
+    <|> IntExpr IntVariable <$ string "int"
+    <|> UintExpr UintVariable <$ string "uint"
+    <|> DoubleExpr DoubleVariable <$ string "double"
+    <|> StringExpr StringVariable <$ string "string"
+    <|> BytesExpr BytesVariable <$ string "[]byte" ))
     <|> _literal
 
-_builtin_symbol :: CharParser () String
-_builtin_symbol = string "==" 
+_builtinSymbol :: CharParser () String
+_builtinSymbol = string "==" 
     <|> string "!=" 
-    <|> char '<' <::> ((string "=") <|> empty)
-    <|> char '>' <::> ((string "=") <|> empty)
+    <|> char '<' <::> opt (char '=')
+    <|> char '>' <::> opt (char '=')
     <|> string "~="
     <|> string "*="
     <|> string "^="
     <|> string "$="
     <|> string "::"
 
+checky :: Either String Expr -> CharParser () Expr
+checky (Right r) = return r
+checky (Left l) = fail l
+
+check :: CharParser () (Either String Expr) -> CharParser () Expr
+check c = do {
+    either <- c;
+    checky either
+} 
+
 _builtin :: CharParser () Expr
-_builtin = newBuiltIn <$> _builtin_symbol <*> (spaces *> _expr)
+_builtin = check $ newBuiltIn <$> _builtinSymbol <*> (spaces *> _expr)
 
 _function :: CharParser () Expr
-_function = newFunction <$> id_lit <*> (char '(' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char ')')
+_function = check $ newFunction <$> idLit <*> (char '(' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char ')')
 
 _listType :: CharParser () String
 _listType = string "[]" <++> (
@@ -247,7 +239,7 @@ newList "[][]byte" es = BytesListExpr <$> mapM _mustBytes es
 _list :: CharParser () Expr
 _list = do {
     lt <- _listType;
-    es <- (spaces *> char '{' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char '}');
+    es <- spaces *> char '{' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char '}';
     newList lt es
 }
 
@@ -258,9 +250,8 @@ _expr = _terminal
 
 expr :: CharParser () BoolExpr
 expr = do {
-    e <- (_terminal
+    e <- _terminal
         <|> _builtin
-        <|> _function
-    );
+        <|> _function;
     _mustBool e
 }

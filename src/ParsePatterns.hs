@@ -189,100 +189,104 @@ uList kvs = case getInt kvs "Type" of
 	212 -> BytesListExpr $ map uBytesExpr (getArrayOfObjects kvs "Elems")
 
 uFunction :: [(String, JSValue)] -> Expr
-uFunction kvs = newFunction (getString kvs "Name") (map uExprs (getArrayOfObjects kvs "Params"))
+uFunction kvs = case newFunction (getString kvs "Name") (map uExprs (getArrayOfObjects kvs "Params")) of
+	(Right e) -> e
+	(Left err) -> error err
 
-newFunction :: String -> [Expr] -> Expr
-newFunction "not" [BoolExpr b] = BoolExpr $ NotFunc b
-newFunction "and" [BoolExpr b1, BoolExpr b2] = BoolExpr $ AndFunc b1 b2
-newFunction "or" [BoolExpr b1, BoolExpr b2] = BoolExpr $ OrFunc b1 b2
+newFunction :: String -> [Expr] -> Either String Expr
+newFunction "not" [BoolExpr b] = Right $ BoolExpr $ NotFunc b
+newFunction "and" [BoolExpr b1, BoolExpr b2] = Right $ BoolExpr $ AndFunc b1 b2
+newFunction "or" [BoolExpr b1, BoolExpr b2] = Right $ BoolExpr $ OrFunc b1 b2
 
-newFunction "contains" [IntExpr i,IntListExpr is] = BoolExpr $ IntListContainsFunc i is
-newFunction "contains" [StringExpr s, StringListExpr ss] = BoolExpr $ StringListContainsFunc s ss
-newFunction "contains" [UintExpr u, UintListExpr us] = BoolExpr $ UintListContainsFunc u us
-newFunction "contains" [StringExpr s, StringExpr ss] = BoolExpr $ StringContainsFunc s ss
+newFunction "contains" [IntExpr i,IntListExpr is] = Right $ BoolExpr $ IntListContainsFunc i is
+newFunction "contains" [StringExpr s, StringListExpr ss] = Right $ BoolExpr $ StringListContainsFunc s ss
+newFunction "contains" [UintExpr u, UintListExpr us] = Right $ BoolExpr $ UintListContainsFunc u us
+newFunction "contains" [StringExpr s, StringExpr ss] = Right $ BoolExpr $ StringContainsFunc s ss
 
-newFunction "elem" [BytesListExpr es, IntExpr i] = BytesExpr $ BytesListElemFunc es i
-newFunction "elem" [BoolListExpr es, IntExpr i] = BoolExpr $ BoolListElemFunc es i
-newFunction "elem" [DoubleListExpr es, IntExpr i] = DoubleExpr $ DoubleListElemFunc es i
-newFunction "elem" [IntListExpr es, IntExpr i] = IntExpr $ IntListElemFunc es i
-newFunction "elem" [StringListExpr es, IntExpr i] = StringExpr $ StringListElemFunc es i
-newFunction "elem" [UintListExpr es, IntExpr i] = UintExpr $ UintListElemFunc es i
+newFunction "elem" [BytesListExpr es, IntExpr i] = Right $ BytesExpr $ BytesListElemFunc es i
+newFunction "elem" [BoolListExpr es, IntExpr i] = Right $ BoolExpr $ BoolListElemFunc es i
+newFunction "elem" [DoubleListExpr es, IntExpr i] = Right $ DoubleExpr $ DoubleListElemFunc es i
+newFunction "elem" [IntListExpr es, IntExpr i] = Right $ IntExpr $ IntListElemFunc es i
+newFunction "elem" [StringListExpr es, IntExpr i] = Right $ StringExpr $ StringListElemFunc es i
+newFunction "elem" [UintListExpr es, IntExpr i] = Right $ UintExpr $ UintListElemFunc es i
 
-newFunction "eq" [BytesExpr v1, BytesExpr v2] = BoolExpr $ BytesEqualFunc v1 v2
-newFunction "eq" [BoolExpr v1, BoolExpr v2] = BoolExpr $ BoolEqualFunc v1 v2
-newFunction "eq" [DoubleExpr v1, DoubleExpr v2] = BoolExpr $ DoubleEqualFunc v1 v2
-newFunction "eq" [IntExpr v1, IntExpr v2] = BoolExpr $ IntEqualFunc v1 v2
-newFunction "eq" [StringExpr v1, StringExpr v2] = BoolExpr $ StringEqualFunc v1 v2
-newFunction "eq" [UintExpr v1, UintExpr v2] = BoolExpr $ UintEqualFunc v1 v2
+newFunction "eq" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesEqualFunc v1 v2
+newFunction "eq" [BoolExpr v1, BoolExpr v2] = Right $ BoolExpr $ BoolEqualFunc v1 v2
+newFunction "eq" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleEqualFunc v1 v2
+newFunction "eq" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntEqualFunc v1 v2
+newFunction "eq" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ StringEqualFunc v1 v2
+newFunction "eq" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintEqualFunc v1 v2
 
-newFunction "eqFold" _ = error "eqFold function is not supported"
+newFunction "eqFold" _ = Left "eqFold function is not supported"
 
-newFunction "ge" [BytesExpr v1, BytesExpr v2] = BoolExpr $ BytesGreaterOrEqualFunc v1 v2
-newFunction "ge" [DoubleExpr v1, DoubleExpr v2] = BoolExpr $ DoubleGreaterOrEqualFunc v1 v2
-newFunction "ge" [IntExpr v1, IntExpr v2] = BoolExpr $ IntGreaterOrEqualFunc v1 v2
-newFunction "ge" [UintExpr v1, UintExpr v2] = BoolExpr $ UintGreaterOrEqualFunc v1 v2
+newFunction "ge" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesGreaterOrEqualFunc v1 v2
+newFunction "ge" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleGreaterOrEqualFunc v1 v2
+newFunction "ge" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntGreaterOrEqualFunc v1 v2
+newFunction "ge" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintGreaterOrEqualFunc v1 v2
 
-newFunction "gt" [BytesExpr v1, BytesExpr v2] = BoolExpr $ BytesGreaterThanFunc v1 v2
-newFunction "gt" [DoubleExpr v1, DoubleExpr v2] = BoolExpr $ DoubleGreaterThanFunc v1 v2
-newFunction "gt" [IntExpr v1, IntExpr v2] = BoolExpr $ IntGreaterThanFunc v1 v2
-newFunction "gt" [UintExpr v1, UintExpr v2] = BoolExpr $ UintGreaterThanFunc v1 v2
+newFunction "gt" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesGreaterThanFunc v1 v2
+newFunction "gt" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleGreaterThanFunc v1 v2
+newFunction "gt" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntGreaterThanFunc v1 v2
+newFunction "gt" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintGreaterThanFunc v1 v2
 
-newFunction "hasPrefix" [StringExpr v1, StringExpr v2] = BoolExpr $ StringHasPrefixFunc v1 v2
-newFunction "hasSuffix" [StringExpr v1, StringExpr v2] = BoolExpr $ StringHasSuffixFunc v1 v2
+newFunction "hasPrefix" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ StringHasPrefixFunc v1 v2
+newFunction "hasSuffix" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ StringHasSuffixFunc v1 v2
 
-newFunction "le" [BytesExpr v1, BytesExpr v2] = BoolExpr $ BytesLessOrEqualFunc v1 v2
-newFunction "le" [DoubleExpr v1, DoubleExpr v2] = BoolExpr $ DoubleLessOrEqualFunc v1 v2
-newFunction "le" [IntExpr v1, IntExpr v2] = BoolExpr $ IntLessOrEqualFunc v1 v2
-newFunction "le" [UintExpr v1, UintExpr v2] = BoolExpr $ UintLessOrEqualFunc v1 v2
+newFunction "le" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesLessOrEqualFunc v1 v2
+newFunction "le" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleLessOrEqualFunc v1 v2
+newFunction "le" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntLessOrEqualFunc v1 v2
+newFunction "le" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintLessOrEqualFunc v1 v2
 
-newFunction "length" [BytesListExpr vs] = IntExpr $ BytesListLengthFunc vs
-newFunction "length" [BoolListExpr vs] = IntExpr $ BoolListLengthFunc vs
-newFunction "length" [BytesExpr vs] = IntExpr $ BytesLengthFunc vs
-newFunction "length" [DoubleListExpr vs] = IntExpr $ DoubleListLengthFunc vs
-newFunction "length" [IntListExpr vs] = IntExpr $ IntListLengthFunc vs
-newFunction "length" [StringListExpr vs] = IntExpr $ StringListLengthFunc vs
-newFunction "length" [UintListExpr vs] = IntExpr $ UintListLengthFunc vs
-newFunction "length" [StringExpr vs] = IntExpr $ StringLengthFunc vs
+newFunction "length" [BytesListExpr vs] = Right $ IntExpr $ BytesListLengthFunc vs
+newFunction "length" [BoolListExpr vs] = Right $ IntExpr $ BoolListLengthFunc vs
+newFunction "length" [BytesExpr vs] = Right $ IntExpr $ BytesLengthFunc vs
+newFunction "length" [DoubleListExpr vs] = Right $ IntExpr $ DoubleListLengthFunc vs
+newFunction "length" [IntListExpr vs] = Right $ IntExpr $ IntListLengthFunc vs
+newFunction "length" [StringListExpr vs] = Right $ IntExpr $ StringListLengthFunc vs
+newFunction "length" [UintListExpr vs] = Right $ IntExpr $ UintListLengthFunc vs
+newFunction "length" [StringExpr vs] = Right $ IntExpr $ StringLengthFunc vs
 
-newFunction "lt" [BytesExpr v1, BytesExpr v2] = BoolExpr $ BytesLessThanFunc v1 v2
-newFunction "lt" [DoubleExpr v1, DoubleExpr v2] = BoolExpr $ DoubleLessThanFunc v1 v2
-newFunction "lt" [IntExpr v1, IntExpr v2] = BoolExpr $ IntLessThanFunc v1 v2
-newFunction "lt" [UintExpr v1, UintExpr v2] = BoolExpr $ UintLessThanFunc v1 v2
+newFunction "lt" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesLessThanFunc v1 v2
+newFunction "lt" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleLessThanFunc v1 v2
+newFunction "lt" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntLessThanFunc v1 v2
+newFunction "lt" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintLessThanFunc v1 v2
 
-newFunction "ne" [BytesExpr v1, BytesExpr v2] = BoolExpr $ BytesNotEqualFunc v1 v2
-newFunction "ne" [BoolExpr v1, BoolExpr v2] = BoolExpr $ BoolNotEqualFunc v1 v2
-newFunction "ne" [DoubleExpr v1, DoubleExpr v2] = BoolExpr $ DoubleNotEqualFunc v1 v2
-newFunction "ne" [IntExpr v1, IntExpr v2] = BoolExpr $ IntNotEqualFunc v1 v2
-newFunction "ne" [StringExpr v1, StringExpr v2] = BoolExpr $ StringNotEqualFunc v1 v2
-newFunction "ne" [UintExpr v1, UintExpr v2] = BoolExpr $ UintNotEqualFunc v1 v2
+newFunction "ne" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesNotEqualFunc v1 v2
+newFunction "ne" [BoolExpr v1, BoolExpr v2] = Right $ BoolExpr $ BoolNotEqualFunc v1 v2
+newFunction "ne" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleNotEqualFunc v1 v2
+newFunction "ne" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntNotEqualFunc v1 v2
+newFunction "ne" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ StringNotEqualFunc v1 v2
+newFunction "ne" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintNotEqualFunc v1 v2
 
-newFunction "now" _ = error "now function is not supported"
+newFunction "now" _ = Left "now function is not supported"
 
-newFunction "print" _ = error "print function is not supported"
+newFunction "print" _ = Left "print function is not supported"
 
-newFunction "range" _ = error "range function is not supported"
+newFunction "range" _ = Left "range function is not supported"
 
-newFunction "toLower" [StringExpr s] = StringExpr $ StringToLowerFunc s
-newFunction "toUpper" [StringExpr s] = StringExpr $ StringToUpperFunc s
+newFunction "toLower" [StringExpr s] = Right $ StringExpr $ StringToLowerFunc s
+newFunction "toUpper" [StringExpr s] = Right $ StringExpr $ StringToUpperFunc s
 
-newFunction "type" [BytesExpr b] = BoolExpr $ BytesTypeFunc b
-newFunction "type" [BoolExpr b] = BoolExpr $ BoolTypeFunc b
-newFunction "type" [DoubleExpr b] = BoolExpr $ DoubleTypeFunc b
-newFunction "type" [IntExpr b] = BoolExpr $ IntTypeFunc b
-newFunction "type" [UintExpr b] = BoolExpr $ UintTypeFunc b
-newFunction "type" [StringExpr b] = BoolExpr $ StringTypeFunc b
+newFunction "type" [BytesExpr b] = Right $ BoolExpr $ BytesTypeFunc b
+newFunction "type" [BoolExpr b] = Right $ BoolExpr $ BoolTypeFunc b
+newFunction "type" [DoubleExpr b] = Right $ BoolExpr $ DoubleTypeFunc b
+newFunction "type" [IntExpr b] = Right $ BoolExpr $ IntTypeFunc b
+newFunction "type" [UintExpr b] = Right $ BoolExpr $ UintTypeFunc b
+newFunction "type" [StringExpr b] = Right $ BoolExpr $ StringTypeFunc b
 
-newFunction "regex" [StringExpr v1, StringExpr v2] = BoolExpr $ RegexFunc v1 v2
+newFunction "regex" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ RegexFunc v1 v2
 
-newFunction s t = error $ "unknown function: " ++ s ++ " for types: " ++ show t
+newFunction s t = Left $ "unknown function: " ++ s ++ " for types: " ++ show t
 
 uBuiltIn :: [(String, JSValue)] -> Expr
 uBuiltIn kvs = let
 	varExpr = uExprs $ getObject kvs "Expr"
 	symbol = getString (getObject kvs "Symbol") "Value"
-	in newBuiltIn symbol varExpr
+	in case newBuiltIn symbol varExpr of
+		(Right e) -> e
+		(Left err) -> error err
 
-newBuiltIn :: String -> Expr -> Expr
+newBuiltIn :: String -> Expr -> Either String Expr
 newBuiltIn symbol varExpr =
 	let name = funcName symbol
 	in if name /= "type" then
