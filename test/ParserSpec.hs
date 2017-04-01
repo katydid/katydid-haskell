@@ -89,6 +89,14 @@ tests = TestList [
     failure "expr eq type mismatch" expr "eq($bool, 1)",
     success "expr list" expr "eq($int, length([]int{1,2}))" (IntEqualFunc IntVariable (IntListLengthFunc [IntConst 1, IntConst 2])),
     
+    success "name bool" nameExpr "true" (BoolEqualFunc BoolVariable (BoolConst True)),
+    success "name id" nameExpr "a" (StringEqualFunc StringVariable (StringConst "a")),
+    success "name string" nameExpr "\"a\"" (StringEqualFunc StringVariable (StringConst "a")),
+    success "name not" nameExpr "!(a)" (NotFunc (StringEqualFunc StringVariable (StringConst "a"))),
+    success "name any" nameExpr "_" (BoolConst True),
+    success "name or" nameExpr "(a|b)" (OrFunc (StringEqualFunc StringVariable (StringConst "a")) (StringEqualFunc StringVariable (StringConst "b"))),
+    failure "name grouping" nameExpr "((a))",
+
    TestCase (return ())]
 
 parserSpec :: IO Counts

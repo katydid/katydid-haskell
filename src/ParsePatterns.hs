@@ -280,19 +280,19 @@ newFunction s t = Left $ "unknown function: " ++ s ++ " for types: " ++ show t
 
 uBuiltIn :: [(String, JSValue)] -> Expr
 uBuiltIn kvs = let
-	varExpr = uExprs $ getObject kvs "Expr"
+	constExpr = uExprs $ getObject kvs "Expr"
 	symbol = getString (getObject kvs "Symbol") "Value"
-	in case newBuiltIn symbol varExpr of
+	in case newBuiltIn symbol constExpr of
 		(Right e) -> e
 		(Left err) -> error err
 
 newBuiltIn :: String -> Expr -> Either String Expr
-newBuiltIn symbol varExpr =
+newBuiltIn symbol constExpr =
 	let name = funcName symbol
 	in if name /= "type" then
-		newFunction name [(constToVar varExpr), varExpr]
+		newFunction name [(constToVar constExpr), constExpr]
 	else
-		newFunction name [varExpr]
+		newFunction name [constExpr]
 
 constToVar :: Expr -> Expr
 constToVar (BoolExpr (BoolConst _)) = BoolExpr BoolVariable

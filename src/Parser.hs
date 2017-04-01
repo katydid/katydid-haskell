@@ -248,9 +248,9 @@ newList "[][]byte" es = BytesListExpr <$> mapM _mustBytes es
 
 _list :: CharParser () Expr
 _list = do {
-    lt <- _listType;
+    ltype <- _listType;
     es <- spaces *> char '{' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char '}';
-    newList lt es
+    newList ltype es
 }
 
 _expr :: CharParser () Expr
@@ -258,3 +258,27 @@ _expr = try _terminal <|> _list <|> _function
 
 expr :: CharParser () BoolExpr
 expr = (_terminal <|> _builtin <|> _function) >>= _mustBool
+
+_name :: CharParser () BoolExpr
+_name = (newBuiltIn "==" <$> (_literal <|> (StringExpr . StringConst <$> idLit))) >>= check >>= _mustBool
+
+nameExpr :: CharParser () BoolExpr
+nameExpr =  (BoolConst True <$ char '_')
+    <|> (NotFunc <$> (char '!' *> spaces *> char '(' *> spaces *> nameExpr <* spaces <* char ')'))
+    <|> (char '(' *> spaces *> _nameChoice <* spaces <* char ')')
+    <|> _name
+
+sepBy2 :: CharParser () a -> String -> CharParser () [a]
+sepBy2 p sep = do {
+    as <- sepBy p (string sep);
+    if length as < 2 then 
+        fail $ "expected a list of at least two elements seperated by a <" ++ sep  ++ ">" 
+    else 
+        return as
+}
+
+_nameChoice :: CharParser () BoolExpr
+_nameChoice = do {
+    names <- sepBy2 (spaces *> nameExpr <* spaces) "|";
+    return $ foldl1 OrFunc names
+}
