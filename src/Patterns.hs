@@ -42,7 +42,7 @@ unescapable (Not ZAny) = True
 unescapable _ = False
 
 newtype Refs = Refs (DataMap.Map String Pattern)
-	deriving Show
+	deriving (Show, Eq)
 
 lookupRef :: Refs -> String -> Pattern
 lookupRef (Refs m) name = m DataMap.! name

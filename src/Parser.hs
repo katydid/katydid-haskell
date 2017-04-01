@@ -164,7 +164,7 @@ _byteElem :: CharParser () Char
 _byteElem = _byteLit <|> between (char '\'') (char '\'') (_unicodeValue <|> _octalByteUValue <|> _hexByteUValue)
 
 bytesCastLit :: CharParser () String
-bytesCastLit = string "[]byte{" *> sepBy (spaces *> _byteElem <* spaces) (char ',') <* char '}'
+bytesCastLit = string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}'
 
 _literal :: CharParser () Expr
 _literal = BoolExpr . BoolConst <$> bool
@@ -200,10 +200,10 @@ check (Right r) = return r
 check (Left l) = fail l
 
 _builtin :: CharParser () Expr
-_builtin = newBuiltIn <$> _builtinSymbol <*> (spaces *> _expr) >>= check
+_builtin = newBuiltIn <$> _builtinSymbol <*> (ws *> _expr) >>= check
 
 _function :: CharParser () Expr
-_function = newFunction <$> idLit <*> (char '(' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char ')') >>= check
+_function = newFunction <$> idLit <*> (char '(' *> sepBy (ws *> _expr <* ws) (char ',') <* char ')') >>= check
 
 _listType :: CharParser () String
 _listType = string "[]" <++> (
@@ -249,7 +249,7 @@ newList "[][]byte" es = BytesListExpr <$> mapM _mustBytes es
 _list :: CharParser () Expr
 _list = do {
     ltype <- _listType;
-    es <- spaces *> char '{' *> sepBy (spaces *> _expr <* spaces) (char ',') <* char '}';
+    es <- ws *> char '{' *> sepBy (ws *> _expr <* ws) (char ',') <* char '}';
     newList ltype es
 }
 
@@ -262,12 +262,6 @@ expr = (_terminal <|> _builtin <|> _function) >>= _mustBool
 _name :: CharParser () BoolExpr
 _name = (newBuiltIn "==" <$> (_literal <|> (StringExpr . StringConst <$> idLit))) >>= check >>= _mustBool
 
-nameExpr :: CharParser () BoolExpr
-nameExpr =  (BoolConst True <$ char '_')
-    <|> (NotFunc <$> (char '!' *> spaces *> char '(' *> spaces *> nameExpr <* spaces <* char ')'))
-    <|> (char '(' *> spaces *> _nameChoice <* spaces <* char ')')
-    <|> _name
-
 sepBy2 :: CharParser () a -> String -> CharParser () [a]
 sepBy2 p sep = do {
     as <- sepBy p (string sep);
@@ -278,7 +272,79 @@ sepBy2 p sep = do {
 }
 
 _nameChoice :: CharParser () BoolExpr
-_nameChoice = do {
-    names <- sepBy2 (spaces *> nameExpr <* spaces) "|";
-    return $ foldl1 OrFunc names
+_nameChoice = foldl1 OrFunc <$> sepBy2 (ws *> nameExpr <* ws) "|"
+
+nameExpr :: CharParser () BoolExpr
+nameExpr =  (BoolConst True <$ char '_')
+    <|> (NotFunc <$> (char '!' *> ws *> char '(' *> ws *> nameExpr <* ws <* char ')'))
+    <|> (char '(' *> ws *> _nameChoice <* ws <* char ')')
+    <|> _name
+
+_concatPattern :: CharParser () Pattern
+_concatPattern = char '[' *> (foldl1 Concat <$> sepBy2 (ws *> pattern <* ws) ",") <* char ']'
+
+_interleavePattern :: CharParser () Pattern
+_interleavePattern = char '{' *> (foldl1 Interleave <$> sepBy2 (ws *> pattern <* ws) ";") <* char '}'
+
+_parenPattern :: CharParser () Pattern
+_parenPattern = do {
+    char '(';
+    ws;
+    first <- pattern;
+    ws;
+    ( char ')' *> ws *>
+        (
+            ZeroOrMore first <$ char '*'
+            <|> Optional first <$ char '?'
+        )
+    ) <|> ( 
+        (
+            (first <$ (char '|') >>= _orList) <|> 
+            (first <$ (char '&') >>= _andList)
+        ) <* char ')'
+    )
 }
+
+_orList :: Pattern -> CharParser () Pattern
+_orList p = Or p <$> foldl1 Or <$> sepBy1 (ws *> pattern <* ws) (char '|')
+
+_andList :: Pattern -> CharParser () Pattern
+_andList p = And p <$> foldl1 And <$> sepBy1 (ws *> pattern <* ws) (char '&')
+
+_refPattern :: CharParser () Pattern
+_refPattern = Reference <$> (char '@' *> ws *> idLit)
+
+_notPattern :: CharParser () Pattern
+_notPattern = Not <$> (char '!' *> ws *> char '(' *> ws *> pattern <* ws <* char ')')
+
+_emptyPattern :: CharParser () Pattern
+_emptyPattern = Empty <$ string "<empty>"
+
+_zanyPattern :: CharParser () Pattern
+_zanyPattern = ZAny <$ string "*"
+
+_containsPattern :: CharParser () Pattern
+_containsPattern = Contains <$> (char '.' *> pattern)
+
+_treenodePattern :: CharParser () Pattern
+_treenodePattern = Node <$> nameExpr <*> ( (char ':' *> ws *> pattern) <|> _depthPattern )
+
+_depthPattern :: CharParser () Pattern
+_depthPattern = _concatPattern <|> _interleavePattern <|> _containsPattern 
+    <|> (flip Node) Empty <$> ( (string "->" *> expr ) <|> (_builtin >>= _mustBool) )
+
+pattern :: CharParser () Pattern
+pattern = _emptyPattern
+    <|> _zanyPattern
+    <|> _parenPattern
+    <|> _refPattern
+    <|> _notPattern
+    <|> _depthPattern
+    <|> _treenodePattern
+    
+_patternDecl :: CharParser () Refs
+_patternDecl = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *> pattern)
+
+grammar :: CharParser () Refs
+grammar = ws *> (foldl1 union <$> many1 (_patternDecl <* ws))
+    <|> union <$> (newRef "main" <$> pattern) <*> (foldl union emptyRef <$> many (ws *> _patternDecl <* ws))
