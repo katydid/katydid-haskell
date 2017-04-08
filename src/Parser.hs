@@ -33,8 +33,11 @@ _blockComment = char '*' *> many (noneOf "*") <* char '*' <* char '/' *> return 
 _comment :: CharParser () ()
 _comment = char '/' *> (_lineComment <|> _blockComment)
 
+_ws :: CharParser () ()
+_ws = _comment <|> (() <$ space)
+
 ws :: CharParser () ()
-ws = _comment <|> (spaces *> return ())
+ws = () <$ (many _ws)
 
 bool :: CharParser () Bool
 bool = True <$ string "true"
@@ -257,18 +260,18 @@ _expr :: CharParser () Expr
 _expr = try _terminal <|> _list <|> _function
 
 expr :: CharParser () BoolExpr
-expr = (_terminal <|> _builtin <|> _function) >>= _mustBool
+expr = (try _terminal <|> _builtin <|> _function) >>= _mustBool
 
 _name :: CharParser () BoolExpr
 _name = (newBuiltIn "==" <$> (_literal <|> (StringExpr . StringConst <$> idLit))) >>= check >>= _mustBool
 
 sepBy2 :: CharParser () a -> String -> CharParser () [a]
 sepBy2 p sep = do {
-    as <- sepBy p (string sep);
-    if length as < 2 then 
-        fail $ "expected a list of at least two elements seperated by a <" ++ sep  ++ ">" 
-    else 
-        return as
+    x1 <- p;
+    string sep;
+    x2 <- p;
+    xs <- many (try (string sep *> p));
+    return (x1:x2:xs)
 }
 
 _nameChoice :: CharParser () BoolExpr
@@ -281,10 +284,10 @@ nameExpr =  (BoolConst True <$ char '_')
     <|> _name
 
 _concatPattern :: CharParser () Pattern
-_concatPattern = char '[' *> (foldl1 Concat <$> sepBy2 (ws *> pattern <* ws) ",") <* char ']'
+_concatPattern = char '[' *> (foldl1 Concat <$> sepBy2 (ws *> pattern <* ws) ",") <* (optional ((char ',') <* ws)) <* char ']'
 
 _interleavePattern :: CharParser () Pattern
-_interleavePattern = char '{' *> (foldl1 Interleave <$> sepBy2 (ws *> pattern <* ws) ";") <* char '}'
+_interleavePattern = char '{' *> (foldl1 Interleave <$> sepBy2 (ws *> pattern <* ws) ";") <* (optional ((char ';') <* ws)) <* char '}'
 
 _parenPattern :: CharParser () Pattern
 _parenPattern = do {
@@ -327,20 +330,20 @@ _containsPattern :: CharParser () Pattern
 _containsPattern = Contains <$> (char '.' *> pattern)
 
 _treenodePattern :: CharParser () Pattern
-_treenodePattern = Node <$> nameExpr <*> ( (char ':' *> ws *> pattern) <|> _depthPattern )
+_treenodePattern = Node <$> nameExpr <*> ( ws *> ( try (char ':' *> ws *> pattern) <|> _depthPattern ) )
 
 _depthPattern :: CharParser () Pattern
 _depthPattern = _concatPattern <|> _interleavePattern <|> _containsPattern 
     <|> (flip Node) Empty <$> ( (string "->" *> expr ) <|> (_builtin >>= _mustBool) )
 
 pattern :: CharParser () Pattern
-pattern = _emptyPattern
-    <|> _zanyPattern
+pattern = _zanyPattern
     <|> _parenPattern
     <|> _refPattern
-    <|> _notPattern
-    <|> _depthPattern
-    <|> _treenodePattern
+    <|> (try _emptyPattern)
+    <|> (try _treenodePattern)
+    <|> (try _depthPattern)
+    <|> (_notPattern)
     
 _patternDecl :: CharParser () Refs
 _patternDecl = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *> pattern)
@@ -348,3 +351,6 @@ _patternDecl = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *>
 grammar :: CharParser () Refs
 grammar = ws *> (foldl1 union <$> many1 (_patternDecl <* ws))
     <|> union <$> (newRef "main" <$> pattern) <*> (foldl union emptyRef <$> many (ws *> _patternDecl <* ws))
+
+parseGrammar :: String -> Either ParseError Refs
+parseGrammar s = parse (grammar <* eof) "" s

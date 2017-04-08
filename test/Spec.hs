@@ -11,6 +11,7 @@ import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 import Control.Monad (when)
 
 import Parsers
+import Parser
 import ParsePatterns
 import Patterns
 import Values
@@ -41,26 +42,34 @@ data TestSuiteCase = TestSuiteCase {
 getRelapseJson :: [FilePath] -> FilePath
 getRelapseJson paths = head $ filter (\fname -> takeExtension fname == ".json" && takeBaseName fname == "relapse") paths
 
+getRelapse :: [FilePath] -> FilePath
+getRelapse paths = head $ filter (\fname -> takeExtension fname == ".txt" && takeBaseName fname == "relapse") paths
+
 isValidCase :: [FilePath] -> Bool
 isValidCase paths = length (filter (\fname -> takeBaseName fname == "valid") paths) == 1
 
 filepathWithExt :: [FilePath] -> String -> FilePath
 filepathWithExt paths ext = head $ filter (\fname -> takeExtension fname == ext && takeBaseName fname /= "relapse") paths
 
+fromGrammar :: String -> Refs
+fromGrammar s = case parseGrammar s of
+    (Left err) -> error $ "given input: <" ++ s ++ "> got parse error: " ++ show err
+    (Right r) -> r
+
 readJsonTest :: FilePath -> IO TestSuiteCase
 readJsonTest path = do {
     files <- ls path;
-    grammarData <- readFile $ getRelapseJson files;
+    grammarData <- readFile $ getRelapse files;
     jsonData <- readFile $ filepathWithExt files ".json";
-    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (JsonData $ decodeJSON jsonData) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) (fromGrammar grammarData) (JsonData $ decodeJSON jsonData) (isValidCase files)
 }
 
 readXMLTest :: FilePath -> IO TestSuiteCase
 readXMLTest path = do {
     files <- ls path;
-    grammarData <- readFile $ getRelapseJson files;
+    grammarData <- readFile $ getRelapse files;
     xmlData <- readFile $ filepathWithExt files ".xml";
-    return $ TestSuiteCase (takeBaseName path) (fromJson grammarData) (XMLData $ decodeXML xmlData) (isValidCase files)
+    return $ TestSuiteCase (takeBaseName path) (fromGrammar grammarData) (XMLData $ decodeXML xmlData) (isValidCase files)
 }
 
 ls :: FilePath -> IO [FilePath]
@@ -114,6 +123,10 @@ newTestCase algo c@(TestSuiteCase name g (JsonData t) want) =
 
 main :: IO ()
 main = do {
+    putStrLn "TESTING PARSER";
+    parserCounts <- parserSpec;
+    putStrLn $ show parserCounts;
+
     putStrLn "TESTING DERIVATIVE ALGORITHMS";
     testSuiteCases <- readTestCases;
     nonRecursiveTestCases <- return $ filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases;
@@ -124,10 +137,6 @@ main = do {
     vpaTests <- return $ map (newTestCase AlgoVpa) nonRecursiveTestCases;
     counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests ++ mapTests ++ vpaTests;
     putStrLn $ show counts;
-
-    putStrLn "TESTING PARSER";
-    parserCounts <- parserSpec;
-    putStrLn $ show parserCounts;
     
     return ()
 }

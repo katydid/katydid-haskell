@@ -133,6 +133,14 @@ tests = TestList [
     success "one pattern and one pattern decl" grammar "* #a = *" ((newRef "main" ZAny) `union` (newRef "a" ZAny)),
     success "one pattern and two pattern decls" grammar "* #a = * #b = *" ((newRef "main" ZAny) `union` (newRef "a" ZAny) `union` (newRef "b" ZAny)),
 
+    success "not pattern, not name and != conflicts without not enough lookahead" grammar "!(A):*" (newRef "main" (Node (NotFunc (StringEqualFunc StringVariable (StringConst "A"))) ZAny)),
+    success "->type conflicts with ->true and -1 conflicts with ->" grammar "->type($string)" (newRef "main" (Node (StringTypeFunc StringVariable) Empty)),
+    success "<= conflicts with <empty>" grammar "<= 0" (newRef "main" (Node (IntLessOrEqualFunc IntVariable (IntConst 0)) Empty)),
+    success "unexpected space builtin treenode child" grammar "A == \"F\"" (newRef "main" (Node (StringEqualFunc StringVariable (StringConst "A")) (Node (StringEqualFunc StringVariable (StringConst "F")) Empty))),
+    success "unexpected space after comment" grammar "(* & */*spaces*/ )" (newRef "main" (And ZAny ZAny)),
+    success "treenode with child builtin type" grammar "A :: $string" (newRef "main" (Node (StringEqualFunc StringVariable (StringConst "A")) (Node (StringTypeFunc StringVariable) Empty))),
+    success "extra semicolon" grammar "{*;*;}" (newRef "main" (Interleave ZAny ZAny)),
+
    TestCase (return ())]
 
 parserSpec :: IO Counts
