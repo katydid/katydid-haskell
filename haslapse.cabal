@@ -1,8 +1,8 @@
 name:                haslapse
 version:             0.1.0.0
-synopsis:            Initial project template from stack
+synopsis:            A haskell implementation of Relapse: Validation Language for JSON, XML and other trees.
 description:         Please see README.md
-homepage:            https://github.com/awalterschulze/haslapse#readme
+homepage:            https://github.com/katydid/haslapse
 license:             BSD3
 license-file:        LICENSE
 author:              Walter Schulze
