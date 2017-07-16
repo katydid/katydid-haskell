@@ -1,3 +1,3 @@
 # Haslapse
 
-A rewrite of the relapse derivative algorithm in haskell.
+A haskell implementation of Relapse: Validation Language for JSON, XML and other trees.
