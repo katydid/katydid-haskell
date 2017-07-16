@@ -1,6 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Json where
+module Json (
+	decodeJSON, JsonTree
+) where
 
 import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
 
@@ -17,10 +19,6 @@ decodeJSON :: String -> Either String [JsonTree]
 decodeJSON s = case decode s of
 	(Error e) -> Left e
 	(Ok v) -> Right (uValue v)
-
-unmarshal :: Result JSValue -> [JsonTree]
-unmarshal (Error s) = error s
-unmarshal (Ok v) = uValue v
 
 uValue :: JSValue -> [JsonTree]
 uValue JSNull = []

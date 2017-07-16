@@ -1,4 +1,6 @@
-module Parsers where
+module Parsers (
+    Tree(..), Label(..)
+) where
 
 data Label
     = String String

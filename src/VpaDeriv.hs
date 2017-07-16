@@ -1,4 +1,6 @@
-module VpaDeriv where
+module VpaDeriv (
+    vderivs      
+) where
 
 import qualified Data.Map.Strict as DataMap
 import Control.Monad.State (State, runState, state, lift)

@@ -1,4 +1,6 @@
-module Zip where
+module Zip (
+    Zipper, zippy, unzipby
+) where
 
 import qualified Data.Set as DataSet
 import Data.List (elemIndex)

@@ -1,6 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Xml where
+module Xml (
+	decodeXML	
+) where
 
 import Text.Read (readMaybe)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree, XNode(..), blobToString, localPart)

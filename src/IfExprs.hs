@@ -1,4 +1,8 @@
-module IfExprs where
+module IfExprs (
+	IfExprs, IfExpr,
+	evalIfExprs, compileIfExprs,
+	ZippedIfExprs, zipIfExprs, evalZippedIfExprs
+) where
 
 import Control.Monad.Except (Except, runExcept)
 

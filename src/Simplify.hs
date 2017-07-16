@@ -1,4 +1,6 @@
-module Simplify where
+module Simplify (
+    simplify  
+) where
 
 import qualified Data.Set as DataSet
 

@@ -1,4 +1,7 @@
-module Values where
+module Values (
+	BoolExpr(..), DoubleExpr(..), IntExpr(..), StringExpr(..), UintExpr(..), BytesExpr(..),
+	simplifyBoolExpr, ValueErr, eval
+) where
 
 import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 import Data.Char (toLower, toUpper)

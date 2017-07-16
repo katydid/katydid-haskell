@@ -1,4 +1,8 @@
-module Patterns where
+module Patterns (
+	Pattern(..), 
+	Refs, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion,
+	nullable, unescapable
+) where
 
 import qualified Data.Map.Strict as DataMap
 import qualified Data.Set as DataSet

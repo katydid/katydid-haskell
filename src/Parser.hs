@@ -1,4 +1,7 @@
-module Parser where
+module Parser (
+    parseGrammar, grammar, pattern, nameExpr, expr, 
+    idLit, bytesCastLit, stringLit, doubleCastLit, uintCastLit, intLit, ws
+) where
 
 import Text.ParserCombinators.Parsec
 import GHC.Base (ord)

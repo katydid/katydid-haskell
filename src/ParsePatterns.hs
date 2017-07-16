@@ -1,10 +1,27 @@
-module ParsePatterns where
+module ParsePatterns (
+	Expr(..), newBuiltIn, newFunction
+) where
 
 import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
 
 import Parsers
 import Patterns
 import Values
+
+data Expr 
+	= BoolExpr BoolExpr
+	| DoubleExpr DoubleExpr
+	| IntExpr IntExpr
+	| UintExpr UintExpr 
+	| StringExpr StringExpr
+	| BytesExpr BytesExpr
+	| BoolListExpr [BoolExpr]
+	| DoubleListExpr [DoubleExpr]
+	| IntListExpr [IntExpr]
+	| UintListExpr [UintExpr]
+	| StringListExpr [StringExpr]
+	| BytesListExpr [BytesExpr]
+	deriving Show
 
 fromJson :: String -> Refs
 fromJson s = unmarshal $ decode s
@@ -97,21 +114,6 @@ uNameExcept kvs = NotFunc (uNameExpr $ getObject kvs "Except")
 
 uNameChoice :: [(String, JSValue)] -> BoolExpr
 uNameChoice kvs = OrFunc (uNameExpr $ getObject kvs "Left") (uNameExpr $ getObject kvs "Right")
-
-data Expr 
-	= BoolExpr BoolExpr
-	| DoubleExpr DoubleExpr
-	| IntExpr IntExpr
-	| UintExpr UintExpr 
-	| StringExpr StringExpr
-	| BytesExpr BytesExpr
-	| BoolListExpr [BoolExpr]
-	| DoubleListExpr [DoubleExpr]
-	| IntListExpr [IntExpr]
-	| UintListExpr [UintExpr]
-	| StringListExpr [StringExpr]
-	| BytesListExpr [BytesExpr]
-	deriving Show
 
 uBoolExpr :: [(String, JSValue)] -> BoolExpr
 uBoolExpr kvs = let e = uExprs kvs in case e of

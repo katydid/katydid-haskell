@@ -1,4 +1,6 @@
-module MapDeriv where
+module MapDeriv (
+    mderivs
+) where
 
 import qualified Data.Map.Strict as DataMap
 import Control.Monad.State (State, runState, evalState, lift, state)
