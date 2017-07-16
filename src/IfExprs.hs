@@ -11,8 +11,8 @@ type IfExpr = (BoolExpr, Pattern, Pattern)
 
 evalIf :: IfExpr -> Label -> Except ValueErr Pattern
 evalIf (value, thn, els) l = do {
-	b <- eval value l;
-	return $ if b then thn else els
+    b <- eval value l;
+    return $ if b then thn else els
 }
 
 data IfExprs

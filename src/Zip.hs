@@ -8,12 +8,12 @@ import Patterns
 type Zipper = [Int]
 
 zippy :: [Pattern] -> ([Pattern], Zipper)
-zippy ps = 
-	let	s = DataSet.fromList ps
-		s' = DataSet.delete ZAny s
-		s'' = DataSet.delete (Not ZAny) s
-		l = DataSet.toAscList s''
-	in (l, map (indexOf l) ps)
+zippy ps =
+    let s = DataSet.fromList ps
+        s' = DataSet.delete ZAny s
+        s'' = DataSet.delete (Not ZAny) s'
+        l = DataSet.toAscList s''
+    in (l, map (indexOf l) ps)
 
 indexOf :: [Pattern] -> Pattern -> Int
 indexOf _ ZAny = -1

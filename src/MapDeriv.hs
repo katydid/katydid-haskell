@@ -3,6 +3,7 @@ module MapDeriv where
 import qualified Data.Map.Strict as DataMap
 import Control.Monad.State
 import Data.Foldable (foldlM)
+import Control.Monad.Except
 
 import Deriv
 import Patterns
@@ -40,19 +41,43 @@ mderivReturns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
 mderivReturns refs k = state $ \(n, c, r) -> let (v', r') = mem (derivReturns refs) k r;
     in (v', (n, c, r'))
 
-mderiv :: Tree t => Refs -> [Pattern] -> t -> State Mem [Pattern]
+mderiv :: Tree t => Refs -> [Pattern] -> t -> ExceptT ValueErr (State Mem) [Pattern]
 mderiv refs ps tree = do {
-    ifs <- mderivCalls refs ps;
-    childps <- return $ must $ evalIfExprs ifs (getLabel tree);
+    ifs <- lift $ mderivCalls refs ps;
+    childps <- case runExcept $ evalIfExprs ifs (getLabel tree) of
+        (Left l) -> throwError l
+        (Right r) -> return r
+    ;
     (zchildps, zipper) <- return $ zippy childps;
     childres <- foldlM (mderiv refs) zchildps (getChildren tree);
-    nulls <- mapM (mnullable refs) childres;
+    nulls <- lift $ mapM (mnullable refs) childres;
     unzipns <- return $ unzipby zipper nulls;
-    mderivReturns refs (ps, unzipns)
+    lift $ mderivReturns refs (ps, unzipns)
 }
 
-mderivs :: Tree t => Refs -> [t] -> Pattern
-mderivs refs ts = case evalState (foldlM (mderiv refs) [lookupRef refs "main"] ts) newMem of
-    [r] -> r
-    rs -> error $ "Number of patterns is not one, but " ++ show rs
+foldLT :: Tree t => Mem -> ([Pattern] -> t -> ExceptT ValueErr (State Mem) [Pattern]) -> [Pattern] -> [t] -> Except ValueErr [Pattern]
+foldLT _ _ ps [] = return ps
+foldLT m d ps (t:ts) = 
+    let (newps, newm) = runState (runExceptT $ d ps t) m
+    in case newps of
+        (Left l) -> throwError l
+        (Right r) -> foldLT newm d r ts
+
+removeState :: Mem -> ExceptT ValueErr (State Mem) [Pattern] -> (Either ValueErr [Pattern])
+removeState m e = evalState (runExceptT e) m
+
+mderivs :: Tree t => Refs -> [t] -> Except String Pattern
+mderivs refs ts =
+    let start = [lookupRef refs "main"]
+        f = mderiv refs
+    in case runExcept $ foldLT newMem f start ts of
+        (Left l) -> throwError $ show l
+        (Right [r]) -> return r
+        (Right rs) -> throwError $ "not a single pattern: " ++ show rs
+
+    
+    
+    -- case runExceptT $ evalState (foldlM (mderiv refs) [lookupRef refs "main"] ts) newMem of
+    -- [r] -> r
+    -- rs -> throwError $ "Number of patterns is not one, but " ++ show rs
 

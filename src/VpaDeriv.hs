@@ -4,6 +4,7 @@ import qualified Data.Map.Strict as DataMap
 import Control.Monad.State
 import Data.Foldable (foldlM)
 import Debug.Trace
+import Control.Monad.Except
 
 import Deriv
 import Patterns
@@ -40,10 +41,13 @@ mderivCalls :: [Pattern] -> State Vpa ZippedIfExprs
 mderivCalls key = state $ \(n, c, r, refs) -> let (v', c') = mem (zipIfExprs . derivCalls refs) key c;
     in (v', (n, c', r, refs))
 
-vpacall :: VpaState -> Label -> State Vpa (StackElm, VpaState)
+vpacall :: VpaState -> Label -> ExceptT ValueErr (State Vpa) (StackElm, VpaState)
 vpacall vpastate label = do {
-    zifexprs <- mderivCalls vpastate;
-    (nextstate, zipper) <- return $ must $ evalZippedIfExprs zifexprs label;
+    zifexprs <- lift $ mderivCalls vpastate;
+    (nextstate, zipper) <- case runExcept $ evalZippedIfExprs zifexprs label of
+        (Left l) -> throwError l
+        (Right r) -> return r
+    ;
     stackelm <- return $ (vpastate, zipper);
     return (stackelm, nextstate)
 }
@@ -58,15 +62,25 @@ vpareturn (vpastate, zipper) current = do {
     mderivReturns (vpastate, zipper, zipnulls)
 }
 
-vpaderiv :: Tree t => VpaState -> t -> State Vpa VpaState
+vpaderiv :: Tree t => VpaState -> t -> ExceptT ValueErr (State Vpa) VpaState
 vpaderiv current tree = do {
     (stackelm, nextstate) <- vpacall current (getLabel tree);
     resstate <- foldlM vpaderiv nextstate (getChildren tree);
-    vpareturn stackelm resstate
+    lift $ vpareturn stackelm resstate
 }
 
-vderivs :: Tree t => Refs -> [t] -> Pattern
-vderivs refs ts = case runState (foldlM vpaderiv [lookupRef refs "main"] ts) (newVpa refs) of
-    ([r], (ns, cs, rs, refs)) -> trace (show $ length ns) r
-    (rs, s) -> error $ "Number of patterns is not one, but " ++ show rs
+foldLT :: Tree t => Vpa -> VpaState -> [t] -> Except ValueErr [Pattern]
+foldLT _ state [] = return state
+foldLT m state (t:ts) = 
+    let (newstate, newm) = runState (runExceptT $ vpaderiv state t) m
+    in case newstate of
+        (Left l) -> throwError l
+        (Right r) -> foldLT newm r ts
 
+vderivs :: Tree t => Refs -> [t] -> Except String Pattern
+vderivs refs ts = 
+    let start = [lookupRef refs "main"]
+    in case runExcept $ foldLT (newVpa refs) start ts of
+        (Left l) -> throwError $ show l
+        (Right [r]) -> return r
+        (Right rs) -> throwError $ "Number of patterns is not one, but " ++ show rs

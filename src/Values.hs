@@ -128,11 +128,6 @@ data ValueErr
 eval :: BoolExpr -> Label -> Except ValueErr Bool
 eval = evalBool
 
-must :: (Show e) => Except e v -> v
-must ex = case runExcept ex of
-	(Left e) -> error $ show e
-	(Right v) -> v
-
 evalBool :: BoolExpr -> Label -> Except ValueErr Bool
 
 evalBool (BoolConst b) _ = return b

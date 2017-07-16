@@ -2,7 +2,7 @@ module Deriv where
 
 import Debug.Trace
 import Data.Foldable (foldlM)
-import Control.Monad.Except (Except, runExcept, mapExcept)
+import Control.Monad.Except (Except, runExcept, mapExcept, throwError)
 
 import Patterns
 import Values
@@ -74,8 +74,8 @@ derivReturn refs (Optional p) ns = derivReturn refs (Or p Empty) ns
 
 onePattern :: Either ValueErr [Pattern] -> Either String Pattern
 onePattern (Right [r]) = return r
-onePattern (Left e) = Left $ show e
-onePattern (Right rs) = error $ "Number of patterns is not one, but " ++ show rs
+onePattern (Left e) = throwError $ show e
+onePattern (Right rs) = throwError $ "Number of patterns is not one, but " ++ show rs
 
 derivs :: Tree t => Refs -> [t] -> Except String Pattern
 derivs g ts = mapExcept onePattern $ foldlM (deriv g) [lookupRef g "main"] ts
@@ -91,14 +91,6 @@ deriv refs ps tree =
         childres <- foldlM d childps (getChildren tree);
         return $ derivReturns refs (ps, nulls childres);
     }
-
-deriv2 :: Tree t => Refs -> [Pattern] -> t -> [Pattern]
-deriv2 refs ps tree =
-    let derivC refs l = must $ evalIfExprs (derivCalls refs ps) l
-        derivR = derivReturns
-        childps = derivC refs (getLabel tree)
-        childres = foldl (deriv2 refs) childps (getChildren tree)
-    in derivR refs (ps, map (nullable refs) childres)
 
 zipderivs :: Tree t => Refs -> [t] -> Except String Pattern
 zipderivs g ts = mapExcept onePattern $ foldlM (zipderiv g) [lookupRef g "main"] ts

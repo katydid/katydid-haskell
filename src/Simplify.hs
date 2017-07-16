@@ -6,22 +6,22 @@ import Patterns
 import Values
 
 simplify :: Refs -> Pattern -> Pattern
-simplify refs p =
-	let simp = simplify' refs
-	in case p of
-	Empty -> Empty
-	ZAny -> ZAny
-	(Node v p) -> simplifyNode (simplifyBoolExpr v) (simp p)
- 	(Concat p1 p2) -> simplifyConcat (simp p1) (simp p2)
- 	(Or p1 p2) -> simplifyOr refs (simp p1) (simp p2)
- 	(And p1 p2) -> simplifyAnd refs (simp p1) (simp p2)
- 	(ZeroOrMore p) -> simplifyZeroOrMore (simp p)
- 	(Not p) -> simplifyNot (simp p)
- 	(Optional p) -> simplifyOptional (simp p)
- 	(Interleave p1 p2) -> simplifyInterleave (simp p1) (simp p2)
- 	(Contains p) -> simplifyContains (simp p)
- 	p@(Reference _) -> p
- 	wtf -> error $ "unexpected pattern: " ++ show wtf
+simplify refs pattern =
+    let simp = simplify' refs
+    in case pattern of
+    Empty -> Empty
+    ZAny -> ZAny
+    (Node v p) -> simplifyNode (simplifyBoolExpr v) (simp p)
+    (Concat p1 p2) -> simplifyConcat (simp p1) (simp p2)
+    (Or p1 p2) -> simplifyOr refs (simp p1) (simp p2)
+    (And p1 p2) -> simplifyAnd refs (simp p1) (simp p2)
+    (ZeroOrMore p) -> simplifyZeroOrMore (simp p)
+    (Not p) -> simplifyNot (simp p)
+    (Optional p) -> simplifyOptional (simp p)
+    (Interleave p1 p2) -> simplifyInterleave (simp p1) (simp p2)
+    (Contains p) -> simplifyContains (simp p)
+    p@(Reference _) -> p
+    wtf -> error $ "unexpected pattern: " ++ show wtf
 
 simplify' :: Refs -> Pattern -> Pattern
 simplify' refs p = checkRef refs $ simplify refs p
@@ -34,7 +34,7 @@ simplifyConcat :: Pattern -> Pattern -> Pattern
 simplifyConcat (Not ZAny) _ = Not ZAny
 simplifyConcat _ (Not ZAny) = Not ZAny
 simplifyConcat (Concat p1 p2) p3 = 
-	simplifyConcat p1 (Concat p2 p3)
+    simplifyConcat p1 (Concat p2 p3)
 simplifyConcat Empty p = p
 simplifyConcat p Empty = p
 simplifyConcat ZAny (Concat p ZAny) = Contains p
@@ -54,8 +54,8 @@ simplifyChildren :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> [Pattern]
 simplifyChildren _ [] = []
 simplifyChildren _ [p] = [p]
 simplifyChildren op (p1@(Node v1 c1):(p2@(Node v2 c2):ps))
-	| v1 == v2 = simplifyChildren op $ Node v1 (op c1 c2):ps
-	| otherwise = p1:simplifyChildren op (p2:ps)
+    | v1 == v2 = simplifyChildren op $ Node v1 (op c1 c2):ps
+    | otherwise = p1:simplifyChildren op (p2:ps)
 simplifyChildren op (p:ps) = p:simplifyChildren op ps
 
 bin :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> Pattern

@@ -9,6 +9,7 @@ import System.Directory (getCurrentDirectory, listDirectory)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 import Control.Monad (when)
+import Control.Monad.Except (Except(..), runExcept)
 
 import Parsers
 import Parser
@@ -61,7 +62,11 @@ readJsonTest path = do {
     files <- ls path;
     grammarData <- readFile $ getRelapse files;
     jsonData <- readFile $ filepathWithExt files ".json";
-    return $ TestSuiteCase (takeBaseName path) (fromGrammar grammarData) (JsonData $ decodeJSON jsonData) (isValidCase files)
+    jValue <- return $ case decodeJSON jsonData of
+        (Left e) -> error e
+        (Right r) -> r
+    ;
+    return $ TestSuiteCase (takeBaseName path) (fromGrammar grammarData) (JsonData jValue) (isValidCase files)
 }
 
 readXMLTest :: FilePath -> IO TestSuiteCase
@@ -94,6 +99,11 @@ readTestCases = do {
     return $ jsonTestCases ++ xmlTestCases
 }
 
+must :: Except String Pattern -> Pattern
+must e = case runExcept e of
+    (Left l) -> error l
+    (Right r) -> r
+
 testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
 testDeriv AlgoDeriv name g ts want = 
     let p = must $ derivs g ts 
@@ -104,11 +114,11 @@ testDeriv AlgoZip name g ts want =
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoMap name g ts want  = 
-    let p = mderivs g ts 
+    let p = must $ mderivs g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoVpa name g ts want  = 
-    let p = vderivs g ts 
+    let p = must $ vderivs g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 
@@ -130,7 +140,7 @@ main = do {
     putStrLn "TESTING DERIVATIVE ALGORITHMS";
     testSuiteCases <- readTestCases;
     nonRecursiveTestCases <- return $ filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases;
-    putStrLn $ show $ zip [1..] (map (\(TestSuiteCase name _ _ _) -> name) nonRecursiveTestCases);
+    -- putStrLn $ show $ zip [1..] (map (\(TestSuiteCase name _ _ _) -> name) nonRecursiveTestCases);
     derivTests <- return $ map (newTestCase AlgoDeriv) nonRecursiveTestCases;
     zipTests <- return $ map (newTestCase AlgoZip) nonRecursiveTestCases;
     mapTests <- return $ map (newTestCase AlgoMap) nonRecursiveTestCases;

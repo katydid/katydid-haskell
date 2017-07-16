@@ -13,8 +13,10 @@ instance Tree JsonTree where
 
 type JsonTree = DataTree.Tree Label
 
-decodeJSON :: String -> [JsonTree]
-decodeJSON s = unmarshal $ decode s
+decodeJSON :: String -> Either String [JsonTree]
+decodeJSON s = case decode s of
+	(Error e) -> Left e
+	(Ok v) -> Right (uValue v)
 
 unmarshal :: Result JSValue -> [JsonTree]
 unmarshal (Error s) = error s
