@@ -1,11 +1,12 @@
 module IfExprs where
 
+import Control.Monad.Except (Except, runExcept)
+
 import Patterns
 import Values
 import Simplify
 import Zip
 import Parsers
-import Control.Monad.Except (Except, runExcept)
 
 type IfExpr = (BoolExpr, Pattern, Pattern)
 

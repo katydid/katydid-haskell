@@ -1,9 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Xml where
-import Text.Read (readMaybe)
-import Debug.Trace
 
+import Text.Read (readMaybe)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree, XNode(..), blobToString, localPart)
 import Text.XML.HXT.Parser.XmlParsec (xread)
 import Data.Tree.NTree.TypeDefs (NTree(..))

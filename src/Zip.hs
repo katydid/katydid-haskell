@@ -1,6 +1,6 @@
 module Zip where
 
-import qualified Data.Set as DataSet (fromList, delete, toAscList)
+import qualified Data.Set as DataSet
 import Data.List (elemIndex)
 
 import Patterns

@@ -2,9 +2,7 @@
 
 module Main where
 
-import ParserSpec
 import qualified Test.HUnit as HUnit
-
 import System.Directory (getCurrentDirectory, listDirectory)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
@@ -21,6 +19,8 @@ import Xml
 import Deriv
 import MapDeriv
 import VpaDeriv
+
+import ParserSpec
 
 data EncodedData 
     = XMLData [XmlTree]

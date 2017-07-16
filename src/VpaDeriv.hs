@@ -1,10 +1,9 @@
 module VpaDeriv where
 
 import qualified Data.Map.Strict as DataMap
-import Control.Monad.State
+import Control.Monad.State (State, runState, state, lift)
 import Data.Foldable (foldlM)
-import Debug.Trace
-import Control.Monad.Except
+import Control.Monad.Except (Except, ExceptT, throwError, runExcept, runExceptT)
 
 import Deriv
 import Patterns

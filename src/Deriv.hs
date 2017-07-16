@@ -1,6 +1,7 @@
-module Deriv where
+module Deriv (
+    derivs, derivCalls, derivReturns, zipderivs
+) where
 
-import Debug.Trace
 import Data.Foldable (foldlM)
 import Control.Monad.Except (Except, runExcept, mapExcept, throwError)
 

@@ -1,9 +1,9 @@
 module MapDeriv where
 
 import qualified Data.Map.Strict as DataMap
-import Control.Monad.State
+import Control.Monad.State (State, runState, evalState, lift, state)
 import Data.Foldable (foldlM)
-import Control.Monad.Except
+import Control.Monad.Except (ExceptT, runExceptT, Except, throwError, runExcept)
 
 import Deriv
 import Patterns
@@ -74,10 +74,3 @@ mderivs refs ts =
         (Left l) -> throwError $ show l
         (Right [r]) -> return r
         (Right rs) -> throwError $ "not a single pattern: " ++ show rs
-
-    
-    
-    -- case runExceptT $ evalState (foldlM (mderiv refs) [lookupRef refs "main"] ts) newMem of
-    -- [r] -> r
-    -- rs -> throwError $ "Number of patterns is not one, but " ++ show rs
-

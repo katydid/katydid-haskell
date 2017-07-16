@@ -1,23 +1,24 @@
 module ParserSpec where
 
-import Test.HUnit
+import qualified Test.HUnit as HUnit
+import Control.Monad (unless)
+import Text.ParserCombinators.Parsec (CharParser, parse, eof)
+
 import Parser
-import Text.ParserCombinators.Parsec
 import Values
 import Patterns
-import Control.Monad (unless)
 
-success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> Test
-success name p input want = TestLabel name $ TestCase $ case parse (p <* eof) "" input of
-    (Left err) -> assertFailure $ "given input: " ++ input ++ " got error: " ++ show err
-    (Right got) -> unless (got == want) $ assertFailure $ "want: " ++ show want ++ " got: " ++ show got
+success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> HUnit.Test
+success name p input want = HUnit.TestLabel name $ HUnit.TestCase $ case parse (p <* eof) "" input of
+    (Left err) -> HUnit.assertFailure $ "given input: " ++ input ++ " got error: " ++ show err
+    (Right got) -> unless (got == want) $ HUnit.assertFailure $ "want: " ++ show want ++ " got: " ++ show got
 
-failure :: (Show a) => String -> CharParser () a -> String -> Test
-failure name p input = TestLabel name $ TestCase $ case parse (p <* eof) "" input of
+failure :: (Show a) => String -> CharParser () a -> String -> HUnit.Test
+failure name p input = HUnit.TestLabel name $ HUnit.TestCase $ case parse (p <* eof) "" input of
     (Left _) -> return ()
-    (Right got) -> assertFailure $ "want error from input: " ++ show input ++ ", but got: " ++ show got
+    (Right got) -> HUnit.assertFailure $ "want error from input: " ++ show input ++ ", but got: " ++ show got
 
-tests = TestList [
+tests = HUnit.TestList [
     success "linecomment success" ws "//bla\n" (),
     failure "linecomment failure" ws "//bla",
     success "oneline blockcomment" ws "/*bla*/" (),
@@ -141,7 +142,7 @@ tests = TestList [
     success "treenode with child builtin type" grammar "A :: $string" (newRef "main" (Node (StringEqualFunc StringVariable (StringConst "A")) (Node (StringTypeFunc StringVariable) Empty))),
     success "extra semicolon" grammar "{*;*;}" (newRef "main" (Interleave ZAny ZAny)),
 
-   TestCase (return ())]
+   HUnit.TestCase (return ())]
 
-parserSpec :: IO Counts
-parserSpec = runTestTT tests
+parserSpec :: IO HUnit.Counts
+parserSpec = HUnit.runTestTT tests

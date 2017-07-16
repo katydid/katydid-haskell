@@ -1,6 +1,6 @@
 module ParsePatterns where
 
-import Text.JSON (decode, Result(Error,Ok), JSValue(JSNull, JSBool, JSRational, JSString, JSArray, JSObject), fromJSString, fromJSObject)
+import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
 
 import Parsers
 import Patterns

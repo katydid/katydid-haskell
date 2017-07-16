@@ -1,11 +1,10 @@
 module Parser where
 
 import Text.ParserCombinators.Parsec
-import Patterns
 import GHC.Base (ord)
 import Numeric (readDec, readOct, readHex, readFloat)
-import Data.Word
 import Data.Char (chr)
+
 import Values
 import Patterns
 import ParsePatterns

@@ -2,9 +2,9 @@
 
 module Json where
 
-import Text.JSON (decode, Result(Error,Ok), JSValue(JSNull, JSBool, JSRational, JSString, JSArray, JSObject), fromJSString, fromJSObject)
-import qualified Data.Tree as DataTree
+import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
 
+import qualified Data.Tree as DataTree
 import Parsers
 
 instance Tree JsonTree where

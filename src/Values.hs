@@ -2,7 +2,7 @@ module Values where
 
 import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 import Data.Char (toLower, toUpper)
-import Text.Regex.TDFA
+import Text.Regex.TDFA ((=~))
 import Control.Monad.Except (Except, runExcept, throwError)
 
 import Parsers
