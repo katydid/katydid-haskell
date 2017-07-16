@@ -23,7 +23,6 @@ simplify refs pattern =
     (Interleave p1 p2) -> simplifyInterleave (simp p1) (simp p2)
     (Contains p) -> simplifyContains (simp p)
     p@(Reference _) -> p
-    wtf -> error $ "unexpected pattern: " ++ show wtf
 
 simplify' :: Refs -> Pattern -> Pattern
 simplify' refs p = checkRef refs $ simplify refs p

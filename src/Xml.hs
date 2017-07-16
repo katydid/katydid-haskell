@@ -12,24 +12,26 @@ import Data.Tree.NTree.TypeDefs (NTree(..))
 import Parsers
 
 instance Tree XmlTree where
-	getLabel (NTree n _ ) = xmlLabel n
-	getChildren (NTree n cs) = cs
+	getLabel (NTree n _ ) = case xmlLabel n of
+		(Left err) -> String $ "XML Parse Error:" ++ err
+		(Right r) -> r
+	getChildren (NTree _ cs) = cs
 
 decodeXML :: String -> [XmlTree]
 decodeXML = xread
 
-xmlLabel :: XNode -> Label
-xmlLabel (XText s) = parseLabel s
-xmlLabel (XBlob b) = parseLabel $ blobToString b
-xmlLabel x@(XCharRef _) = error $ "XCharRef not supported" ++ show x
-xmlLabel x@(XEntityRef _) = error $ "XEntityRef not supported" ++ show x
-xmlLabel x@(XCmt _) = error $ "XCmt not supported" ++ show x
-xmlLabel (XCdata s) = parseLabel s
-xmlLabel x@(XPi _ _) = error $ "XPi not supported" ++ show x
-xmlLabel (XTag qname attrs) = parseLabel (localPart qname) -- TODO attrs should be part of the children returned by getChildren
-xmlLabel x@(XDTD _ _) = error $ "XDTD not supported" ++ show x
-xmlLabel (XAttr qname) = parseLabel (localPart qname)
-xmlLabel x@(XError _ _) = error $ "XError not supported" ++ show x
+xmlLabel :: XNode -> Either String Label
+xmlLabel (XText s) = return $ parseLabel s
+xmlLabel (XBlob b) = return $ parseLabel $ blobToString b
+xmlLabel x@(XCharRef _) = fail $ "XCharRef not supported" ++ show x
+xmlLabel x@(XEntityRef _) = fail $ "XEntityRef not supported" ++ show x
+xmlLabel x@(XCmt _) = fail $ "XCmt not supported" ++ show x
+xmlLabel (XCdata s) = return $ parseLabel s
+xmlLabel x@(XPi _ _) = fail $ "XPi not supported" ++ show x
+xmlLabel (XTag qname attrs) = return $ parseLabel (localPart qname) -- TODO attrs should be part of the children returned by getChildren
+xmlLabel x@(XDTD _ _) = fail $ "XDTD not supported" ++ show x
+xmlLabel (XAttr qname) = return $ parseLabel (localPart qname)
+xmlLabel x@(XError _ _) = fail $ "XError not supported" ++ show x
 
 -- TODO what about other leaf types
 parseLabel :: String -> Label
