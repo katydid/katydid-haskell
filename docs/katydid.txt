@@ -69,7 +69,7 @@ instance Parsers.Tree Text.XML.HXT.DOM.TypeDefs.XmlTree
 --   
 --   It also contains an eval function and a simplfication function for
 --   these expressions.
-module Values
+module Expr
 data BoolExpr
 BoolConst :: Bool -> BoolExpr
 BoolVariable :: BoolExpr
@@ -156,27 +156,27 @@ simplifyBoolExpr :: BoolExpr -> BoolExpr
 -- | eval evaluates a boolean expression, given an input label.
 eval :: BoolExpr -> Label -> Except ValueErr Bool
 data ValueErr
-instance GHC.Show.Show Values.ValueErr
-instance GHC.Classes.Ord Values.ValueErr
-instance GHC.Classes.Eq Values.ValueErr
-instance GHC.Show.Show Values.BoolExpr
-instance GHC.Classes.Ord Values.BoolExpr
-instance GHC.Classes.Eq Values.BoolExpr
-instance GHC.Show.Show Values.DoubleExpr
-instance GHC.Classes.Ord Values.DoubleExpr
-instance GHC.Classes.Eq Values.DoubleExpr
-instance GHC.Show.Show Values.UintExpr
-instance GHC.Classes.Ord Values.UintExpr
-instance GHC.Classes.Eq Values.UintExpr
-instance GHC.Show.Show Values.StringExpr
-instance GHC.Classes.Ord Values.StringExpr
-instance GHC.Classes.Eq Values.StringExpr
-instance GHC.Show.Show Values.IntExpr
-instance GHC.Classes.Ord Values.IntExpr
-instance GHC.Classes.Eq Values.IntExpr
-instance GHC.Show.Show Values.BytesExpr
-instance GHC.Classes.Ord Values.BytesExpr
-instance GHC.Classes.Eq Values.BytesExpr
+instance GHC.Show.Show Expr.ValueErr
+instance GHC.Classes.Ord Expr.ValueErr
+instance GHC.Classes.Eq Expr.ValueErr
+instance GHC.Show.Show Expr.BoolExpr
+instance GHC.Classes.Ord Expr.BoolExpr
+instance GHC.Classes.Eq Expr.BoolExpr
+instance GHC.Show.Show Expr.DoubleExpr
+instance GHC.Classes.Ord Expr.DoubleExpr
+instance GHC.Classes.Eq Expr.DoubleExpr
+instance GHC.Show.Show Expr.UintExpr
+instance GHC.Classes.Ord Expr.UintExpr
+instance GHC.Classes.Eq Expr.UintExpr
+instance GHC.Show.Show Expr.StringExpr
+instance GHC.Classes.Ord Expr.StringExpr
+instance GHC.Classes.Eq Expr.StringExpr
+instance GHC.Show.Show Expr.IntExpr
+instance GHC.Classes.Ord Expr.IntExpr
+instance GHC.Classes.Eq Expr.IntExpr
+instance GHC.Show.Show Expr.BytesExpr
+instance GHC.Classes.Ord Expr.BytesExpr
+instance GHC.Classes.Eq Expr.BytesExpr
 
 
 -- | This module describes the patterns supported by Relapse.
@@ -309,14 +309,14 @@ evalZippedIfExprs :: ZippedIfExprs -> Label -> Except ValueErr ([Pattern], Zippe
 --   This means that it gives up speed for readability.
 --   
 --   Thus it has no type of memoization.
-module Deriv
+module Derive
 
--- | derivs is the classic derivative implementation for trees.
-derivs :: Tree t => Refs -> [t] -> Except String Pattern
+-- | derive is the classic derivative implementation for trees.
+derive :: Tree t => Refs -> [t] -> Except String Pattern
 
--- | derivCalls returns a compiled if expression tree. Each if expression
---   returns a child pattern, given the input value. In other words
---   derivCalls signature is actually:
+-- | calls returns a compiled if expression tree. Each if expression
+--   returns a child pattern, given the input value. In other words calls
+--   signature is actually:
 --   
 --   <pre>
 --   Refs -&gt; [Pattern] -&gt; Value -&gt; [Pattern]
@@ -324,21 +324,24 @@ derivs :: Tree t => Refs -> [t] -> Except String Pattern
 --   
 --   , where the resulting list of patterns are the child patterns, that
 --   need to be derived given the trees child values.
-derivCalls :: Refs -> [Pattern] -> IfExprs
+calls :: Refs -> [Pattern] -> IfExprs
 
--- | derivReturns takes a list of patterns and list of bools. The list of
---   bools represent the nullability of the derived child patterns. Each
---   bool will then replace each Node pattern with either an Empty or
---   EmptySet. The lists do not to be the same length, because each Pattern
---   can contain an arbitrary number of Node Patterns.
-derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
+-- | returns takes a list of patterns and list of bools. The list of bools
+--   represent the nullability of the derived child patterns. Each bool
+--   will then replace each Node pattern with either an Empty or EmptySet.
+--   The lists do not to be the same length, because each Pattern can
+--   contain an arbitrary number of Node Patterns.
+returns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 
--- | zipderivs is a slighty optimized version of derivs. It zips its
+-- | zipderive is a slighty optimized version of derivs. It zips its
 --   intermediate pattern lists to reduce the state space.
-zipderivs :: Tree t => Refs -> [t] -> Except String Pattern
+zipderive :: Tree t => Refs -> [t] -> Except String Pattern
 
-module MapDeriv
-mderivs :: Tree t => Refs -> [t] -> Except String Pattern
+module MemDerive
+derive :: Tree t => Refs -> [t] -> Except String Pattern
+type Mem = (Nullable, Calls, Returns)
+newMem :: Mem
+nullable :: Refs -> Pattern -> State Mem Bool
 
 
 -- | This module contains a VPA (Visual Pushdown Automaton) implementation
@@ -348,8 +351,8 @@ mderivs :: Tree t => Refs -> [t] -> Except String Pattern
 --   
 --   It shows how out algorithm is effective equivalent to a visual
 --   pushdown automaton.
-module VpaDeriv
-vderivs :: Tree t => Refs -> [t] -> Except String Pattern
+module VpaDerive
+derivs :: Tree t => Refs -> [t] -> Except String Pattern
 
 
 -- | This module parses the Relapse Grammar using the Parsec Library.
