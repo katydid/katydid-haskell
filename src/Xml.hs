@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Xml (
-	decodeXML	
+    decodeXML	
 ) where
 
 import Text.Read (readMaybe)
@@ -12,10 +12,10 @@ import Data.Tree.NTree.TypeDefs (NTree(..))
 import Parsers
 
 instance Tree XmlTree where
-	getLabel (NTree n _ ) = case xmlLabel n of
-		(Left err) -> String $ "XML Parse Error:" ++ err
-		(Right r) -> r
-	getChildren (NTree _ cs) = cs
+    getLabel (NTree n _ ) = case xmlLabel n of
+        (Left err) -> String $ "XML Parse Error:" ++ err
+        (Right r) -> r
+    getChildren (NTree _ cs) = cs
 
 decodeXML :: String -> [XmlTree]
 decodeXML = xread
@@ -36,5 +36,5 @@ xmlLabel x@(XError _ _) = fail $ "XError not supported" ++ show x
 -- TODO what about other leaf types
 parseLabel :: String -> Label
 parseLabel s = case (readMaybe s :: Maybe Int) of
-	(Just i) -> Number (toRational i)
-	Nothing -> String s
+    (Just i) -> Number (toRational i)
+    Nothing -> String s

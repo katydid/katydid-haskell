@@ -1,6 +1,6 @@
 module Values (
-	BoolExpr(..), DoubleExpr(..), IntExpr(..), StringExpr(..), UintExpr(..), BytesExpr(..),
-	simplifyBoolExpr, ValueErr, eval
+    BoolExpr(..), DoubleExpr(..), IntExpr(..), StringExpr(..), UintExpr(..), BytesExpr(..),
+    simplifyBoolExpr, ValueErr, eval
 ) where
 
 import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
@@ -11,122 +11,122 @@ import Control.Monad.Except (Except, runExcept, throwError)
 import Parsers
 
 data BoolExpr
-	= BoolConst Bool
-	| BoolVariable
+    = BoolConst Bool
+    | BoolVariable
 
-	| OrFunc BoolExpr BoolExpr
-	| AndFunc BoolExpr BoolExpr
-	| NotFunc BoolExpr
+    | OrFunc BoolExpr BoolExpr
+    | AndFunc BoolExpr BoolExpr
+    | NotFunc BoolExpr
 
-	| BoolEqualFunc BoolExpr BoolExpr
-	| DoubleEqualFunc DoubleExpr DoubleExpr
-	| IntEqualFunc IntExpr IntExpr
-	| UintEqualFunc UintExpr UintExpr
-	| StringEqualFunc StringExpr StringExpr
-	| BytesEqualFunc BytesExpr BytesExpr
+    | BoolEqualFunc BoolExpr BoolExpr
+    | DoubleEqualFunc DoubleExpr DoubleExpr
+    | IntEqualFunc IntExpr IntExpr
+    | UintEqualFunc UintExpr UintExpr
+    | StringEqualFunc StringExpr StringExpr
+    | BytesEqualFunc BytesExpr BytesExpr
 
-	| IntListContainsFunc IntExpr [IntExpr]
-	| StringListContainsFunc StringExpr [StringExpr]
-	| UintListContainsFunc UintExpr [UintExpr]
-	| StringContainsFunc StringExpr StringExpr
+    | IntListContainsFunc IntExpr [IntExpr]
+    | StringListContainsFunc StringExpr [StringExpr]
+    | UintListContainsFunc UintExpr [UintExpr]
+    | StringContainsFunc StringExpr StringExpr
 
-	| BoolListElemFunc [BoolExpr] IntExpr
+    | BoolListElemFunc [BoolExpr] IntExpr
 
-	| BytesGreaterOrEqualFunc BytesExpr BytesExpr
-	| DoubleGreaterOrEqualFunc DoubleExpr DoubleExpr
-	| IntGreaterOrEqualFunc IntExpr IntExpr
-	| UintGreaterOrEqualFunc UintExpr UintExpr
+    | BytesGreaterOrEqualFunc BytesExpr BytesExpr
+    | DoubleGreaterOrEqualFunc DoubleExpr DoubleExpr
+    | IntGreaterOrEqualFunc IntExpr IntExpr
+    | UintGreaterOrEqualFunc UintExpr UintExpr
 
-	| BytesGreaterThanFunc BytesExpr BytesExpr
-	| DoubleGreaterThanFunc DoubleExpr DoubleExpr
-	| IntGreaterThanFunc IntExpr IntExpr
-	| UintGreaterThanFunc UintExpr UintExpr
+    | BytesGreaterThanFunc BytesExpr BytesExpr
+    | DoubleGreaterThanFunc DoubleExpr DoubleExpr
+    | IntGreaterThanFunc IntExpr IntExpr
+    | UintGreaterThanFunc UintExpr UintExpr
 
-	| StringHasPrefixFunc StringExpr StringExpr
-	| StringHasSuffixFunc StringExpr StringExpr
+    | StringHasPrefixFunc StringExpr StringExpr
+    | StringHasSuffixFunc StringExpr StringExpr
 
-	| BytesLessOrEqualFunc BytesExpr BytesExpr
-	| DoubleLessOrEqualFunc DoubleExpr DoubleExpr
-	| IntLessOrEqualFunc IntExpr IntExpr
-	| UintLessOrEqualFunc UintExpr UintExpr
+    | BytesLessOrEqualFunc BytesExpr BytesExpr
+    | DoubleLessOrEqualFunc DoubleExpr DoubleExpr
+    | IntLessOrEqualFunc IntExpr IntExpr
+    | UintLessOrEqualFunc UintExpr UintExpr
 
-	| BytesLessThanFunc BytesExpr BytesExpr
-	| DoubleLessThanFunc DoubleExpr DoubleExpr
-	| IntLessThanFunc IntExpr IntExpr
-	| UintLessThanFunc UintExpr UintExpr
+    | BytesLessThanFunc BytesExpr BytesExpr
+    | DoubleLessThanFunc DoubleExpr DoubleExpr
+    | IntLessThanFunc IntExpr IntExpr
+    | UintLessThanFunc UintExpr UintExpr
 
-	| BytesNotEqualFunc BytesExpr BytesExpr
-	| BoolNotEqualFunc BoolExpr BoolExpr
-	| DoubleNotEqualFunc DoubleExpr DoubleExpr
-	| IntNotEqualFunc IntExpr IntExpr
-	| StringNotEqualFunc StringExpr StringExpr
-	| UintNotEqualFunc UintExpr UintExpr
+    | BytesNotEqualFunc BytesExpr BytesExpr
+    | BoolNotEqualFunc BoolExpr BoolExpr
+    | DoubleNotEqualFunc DoubleExpr DoubleExpr
+    | IntNotEqualFunc IntExpr IntExpr
+    | StringNotEqualFunc StringExpr StringExpr
+    | UintNotEqualFunc UintExpr UintExpr
 
-	| BytesTypeFunc BytesExpr
-	| BoolTypeFunc BoolExpr
-	| DoubleTypeFunc DoubleExpr
-	| IntTypeFunc  IntExpr
-	| UintTypeFunc UintExpr
-	| StringTypeFunc StringExpr
+    | BytesTypeFunc BytesExpr
+    | BoolTypeFunc BoolExpr
+    | DoubleTypeFunc DoubleExpr
+    | IntTypeFunc  IntExpr
+    | UintTypeFunc UintExpr
+    | StringTypeFunc StringExpr
 
-	| RegexFunc StringExpr StringExpr
-	deriving (Eq, Ord, Show)
+    | RegexFunc StringExpr StringExpr
+    deriving (Eq, Ord, Show)
 
 data DoubleExpr
-	= DoubleConst Double
-	| DoubleVariable
+    = DoubleConst Double
+    | DoubleVariable
 
-	| DoubleListElemFunc [DoubleExpr] IntExpr
-	deriving (Eq, Ord, Show)
+    | DoubleListElemFunc [DoubleExpr] IntExpr
+    deriving (Eq, Ord, Show)
 
 data IntExpr
-	= IntConst Int
-	| IntVariable
+    = IntConst Int
+    | IntVariable
 
-	| IntListElemFunc [IntExpr] IntExpr
+    | IntListElemFunc [IntExpr] IntExpr
 
-	| BytesListLengthFunc [BytesExpr]
-	| BoolListLengthFunc [BoolExpr]
-	| BytesLengthFunc BytesExpr
-	| DoubleListLengthFunc [DoubleExpr]
-	| IntListLengthFunc [IntExpr]
-	| StringListLengthFunc [StringExpr]
-	| UintListLengthFunc [UintExpr]
-	| StringLengthFunc StringExpr
-	deriving (Eq, Ord, Show)
+    | BytesListLengthFunc [BytesExpr]
+    | BoolListLengthFunc [BoolExpr]
+    | BytesLengthFunc BytesExpr
+    | DoubleListLengthFunc [DoubleExpr]
+    | IntListLengthFunc [IntExpr]
+    | StringListLengthFunc [StringExpr]
+    | UintListLengthFunc [UintExpr]
+    | StringLengthFunc StringExpr
+    deriving (Eq, Ord, Show)
 
 data UintExpr
- 	= UintConst Int
- 	| UintVariable
+     = UintConst Int
+     | UintVariable
 
- 	| UintListElemFunc [UintExpr] IntExpr
- 	deriving (Eq, Ord, Show)
+     | UintListElemFunc [UintExpr] IntExpr
+     deriving (Eq, Ord, Show)
 
 data StringExpr
-	= StringConst String
-	| StringVariable
+    = StringConst String
+    | StringVariable
 
-	| StringListElemFunc [StringExpr] IntExpr
+    | StringListElemFunc [StringExpr] IntExpr
 
-	| StringToLowerFunc StringExpr
-	| StringToUpperFunc StringExpr
-	deriving (Eq, Ord, Show)
+    | StringToLowerFunc StringExpr
+    | StringToUpperFunc StringExpr
+    deriving (Eq, Ord, Show)
 
 data BytesExpr
-	= BytesConst String
-	| BytesVariable
-	
-	| BytesListElemFunc [BytesExpr] IntExpr
-	deriving (Eq, Ord, Show)
+    = BytesConst String
+    | BytesVariable
+    
+    | BytesListElemFunc [BytesExpr] IntExpr
+    deriving (Eq, Ord, Show)
 
 data ValueErr
-	= ErrNotABool String
-	| ErrNotAString String
-	| ErrNotAnInt String
-	| ErrNotADouble String
-	| ErrNotAnUint String
-	| ErrNotBytes String
-	deriving (Eq, Ord, Show)
+    = ErrNotABool String
+    | ErrNotAString String
+    | ErrNotAnInt String
+    | ErrNotADouble String
+    | ErrNotAnUint String
+    | ErrNotBytes String
+    deriving (Eq, Ord, Show)
 
 eval :: BoolExpr -> Label -> Except ValueErr Bool
 eval = evalBool
@@ -138,18 +138,18 @@ evalBool BoolVariable (Bool b) = return b
 evalBool BoolVariable l = throwError $ ErrNotABool $ show l
 
 evalBool (OrFunc e1 e2) v = do {
-	b1 <- evalBool e1 v;
-	b2 <- evalBool e2 v;
-	return $ b1 || b2
+    b1 <- evalBool e1 v;
+    b2 <- evalBool e2 v;
+    return $ b1 || b2
 }
 evalBool (AndFunc e1 e2) v = do {
-	b1 <- evalBool e1 v;
-	b2 <- evalBool e2 v;
-	return $ b1 && b2
+    b1 <- evalBool e1 v;
+    b2 <- evalBool e2 v;
+    return $ b1 && b2
 }
 evalBool (NotFunc e) v = case runExcept $ evalBool e v of
-	(Right True) -> return False
-	_ -> return True
+    (Right True) -> return False
+    _ -> return True
 
 evalBool (BoolEqualFunc e1 e2) v = eq (runExcept $ evalBool e1 v) (runExcept $ evalBool e2 v)
 evalBool (DoubleEqualFunc e1 e2) v = eq (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
@@ -159,30 +159,30 @@ evalBool (StringEqualFunc e1 e2) v = eq (runExcept $ evalString e1 v) (runExcept
 evalBool (BytesEqualFunc e1 e2) v = eq (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
 evalBool (IntListContainsFunc e es) v = do {
-	e' <- evalInt e v;
-	es' <- mapM (`evalInt` v) es;
-	return $ elem e' es'
+    e' <- evalInt e v;
+    es' <- mapM (`evalInt` v) es;
+    return $ elem e' es'
 }
 evalBool (StringListContainsFunc e es) v = do {
-	e' <- evalString e v;
-	es' <- mapM (`evalString` v) es;
-	return $ elem e' es'
+    e' <- evalString e v;
+    es' <- mapM (`evalString` v) es;
+    return $ elem e' es'
 }
 evalBool (UintListContainsFunc e es) v = do {
-	e' <- evalUint e v;
-	es' <- mapM (`evalUint` v) es;
-	return $ elem e' es'
+    e' <- evalUint e v;
+    es' <- mapM (`evalUint` v) es;
+    return $ elem e' es'
 }
 evalBool (StringContainsFunc s sub) v = do {
-	s' <- evalString s v;
-	sub' <- evalString sub v;
-	return $ isInfixOf sub' s'
+    s' <- evalString s v;
+    sub' <- evalString sub v;
+    return $ isInfixOf sub' s'
 }
 
 evalBool (BoolListElemFunc es i) v = do {
-	i' <- evalInt i v;
-	es' <- mapM (`evalBool` v) es;
-	return $ es' !! i'
+    i' <- evalInt i v;
+    es' <- mapM (`evalBool` v) es;
+    return $ es' !! i'
 }
 
 evalBool (DoubleGreaterOrEqualFunc e1 e2) v = ge (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
@@ -196,14 +196,14 @@ evalBool (UintGreaterThanFunc e1 e2) v = gt (runExcept $ evalUint e1 v) (runExce
 evalBool (BytesGreaterThanFunc e1 e2) v = gt (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
 evalBool (StringHasPrefixFunc e1 e2) v = do {
-	v1 <- evalString e1 v;
-	v2 <- evalString e2 v;
-	return $ isPrefixOf v2 v1
+    v1 <- evalString e1 v;
+    v2 <- evalString e2 v;
+    return $ isPrefixOf v2 v1
 }
 evalBool (StringHasSuffixFunc e1 e2) v = do {
-	v1 <- evalString e1 v;
-	v2 <- evalString e2 v;
-	return $ isSuffixOf v2 v1
+    v1 <- evalString e1 v;
+    v2 <- evalString e2 v;
+    return $ isSuffixOf v2 v1
 }
 
 evalBool (DoubleLessOrEqualFunc e1 e2) v = le (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
@@ -224,28 +224,28 @@ evalBool (StringNotEqualFunc e1 e2) v = ne (runExcept $ evalString e1 v) (runExc
 evalBool (BytesNotEqualFunc e1 e2) v = ne (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
 evalBool (BytesTypeFunc e) v = case runExcept $ evalBytes e v of
-	(Right _) -> return True
-	(Left _) -> return False
+    (Right _) -> return True
+    (Left _) -> return False
 evalBool (BoolTypeFunc e) v = case runExcept $ evalBool e v of
-	(Right _) -> return True
-	(Left _) -> return False
+    (Right _) -> return True
+    (Left _) -> return False
 evalBool (DoubleTypeFunc e) v = case runExcept $ evalDouble e v of
-	(Right _) -> return True
-	(Left _) -> return False
+    (Right _) -> return True
+    (Left _) -> return False
 evalBool (IntTypeFunc e) v = case runExcept $ evalInt e v of
-	(Right _) -> return True
-	(Left _) -> return False
+    (Right _) -> return True
+    (Left _) -> return False
 evalBool (UintTypeFunc e) v = case runExcept $ evalUint e v of
-	(Right _) -> return True
-	(Left _) -> return False
+    (Right _) -> return True
+    (Left _) -> return False
 evalBool (StringTypeFunc e) v = case runExcept $ evalString e v of
-	(Right _) -> return True
-	(Left _) -> return False
+    (Right _) -> return True
+    (Left _) -> return False
 
 evalBool (RegexFunc e s) v = do {
-	e' <- evalString e v;
-	s' <- evalString s v;
-	return (s' =~ e' :: Bool)
+    e' <- evalString e v;
+    s' <- evalString s v;
+    return (s' =~ e' :: Bool)
 }
 
 eq :: (Eq a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
@@ -284,9 +284,9 @@ evalDouble DoubleVariable (Number r) = return $ fromRational r
 evalDouble DoubleVariable l = throwError $ ErrNotADouble $ show l
 
 evalDouble (DoubleListElemFunc es i) v = do {
-	i' <- evalInt i v;
-	es' <- mapM (`evalDouble` v) es;
-	return $ es' !! i'
+    i' <- evalInt i v;
+    es' <- mapM (`evalDouble` v) es;
+    return $ es' !! i'
 }
 
 evalInt :: IntExpr -> Label -> Except ValueErr Int
@@ -295,42 +295,42 @@ evalInt IntVariable (Number r) = return (truncate r)
 evalInt IntVariable l = throwError $ ErrNotAnInt $ show l
 
 evalInt (IntListElemFunc es i) v = do {
-	i' <- evalInt i v;
-	es' <- mapM (`evalInt` v) es;
-	return $ es' !! i'
+    i' <- evalInt i v;
+    es' <- mapM (`evalInt` v) es;
+    return $ es' !! i'
 }
 
 evalInt (BytesListLengthFunc es) v = do {
-	es' <- mapM (`evalBytes` v) es;
-	return $ length es'
+    es' <- mapM (`evalBytes` v) es;
+    return $ length es'
 }
 evalInt (BoolListLengthFunc es) v = do {
-	es' <- mapM (`evalBool` v) es;
-	return $ length es'
+    es' <- mapM (`evalBool` v) es;
+    return $ length es'
 }
 evalInt (BytesLengthFunc e) v = do {
-	e' <- evalBytes e v;
-	return $ length e'
+    e' <- evalBytes e v;
+    return $ length e'
 }
 evalInt (DoubleListLengthFunc es) v = do {
-	es' <- mapM (`evalDouble` v) es;
-	return $ length es'
+    es' <- mapM (`evalDouble` v) es;
+    return $ length es'
 }
 evalInt (IntListLengthFunc es) v = do {
-	es' <- mapM (`evalInt` v) es;
-	return $ length es'
+    es' <- mapM (`evalInt` v) es;
+    return $ length es'
 }
 evalInt (StringListLengthFunc es) v = do {
-	es' <- mapM (`evalString` v) es;
-	return $ length es'
+    es' <- mapM (`evalString` v) es;
+    return $ length es'
 }
 evalInt (UintListLengthFunc es) v = do {
-	es' <- mapM (`evalUint` v) es;
-	return $ length es'
+    es' <- mapM (`evalUint` v) es;
+    return $ length es'
 }
 evalInt (StringLengthFunc e) v = do {
-	e' <- evalString e v;
-	return $ length e'
+    e' <- evalString e v;
+    return $ length e'
 }
 
 evalUint :: UintExpr -> Label -> Except ValueErr Int
@@ -339,9 +339,9 @@ evalUint UintVariable (Number r) = return $ truncate r
 evalUint UintVariable l = throwError $ ErrNotAnUint $ show l
 
 evalUint (UintListElemFunc es i) v = do {
-	i' <- evalInt i v;
-	es' <- mapM (`evalUint` v) es;
-	return $ es' !! i'
+    i' <- evalInt i v;
+    es' <- mapM (`evalUint` v) es;
+    return $ es' !! i'
 }
 
 evalString :: StringExpr -> Label -> Except ValueErr String
@@ -350,18 +350,18 @@ evalString StringVariable (String s) = return s
 evalString StringVariable l = throwError $ ErrNotAString $ show l
 
 evalString (StringListElemFunc es i) v = do {
-	i' <- evalInt i v;
-	es' <- mapM (`evalString` v) es;
-	return $ es' !! i'
+    i' <- evalInt i v;
+    es' <- mapM (`evalString` v) es;
+    return $ es' !! i'
 }
 
 evalString (StringToLowerFunc s) v = do {
-	s' <- evalString s v;
-	return $ map toLower s'
+    s' <- evalString s v;
+    return $ map toLower s'
 }
 evalString (StringToUpperFunc s) v = do {
-	s' <- evalString s v;
-	return $ map toUpper s'
+    s' <- evalString s v;
+    return $ map toUpper s'
 }
 
 evalBytes :: BytesExpr -> Label -> Except ValueErr String
@@ -370,9 +370,9 @@ evalBytes BytesVariable (String s) = return s
 evalBytes BytesVariable l = throwError $ ErrNotBytes $ show l
 
 evalBytes (BytesListElemFunc es i) v = do {
-	i' <- evalInt i v;
-	es' <- mapM (`evalBytes` v) es;
-	return $ es' !! i'
+    i' <- evalInt i v;
+    es' <- mapM (`evalBytes` v) es;
+    return $ es' !! i'
 }
 
 simplifyBoolExpr :: BoolExpr -> BoolExpr
@@ -443,10 +443,10 @@ simplifyOrFunc _ true@(BoolConst True) = true
 simplifyOrFunc (BoolConst False) v = v
 simplifyOrFunc v (BoolConst False) = v
 simplifyOrFunc v1 v2
-	| v1 == v2  = v1
-	| v1 == simplifyNotFunc v2 = BoolConst True
-	| simplifyNotFunc v1 == v2 = BoolConst True
-	| otherwise = OrFunc v1 v2
+    | v1 == v2  = v1
+    | v1 == simplifyNotFunc v2 = BoolConst True
+    | simplifyNotFunc v1 == v2 = BoolConst True
+    | otherwise = OrFunc v1 v2
 
 simplifyAndFunc :: BoolExpr -> BoolExpr -> BoolExpr
 simplifyAndFunc (BoolConst True) v = v
@@ -455,67 +455,67 @@ simplifyAndFunc false@(BoolConst False) _ = false
 simplifyAndFunc _ false@(BoolConst False) = false
 
 simplifyAndFunc v1@(StringEqualFunc s1 s2) v2@(StringEqualFunc s1' s2') = 
-	case (s1, s2, s1', s2') of
-	(c1@(StringConst _), StringVariable, c2@(StringConst _), StringVariable) -> if c1 == c2 then v1 else BoolConst False
-	(c1@(StringConst _), StringVariable, StringVariable, c2@(StringConst _)) -> if c1 == c2 then v1 else BoolConst False
-	(StringVariable, c1@(StringConst _), c2@(StringConst _), StringVariable) -> if c1 == c2 then v1 else BoolConst False
-	(StringVariable, c1@(StringConst _), StringVariable, c2@(StringConst _)) -> if c1 == c2 then v1 else BoolConst False
+    case (s1, s2, s1', s2') of
+    (c1@(StringConst _), StringVariable, c2@(StringConst _), StringVariable) -> if c1 == c2 then v1 else BoolConst False
+    (c1@(StringConst _), StringVariable, StringVariable, c2@(StringConst _)) -> if c1 == c2 then v1 else BoolConst False
+    (StringVariable, c1@(StringConst _), c2@(StringConst _), StringVariable) -> if c1 == c2 then v1 else BoolConst False
+    (StringVariable, c1@(StringConst _), StringVariable, c2@(StringConst _)) -> if c1 == c2 then v1 else BoolConst False
 simplifyAndFunc v1@(StringEqualFunc s1 s2) v2@(StringNotEqualFunc s1' s2') = 
-	case (s1, s2, s1', s2') of
-	(c1@(StringConst _), StringVariable, c2@(StringConst _), StringVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(c1@(StringConst _), StringVariable, StringVariable, c2@(StringConst _)) -> if c1 /= c2 then v1 else BoolConst False
-	(StringVariable, c1@(StringConst _), c2@(StringConst _), StringVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(StringVariable, c1@(StringConst _), StringVariable, c2@(StringConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    case (s1, s2, s1', s2') of
+    (c1@(StringConst _), StringVariable, c2@(StringConst _), StringVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (c1@(StringConst _), StringVariable, StringVariable, c2@(StringConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    (StringVariable, c1@(StringConst _), c2@(StringConst _), StringVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (StringVariable, c1@(StringConst _), StringVariable, c2@(StringConst _)) -> if c1 /= c2 then v1 else BoolConst False
 simplifyAndFunc v1@(StringNotEqualFunc s1 s2) v2@(StringEqualFunc s1' s2') = 
-	case (s1, s2, s1', s2') of
-	(c1@(StringConst _), StringVariable, c2@(StringConst _), StringVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(c1@(StringConst _), StringVariable, StringVariable, c2@(StringConst _)) -> if c1 /= c2 then v1 else BoolConst False
-	(StringVariable, c1@(StringConst _), c2@(StringConst _), StringVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(StringVariable, c1@(StringConst _), StringVariable, c2@(StringConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    case (s1, s2, s1', s2') of
+    (c1@(StringConst _), StringVariable, c2@(StringConst _), StringVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (c1@(StringConst _), StringVariable, StringVariable, c2@(StringConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    (StringVariable, c1@(StringConst _), c2@(StringConst _), StringVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (StringVariable, c1@(StringConst _), StringVariable, c2@(StringConst _)) -> if c1 /= c2 then v1 else BoolConst False
 
 simplifyAndFunc v1@(IntEqualFunc s1 s2) v2@(IntEqualFunc s1' s2') = 
-	case (s1, s2, s1', s2') of
-	(c1@(IntConst _), IntVariable, c2@(IntConst _), IntVariable) -> if c1 == c2 then v1 else BoolConst False
-	(c1@(IntConst _), IntVariable, IntVariable, c2@(IntConst _)) -> if c1 == c2 then v1 else BoolConst False
-	(IntVariable, c1@(IntConst _), c2@(IntConst _), IntVariable) -> if c1 == c2 then v1 else BoolConst False
-	(IntVariable, c1@(IntConst _), IntVariable, c2@(IntConst _)) -> if c1 == c2 then v1 else BoolConst False
+    case (s1, s2, s1', s2') of
+    (c1@(IntConst _), IntVariable, c2@(IntConst _), IntVariable) -> if c1 == c2 then v1 else BoolConst False
+    (c1@(IntConst _), IntVariable, IntVariable, c2@(IntConst _)) -> if c1 == c2 then v1 else BoolConst False
+    (IntVariable, c1@(IntConst _), c2@(IntConst _), IntVariable) -> if c1 == c2 then v1 else BoolConst False
+    (IntVariable, c1@(IntConst _), IntVariable, c2@(IntConst _)) -> if c1 == c2 then v1 else BoolConst False
 simplifyAndFunc v1@(IntEqualFunc s1 s2) v2@(IntNotEqualFunc s1' s2') = 
-	case (s1, s2, s1', s2') of
-	(c1@(IntConst _), IntVariable, c2@(IntConst _), IntVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(c1@(IntConst _), IntVariable, IntVariable, c2@(IntConst _)) -> if c1 /= c2 then v1 else BoolConst False
-	(IntVariable, c1@(IntConst _), c2@(IntConst _), IntVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(IntVariable, c1@(IntConst _), IntVariable, c2@(IntConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    case (s1, s2, s1', s2') of
+    (c1@(IntConst _), IntVariable, c2@(IntConst _), IntVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (c1@(IntConst _), IntVariable, IntVariable, c2@(IntConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    (IntVariable, c1@(IntConst _), c2@(IntConst _), IntVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (IntVariable, c1@(IntConst _), IntVariable, c2@(IntConst _)) -> if c1 /= c2 then v1 else BoolConst False
 simplifyAndFunc v1@(IntNotEqualFunc s1 s2) v2@(IntEqualFunc s1' s2') = 
-	case (s1, s2, s1', s2') of
-	(c1@(IntConst _), IntVariable, c2@(IntConst _), IntVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(c1@(IntConst _), IntVariable, IntVariable, c2@(IntConst _)) -> if c1 /= c2 then v1 else BoolConst False
-	(IntVariable, c1@(IntConst _), c2@(IntConst _), IntVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(IntVariable, c1@(IntConst _), IntVariable, c2@(IntConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    case (s1, s2, s1', s2') of
+    (c1@(IntConst _), IntVariable, c2@(IntConst _), IntVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (c1@(IntConst _), IntVariable, IntVariable, c2@(IntConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    (IntVariable, c1@(IntConst _), c2@(IntConst _), IntVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (IntVariable, c1@(IntConst _), IntVariable, c2@(IntConst _)) -> if c1 /= c2 then v1 else BoolConst False
 
 simplifyAndFunc v1@(UintEqualFunc s1 s2) v2@(UintEqualFunc s1' s2') = 
-	case (s1, s2, s1', s2') of
-	(c1@(UintConst _), UintVariable, c2@(UintConst _), UintVariable) -> if c1 == c2 then v1 else BoolConst False
-	(c1@(UintConst _), UintVariable, UintVariable, c2@(UintConst _)) -> if c1 == c2 then v1 else BoolConst False
-	(UintVariable, c1@(UintConst _), c2@(UintConst _), UintVariable) -> if c1 == c2 then v1 else BoolConst False
-	(UintVariable, c1@(UintConst _), UintVariable, c2@(UintConst _)) -> if c1 == c2 then v1 else BoolConst False
+    case (s1, s2, s1', s2') of
+    (c1@(UintConst _), UintVariable, c2@(UintConst _), UintVariable) -> if c1 == c2 then v1 else BoolConst False
+    (c1@(UintConst _), UintVariable, UintVariable, c2@(UintConst _)) -> if c1 == c2 then v1 else BoolConst False
+    (UintVariable, c1@(UintConst _), c2@(UintConst _), UintVariable) -> if c1 == c2 then v1 else BoolConst False
+    (UintVariable, c1@(UintConst _), UintVariable, c2@(UintConst _)) -> if c1 == c2 then v1 else BoolConst False
 simplifyAndFunc v1@(UintEqualFunc s1 s2) v2@(UintNotEqualFunc s1' s2') = 
-	case (s1, s2, s1', s2') of
-	(c1@(UintConst _), UintVariable, c2@(UintConst _), UintVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(c1@(UintConst _), UintVariable, UintVariable, c2@(UintConst _)) -> if c1 /= c2 then v1 else BoolConst False
-	(UintVariable, c1@(UintConst _), c2@(UintConst _), UintVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(UintVariable, c1@(UintConst _), UintVariable, c2@(UintConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    case (s1, s2, s1', s2') of
+    (c1@(UintConst _), UintVariable, c2@(UintConst _), UintVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (c1@(UintConst _), UintVariable, UintVariable, c2@(UintConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    (UintVariable, c1@(UintConst _), c2@(UintConst _), UintVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (UintVariable, c1@(UintConst _), UintVariable, c2@(UintConst _)) -> if c1 /= c2 then v1 else BoolConst False
 simplifyAndFunc v1@(UintNotEqualFunc s1 s2) v2@(UintEqualFunc s1' s2') = 
-	case (s1, s2, s1', s2') of
-	(c1@(UintConst _), UintVariable, c2@(UintConst _), UintVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(c1@(UintConst _), UintVariable, UintVariable, c2@(UintConst _)) -> if c1 /= c2 then v1 else BoolConst False
-	(UintVariable, c1@(UintConst _), c2@(UintConst _), UintVariable) -> if c1 /= c2 then v1 else BoolConst False
-	(UintVariable, c1@(UintConst _), UintVariable, c2@(UintConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    case (s1, s2, s1', s2') of
+    (c1@(UintConst _), UintVariable, c2@(UintConst _), UintVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (c1@(UintConst _), UintVariable, UintVariable, c2@(UintConst _)) -> if c1 /= c2 then v1 else BoolConst False
+    (UintVariable, c1@(UintConst _), c2@(UintConst _), UintVariable) -> if c1 /= c2 then v1 else BoolConst False
+    (UintVariable, c1@(UintConst _), UintVariable, c2@(UintConst _)) -> if c1 /= c2 then v1 else BoolConst False
 
 simplifyAndFunc v1 v2
-	| v1 == v2  = v1
-	| v1 == simplifyNotFunc v2 = BoolConst False
-	| simplifyNotFunc v1 == v2 = BoolConst False
-	| otherwise = AndFunc v1 v2
+    | v1 == v2  = v1
+    | v1 == simplifyNotFunc v2 = BoolConst False
+    | simplifyNotFunc v1 == v2 = BoolConst False
+    | otherwise = AndFunc v1 v2
 
 simplifyNotFunc :: BoolExpr -> BoolExpr
 simplifyNotFunc (NotFunc v) = v
@@ -546,15 +546,15 @@ simplifyIntExpr (IntListElemFunc es e) = IntListElemFunc (map simplifyIntExpr es
 simplifyIntExpr (BytesListLengthFunc es) = IntConst (length es)
 simplifyIntExpr (BoolListLengthFunc es) = IntConst (length es)
 simplifyIntExpr (BytesLengthFunc e) = case simplifyBytesExpr e of
-		(BytesConst b) -> IntConst (length b)
-		b -> BytesLengthFunc b
+        (BytesConst b) -> IntConst (length b)
+        b -> BytesLengthFunc b
 simplifyIntExpr (DoubleListLengthFunc es) = IntConst (length es)
 simplifyIntExpr (IntListLengthFunc es) = IntConst (length es)
 simplifyIntExpr (StringListLengthFunc es) = IntConst (length es)
 simplifyIntExpr (UintListLengthFunc es) = IntConst (length es)
 simplifyIntExpr (StringLengthFunc e) = case simplifyStringExpr e of
-		(StringConst b) -> IntConst (length b)
-		b -> StringLengthFunc b
+        (StringConst b) -> IntConst (length b)
+        b -> StringLengthFunc b
 simplifyIntExpr e = e
 
 simplifyUintExpr :: UintExpr -> UintExpr
@@ -564,11 +564,11 @@ simplifyUintExpr e = e
 simplifyStringExpr :: StringExpr -> StringExpr
 simplifyStringExpr (StringListElemFunc es e) = StringListElemFunc (map simplifyStringExpr es) (simplifyIntExpr e)
 simplifyStringExpr (StringToLowerFunc e) = case simplifyStringExpr e of
-		(StringConst s) -> StringConst $ map toLower s
-		s -> s
+        (StringConst s) -> StringConst $ map toLower s
+        s -> s
 simplifyStringExpr (StringToUpperFunc e) = case simplifyStringExpr e of
-		(StringConst s) -> StringConst $ map toUpper s
-		s -> s
+        (StringConst s) -> StringConst $ map toUpper s
+        s -> s
 simplifyStringExpr e = e
 
 simplifyBytesExpr :: BytesExpr -> BytesExpr

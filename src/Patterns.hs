@@ -1,7 +1,7 @@
 module Patterns (
-	Pattern(..), 
-	Refs, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion,
-	nullable, unescapable
+    Pattern(..), 
+    Refs, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion,
+    nullable, unescapable
 ) where
 
 import qualified Data.Map.Strict as DataMap
@@ -10,19 +10,19 @@ import qualified Data.Set as DataSet
 import Values
 
 data Pattern
-	= Empty
-	| ZAny
-	| Node BoolExpr Pattern
-	| Or Pattern Pattern
-	| And Pattern Pattern
-	| Not Pattern
-	| Concat Pattern Pattern
-	| Interleave Pattern Pattern
-	| ZeroOrMore Pattern
-	| Optional Pattern
-	| Contains Pattern
-	| Reference String
-	deriving (Eq, Ord, Show)
+    = Empty
+    | ZAny
+    | Node BoolExpr Pattern
+    | Or Pattern Pattern
+    | And Pattern Pattern
+    | Not Pattern
+    | Concat Pattern Pattern
+    | Interleave Pattern Pattern
+    | ZeroOrMore Pattern
+    | Optional Pattern
+    | Contains Pattern
+    | Reference String
+    deriving (Eq, Ord, Show)
 
 nullable :: Refs -> Pattern -> Bool
 nullable refs Empty = True
@@ -46,15 +46,15 @@ unescapable (Not ZAny) = True
 unescapable _ = False
 
 newtype Refs = Refs (DataMap.Map String Pattern)
-	deriving (Show, Eq)
+    deriving (Show, Eq)
 
 lookupRef :: Refs -> String -> Pattern
 lookupRef (Refs m) name = m DataMap.! name
 
 reverseLookupRef :: Pattern -> Refs -> Maybe String
 reverseLookupRef p (Refs m) = case DataMap.keys $ DataMap.filter (== p) m of
-	[]  	-> Nothing
-	(k:ks) 	-> Just k
+    []  	-> Nothing
+    (k:ks) 	-> Just k
 
 newRef :: String -> Pattern -> Refs
 newRef key value = Refs $ DataMap.singleton key value

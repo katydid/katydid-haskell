@@ -15,3 +15,6 @@ setup:
 
 ide-setup:
 	stack build intero
+
+install-haddock:
+	stack install haddock-2.17.2

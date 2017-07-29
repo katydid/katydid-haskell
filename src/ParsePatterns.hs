@@ -1,5 +1,5 @@
 module ParsePatterns (
-	Expr(..), newBuiltIn, newFunction
+    Expr(..), newBuiltIn, newFunction
 ) where
 
 import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
@@ -9,19 +9,19 @@ import Patterns
 import Values
 
 data Expr 
-	= BoolExpr BoolExpr
-	| DoubleExpr DoubleExpr
-	| IntExpr IntExpr
-	| UintExpr UintExpr 
-	| StringExpr StringExpr
-	| BytesExpr BytesExpr
-	| BoolListExpr [BoolExpr]
-	| DoubleListExpr [DoubleExpr]
-	| IntListExpr [IntExpr]
-	| UintListExpr [UintExpr]
-	| StringListExpr [StringExpr]
-	| BytesListExpr [BytesExpr]
-	deriving Show
+    = BoolExpr BoolExpr
+    | DoubleExpr DoubleExpr
+    | IntExpr IntExpr
+    | UintExpr UintExpr 
+    | StringExpr StringExpr
+    | BytesExpr BytesExpr
+    | BoolListExpr [BoolExpr]
+    | DoubleListExpr [DoubleExpr]
+    | IntListExpr [IntExpr]
+    | UintListExpr [UintExpr]
+    | StringListExpr [StringExpr]
+    | BytesListExpr [BytesExpr]
+    deriving Show
 
 fromJson :: String -> Either String Refs
 fromJson s = unmarshal $ decode s
@@ -34,31 +34,31 @@ unmarshal (Ok j) = fail $ "unexpected jsvalue = " ++ show j
 uRefs :: [(String, JSValue)] -> Either String Refs
 uRefs [] = return emptyRef
 uRefs (("TopPattern", (JSObject pattern)):pairs) = do {
-	p <- uPattern (fromJSObject pattern);
-	rs <- uRefs pairs;
-	return $ newRef "main" p `union` rs
+    p <- uPattern (fromJSObject pattern);
+    rs <- uRefs pairs;
+    return $ newRef "main" p `union` rs
 }
 uRefs (("PatternDecls", (JSArray patternDecls)):pairs) = do {
-	p <- uPatternDecls patternDecls;
-	rs <- uRefs pairs;
-	return $ p `union` rs
+    p <- uPatternDecls patternDecls;
+    rs <- uRefs pairs;
+    return $ p `union` rs
 }
 uRefs (_:pairs) = uRefs pairs
 
 uPatternDecls :: [JSValue] -> Either String Refs
 uPatternDecls [] = return emptyRef
 uPatternDecls ((JSObject o):patternDecls) = do {
-	left <- uPatternDecl (fromJSObject o);
-	right <- uPatternDecls patternDecls;
-	return $ left `union` right
+    left <- uPatternDecl (fromJSObject o);
+    right <- uPatternDecls patternDecls;
+    return $ left `union` right
 }
 
 uPatternDecl :: [(String, JSValue)] -> Either String Refs
 uPatternDecl kvs = do {
-	name <- getString kvs "Name";
-	p <- getObject kvs "Pattern";
-	pattern <- uPattern p;
-	return $ newRef name pattern
+    name <- getString kvs "Name";
+    p <- getObject kvs "Pattern";
+    pattern <- uPattern p;
+    return $ newRef name pattern
 }
 
 uPattern :: [(String, JSValue)] -> Either String Pattern
@@ -78,11 +78,11 @@ uPattern [("Interleave", JSObject o)] = uInterleave (fromJSObject o)
 
 uTreeNode :: [(String, JSValue)] -> Either String Pattern
 uTreeNode kvs = do {
-	name <- getObject kvs "Name";
-	nameExpr <- uNameExpr name;
-	p <- getObject kvs "Pattern";
-	pattern <- uPattern p;
-	return $ Node nameExpr pattern
+    name <- getObject kvs "Name";
+    nameExpr <- uNameExpr name;
+    p <- getObject kvs "Pattern";
+    pattern <- uPattern p;
+    return $ Node nameExpr pattern
 }
 
 uLeafNode :: [(String, JSValue)] -> Either String Pattern
@@ -93,29 +93,29 @@ uReference kvs = getString kvs "Name" >>= return . Reference
 
 uConcat :: [(String, JSValue)] -> Either String Pattern
 uConcat kvs = do {
-	left <- getObject kvs "LeftPattern";
-	leftPattern <- uPattern left;
-	right <- getObject kvs "RightPattern";
-	rightPattern <- uPattern right;
-	return $ Concat leftPattern rightPattern
+    left <- getObject kvs "LeftPattern";
+    leftPattern <- uPattern left;
+    right <- getObject kvs "RightPattern";
+    rightPattern <- uPattern right;
+    return $ Concat leftPattern rightPattern
 }
 
 uOr :: [(String, JSValue)] -> Either String Pattern
 uOr kvs = do {
-	left <- getObject kvs "LeftPattern";
-	leftPattern <- uPattern left;
-	right <- getObject kvs "RightPattern";
-	rightPattern <- uPattern right;
-	return $ Or leftPattern rightPattern
+    left <- getObject kvs "LeftPattern";
+    leftPattern <- uPattern left;
+    right <- getObject kvs "RightPattern";
+    rightPattern <- uPattern right;
+    return $ Or leftPattern rightPattern
 }
 
 uAnd :: [(String, JSValue)] -> Either String Pattern
 uAnd kvs = do {
-	left <- getObject kvs "LeftPattern";
-	leftPattern <- uPattern left;
-	right <- getObject kvs "RightPattern";
-	rightPattern <- uPattern right;
-	return $ And leftPattern rightPattern
+    left <- getObject kvs "LeftPattern";
+    leftPattern <- uPattern left;
+    right <- getObject kvs "RightPattern";
+    rightPattern <- uPattern right;
+    return $ And leftPattern rightPattern
 }
 
 uZeroOrMore :: [(String, JSValue)] -> Either String Pattern
@@ -132,11 +132,11 @@ uOptional kvs = getObject kvs "Pattern" >>= uPattern >>= return . Optional
 
 uInterleave :: [(String, JSValue)] -> Either String Pattern
 uInterleave kvs = do {
-	left <- getObject kvs "LeftPattern";
-	leftPattern <- uPattern left;
-	right <- getObject kvs "RightPattern";
-	rightPattern <- uPattern right;
-	return $ Interleave leftPattern rightPattern
+    left <- getObject kvs "LeftPattern";
+    leftPattern <- uPattern left;
+    right <- getObject kvs "RightPattern";
+    rightPattern <- uPattern right;
+    return $ Interleave leftPattern rightPattern
 }
 
 uNameExpr :: [(String, JSValue)] -> Either String BoolExpr
@@ -161,54 +161,54 @@ uNameEither kvs = getObject kvs "Either" >>= uNameExpr >>= return . NotFunc
 
 uNameChoice :: [(String, JSValue)] -> Either String BoolExpr
 uNameChoice kvs = do {
-	left <- getObject kvs "Left";
-	leftName <- uNameExpr left;
-	right <- getObject kvs "Right";
-	rightName <- uNameExpr right;
-	return $ OrFunc leftName rightName
+    left <- getObject kvs "Left";
+    leftName <- uNameExpr left;
+    right <- getObject kvs "Right";
+    rightName <- uNameExpr right;
+    return $ OrFunc leftName rightName
 }
 
 uBoolExpr :: [(String, JSValue)] -> Either String BoolExpr
 uBoolExpr kvs = uExprs kvs >>= (\e ->
-	case e of
-		(BoolExpr v) -> return v
-		otherwise -> fail $ "not a BoolExpr, but a " ++ show e
-	)
+    case e of
+        (BoolExpr v) -> return v
+        otherwise -> fail $ "not a BoolExpr, but a " ++ show e
+    )
 
 uDoubleExpr :: [(String, JSValue)] -> Either String DoubleExpr
 uDoubleExpr kvs = uExprs kvs >>= (\e ->
-	case e of
-		(DoubleExpr v) -> return v
-		otherwise -> fail $ "not a DoubleExpr, but a " ++ show e
-	)
+    case e of
+        (DoubleExpr v) -> return v
+        otherwise -> fail $ "not a DoubleExpr, but a " ++ show e
+    )
 
 uIntExpr :: [(String, JSValue)] -> Either String IntExpr
 uIntExpr kvs = uExprs kvs >>= (\e ->
-	case e of
-		(IntExpr v) -> return v
-		otherwise -> fail $ "not a IntExpr, but a " ++ show e
-	)
+    case e of
+        (IntExpr v) -> return v
+        otherwise -> fail $ "not a IntExpr, but a " ++ show e
+    )
 
 uUintExpr :: [(String, JSValue)] -> Either String UintExpr
 uUintExpr kvs = uExprs kvs >>= (\e -> 
-	case e of
-		(UintExpr v) -> return v
-		otherwise -> fail $ "not a UintExpr, but a " ++ show e
-	)
+    case e of
+        (UintExpr v) -> return v
+        otherwise -> fail $ "not a UintExpr, but a " ++ show e
+    )
 
 uStringExpr :: [(String, JSValue)] -> Either String StringExpr
 uStringExpr kvs = uExprs kvs >>= (\e -> 
-	case e of
-		(StringExpr v) -> return v
-		otherwise -> fail $ "not a StringExpr, but a " ++ show e
-	)
+    case e of
+        (StringExpr v) -> return v
+        otherwise -> fail $ "not a StringExpr, but a " ++ show e
+    )
 
 uBytesExpr :: [(String, JSValue)] -> Either String BytesExpr
 uBytesExpr kvs = uExprs kvs >>= (\e -> 
-	case e of
-		(BytesExpr v) -> return v
-		otherwise -> fail $ "not a BytesExpr, but a " ++ show e
-	)
+    case e of
+        (BytesExpr v) -> return v
+        otherwise -> fail $ "not a BytesExpr, but a " ++ show e
+    )
 
 uExprs :: [(String, JSValue)] -> Either String Expr
 uExprs kvs = uExpr $ head $ filter (\(k,v) -> k /= "RightArrow" && k /= "Comma") kvs 
@@ -241,29 +241,29 @@ uVariable [("Type", JSRational _ 112)] = BytesExpr BytesVariable
 
 uList :: [(String, JSValue)] -> Either String Expr
 uList kvs = do {
-	arr <- getArrayOfObjects kvs "Elems";
-	typ <- getInt kvs "Type";
-	case typ of
-	101 -> fmap DoubleListExpr $ mapM uDoubleExpr arr
-	103 -> fmap IntListExpr $ mapM uIntExpr arr
-	104 -> fmap UintListExpr $ mapM uUintExpr arr
-	108 -> fmap BoolListExpr $ mapM uBoolExpr arr
-	109 -> fmap StringListExpr $ mapM uStringExpr arr
-	112 -> fmap BytesListExpr $ mapM uBytesExpr arr
-	201 -> fmap DoubleListExpr $ mapM uDoubleExpr arr
-	203 -> fmap IntListExpr $ mapM uIntExpr arr
-	204 -> fmap UintListExpr $ mapM uUintExpr arr
-	208 -> fmap BoolListExpr $ mapM uBoolExpr arr
-	209 -> fmap StringListExpr $ mapM uStringExpr arr
-	212 -> fmap BytesListExpr $ mapM uBytesExpr arr
+    arr <- getArrayOfObjects kvs "Elems";
+    typ <- getInt kvs "Type";
+    case typ of
+    101 -> fmap DoubleListExpr $ mapM uDoubleExpr arr
+    103 -> fmap IntListExpr $ mapM uIntExpr arr
+    104 -> fmap UintListExpr $ mapM uUintExpr arr
+    108 -> fmap BoolListExpr $ mapM uBoolExpr arr
+    109 -> fmap StringListExpr $ mapM uStringExpr arr
+    112 -> fmap BytesListExpr $ mapM uBytesExpr arr
+    201 -> fmap DoubleListExpr $ mapM uDoubleExpr arr
+    203 -> fmap IntListExpr $ mapM uIntExpr arr
+    204 -> fmap UintListExpr $ mapM uUintExpr arr
+    208 -> fmap BoolListExpr $ mapM uBoolExpr arr
+    209 -> fmap StringListExpr $ mapM uStringExpr arr
+    212 -> fmap BytesListExpr $ mapM uBytesExpr arr
 }
 
 uFunction :: [(String, JSValue)] -> Either String Expr
 uFunction kvs = do {
-	name <- getString kvs "Name";
-	arrayObjects <- getArrayOfObjects kvs "Params";
-	exprs <- mapM uExprs arrayObjects;
-	newFunction name exprs
+    name <- getString kvs "Name";
+    arrayObjects <- getArrayOfObjects kvs "Params";
+    exprs <- mapM uExprs arrayObjects;
+    newFunction name exprs
 }
 
 newFunction :: String -> [Expr] -> Either String Expr
@@ -353,21 +353,21 @@ newFunction s t = Left $ "unknown function: " ++ s ++ " for types: " ++ show t
 
 uBuiltIn :: [(String, JSValue)] -> Either String Expr
 uBuiltIn kvs = do {
-	exprObject <- getObject kvs "Expr";
-	symbolObject <- getObject kvs "Symbol";
-	symbol <- getString symbolObject "Value";
-	exprs <- uExprs exprObject;
-	e <- newBuiltIn symbol exprs;
-	return e
+    exprObject <- getObject kvs "Expr";
+    symbolObject <- getObject kvs "Symbol";
+    symbol <- getString symbolObject "Value";
+    exprs <- uExprs exprObject;
+    e <- newBuiltIn symbol exprs;
+    return e
 }
 
 newBuiltIn :: String -> Expr -> Either String Expr
 newBuiltIn symbol constExpr = funcName symbol >>= (\name ->
-		if name /= "type" then
-			newFunction name [(constToVar constExpr), constExpr]
-		else
-			newFunction name [constExpr]
-	)
+        if name /= "type" then
+            newFunction name [(constToVar constExpr), constExpr]
+        else
+            newFunction name [constExpr]
+    )
 
 constToVar :: Expr -> Expr
 constToVar (BoolExpr (BoolConst _)) = BoolExpr BoolVariable
@@ -395,30 +395,30 @@ funcName name = fail $ "unexpected funcName: <" ++ name ++ ">"
 
 getField :: [(String, JSValue)] -> String -> Either String JSValue
 getField pairs name = let filtered = filter (\(k,_) -> (k == name)) pairs
-	in case filtered of
-	[] -> fail $ "no field with name: " ++ name
-	vs -> return $ snd $ head $ vs
+    in case filtered of
+    [] -> fail $ "no field with name: " ++ name
+    vs -> return $ snd $ head $ vs
 
 getString :: [(String, JSValue)] -> String -> Either String String
 getString pairs name = getField pairs name >>= (\v -> 
-	case v of
-		(JSString s) -> return $ fromJSString s
-		otherwise -> fail $ name ++ " is not a JSString, but a " ++ show v
-	)
+    case v of
+        (JSString s) -> return $ fromJSString s
+        otherwise -> fail $ name ++ " is not a JSString, but a " ++ show v
+    )
 
 getInt :: [(String, JSValue)] -> String -> Either String Int
 getInt pairs name = getField pairs name >>= (\v ->
-	case v of
-		(JSRational _ n) -> return $ truncate n
-		otherwise -> fail $ name ++ " is not a JSRational, but a " ++ show v
-	)
+    case v of
+        (JSRational _ n) -> return $ truncate n
+        otherwise -> fail $ name ++ " is not a JSRational, but a " ++ show v
+    )
 
 getArrayOfObjects :: [(String, JSValue)] -> String -> Either String [[(String, JSValue)]]
 getArrayOfObjects pairs name = getField pairs name >>= (\v ->
-	case v of
-		(JSArray vs) -> mapM assertObject vs
-		_ -> fail $ name ++ " is not a JSArray, but a " ++ show v
-	)
+    case v of
+        (JSArray vs) -> mapM assertObject vs
+        _ -> fail $ name ++ " is not a JSArray, but a " ++ show v
+    )
 
 assertObject :: JSValue -> Either String [(String, JSValue)]
 assertObject (JSObject o) = return $ fromJSObject o
@@ -426,7 +426,7 @@ assertObject v = fail $ "not an JSObject, but a " ++ show v
 
 getObject :: [(String, JSValue)] -> String -> Either String [(String, JSValue)]
 getObject pairs name = getField pairs name >>= (\v -> 
-	case v of
-		(JSObject o) -> return $ fromJSObject o
-		_ -> fail $ name ++ " is not an JSObject, but a " ++ show v
-	)
+    case v of
+        (JSObject o) -> return $ fromJSObject o
+        _ -> fail $ name ++ " is not an JSObject, but a " ++ show v
+    )

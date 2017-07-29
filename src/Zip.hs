@@ -21,7 +21,7 @@ indexOf :: [Pattern] -> Pattern -> Int
 indexOf _ ZAny = -1
 indexOf _ (Not ZAny) = -2
 indexOf ps p = case elemIndex p ps of
-	(Just i) -> i
+    (Just i) -> i
 
 unzippy :: Zipper -> [Pattern] -> [Pattern]
 unzippy z ps = map (ofIndex ps) z
