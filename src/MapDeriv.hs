@@ -1,5 +1,5 @@
 module MapDeriv (
-    mderivs
+    mderivs, Mem, newMem, mnullable
 ) where
 
 import qualified Data.Map.Strict as DataMap

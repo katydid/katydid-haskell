@@ -1,4 +1,8 @@
-module ParserSpec where
+-- | 
+-- This module ParserSpec tests the Parser module.
+module ParserSpec (
+    parserSpec
+) where
 
 import qualified Test.HUnit as HUnit
 import Control.Monad (unless)
