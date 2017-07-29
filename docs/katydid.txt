@@ -2,11 +2,20 @@
 -- See Hoogle, http://www.haskell.org/hoogle/
 
 
--- | A haskell implementation of Relapse: Validation Language for JSON, XML and other trees.
+-- | A haskell implementation of Katydid
 --   
---   Please see README.md
+--   A haskell implementation of Katydid
+--   
+--   This includes:
+--   
+--   <ul>
+--   <li>Relapse, a validation Language</li>
+--   <li>Parsers for JSON, XML and an abstraction for trees</li>
+--   </ul>
 @package katydid
 @version 0.1.0.0
+
+module Relapse
 
 module Parsers
 class Tree a
@@ -178,6 +187,7 @@ StringListExpr :: [StringExpr] -> Expr
 BytesListExpr :: [BytesExpr] -> Expr
 newBuiltIn :: String -> Expr -> Either String Expr
 newFunction :: String -> [Expr] -> Either String Expr
+fromJson :: String -> Either String Refs
 instance GHC.Show.Show ParsePatterns.Expr
 
 module Zip

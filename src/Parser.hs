@@ -4,7 +4,6 @@ module Parser (
 ) where
 
 import Text.ParserCombinators.Parsec
-import GHC.Base (ord)
 import Numeric (readDec, readOct, readHex, readFloat)
 import Data.Char (chr)
 

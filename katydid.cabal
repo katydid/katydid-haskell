@@ -1,7 +1,15 @@
 name:                katydid
 version:             0.1.0.0
-synopsis:            A haskell implementation of Relapse: Validation Language for JSON, XML and other trees.
-description:         Please see README.md
+synopsis:            A haskell implementation of Katydid
+description:         
+  A haskell implementation of Katydid
+  .
+  This includes:
+  .
+      - Relapse, a validation Language
+      - Parsers for JSON, XML and an abstraction for trees
+  .
+
 homepage:            https://github.com/katydid/katydid-haskell
 license:             BSD3
 license-file:        LICENSE
@@ -28,6 +36,7 @@ library
                      , ParsePatterns
                      , VpaDeriv
                      , Parser
+                     , Relapse
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , json

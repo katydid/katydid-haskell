@@ -4,7 +4,7 @@ module IfExprs (
     ZippedIfExprs, zipIfExprs, evalZippedIfExprs
 ) where
 
-import Control.Monad.Except (Except, runExcept)
+import Control.Monad.Except (Except)
 
 import Patterns
 import Values
@@ -13,12 +13,6 @@ import Zip
 import Parsers
 
 type IfExpr = (BoolExpr, Pattern, Pattern)
-
-evalIf :: IfExpr -> Label -> Except ValueErr Pattern
-evalIf (value, thn, els) l = do {
-    b <- eval value l;
-    return $ if b then thn else els
-}
 
 data IfExprs
     = Cond {
@@ -40,10 +34,10 @@ evalIfExprs (Cond c t e) l = do {
 }
 
 simplifyIf :: Refs -> IfExpr -> IfExpr
-simplifyIf refs (cond, thn, els) = 
-    let	scond = simplifyBoolExpr cond
-        sthn  = simplify refs thn
-        sels  = simplify refs els
+simplifyIf refs (c, t, e) =
+    let scond = simplifyBoolExpr c
+        sthn  = simplify refs t
+        sels  = simplify refs e
     in if sthn == sels then (BoolConst True, sthn, sels) else (scond, sthn, sels)
 
 addIfExpr :: IfExpr -> IfExprs -> IfExprs
@@ -57,7 +51,7 @@ addIfExpr (c, t, e) (Cond cs ts es)
 
 addRet :: Pattern -> IfExprs -> IfExprs
 addRet p (Ret ps) = Ret (p:ps)
-addRet p (Cond c thn els) = Cond c (addRet p thn) (addRet p els)
+addRet p (Cond c t e) = Cond c (addRet p t) (addRet p e)
 
 data ZippedIfExprs
     = ZippedCond {

@@ -1,10 +1,9 @@
 module ParsePatterns (
-    Expr(..), newBuiltIn, newFunction
+    Expr(..), newBuiltIn, newFunction, fromJson
 ) where
 
 import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
 
-import Parsers
 import Patterns
 import Values
 
@@ -172,42 +171,42 @@ uBoolExpr :: [(String, JSValue)] -> Either String BoolExpr
 uBoolExpr kvs = uExprs kvs >>= (\e ->
     case e of
         (BoolExpr v) -> return v
-        otherwise -> fail $ "not a BoolExpr, but a " ++ show e
+        _ -> fail $ "not a BoolExpr, but a " ++ show e
     )
 
 uDoubleExpr :: [(String, JSValue)] -> Either String DoubleExpr
 uDoubleExpr kvs = uExprs kvs >>= (\e ->
     case e of
         (DoubleExpr v) -> return v
-        otherwise -> fail $ "not a DoubleExpr, but a " ++ show e
+        _ -> fail $ "not a DoubleExpr, but a " ++ show e
     )
 
 uIntExpr :: [(String, JSValue)] -> Either String IntExpr
 uIntExpr kvs = uExprs kvs >>= (\e ->
     case e of
         (IntExpr v) -> return v
-        otherwise -> fail $ "not a IntExpr, but a " ++ show e
+        _ -> fail $ "not a IntExpr, but a " ++ show e
     )
 
 uUintExpr :: [(String, JSValue)] -> Either String UintExpr
 uUintExpr kvs = uExprs kvs >>= (\e -> 
     case e of
         (UintExpr v) -> return v
-        otherwise -> fail $ "not a UintExpr, but a " ++ show e
+        _ -> fail $ "not a UintExpr, but a " ++ show e
     )
 
 uStringExpr :: [(String, JSValue)] -> Either String StringExpr
 uStringExpr kvs = uExprs kvs >>= (\e -> 
     case e of
         (StringExpr v) -> return v
-        otherwise -> fail $ "not a StringExpr, but a " ++ show e
+        _ -> fail $ "not a StringExpr, but a " ++ show e
     )
 
 uBytesExpr :: [(String, JSValue)] -> Either String BytesExpr
 uBytesExpr kvs = uExprs kvs >>= (\e -> 
     case e of
         (BytesExpr v) -> return v
-        otherwise -> fail $ "not a BytesExpr, but a " ++ show e
+        _ -> fail $ "not a BytesExpr, but a " ++ show e
     )
 
 uExprs :: [(String, JSValue)] -> Either String Expr
@@ -403,14 +402,14 @@ getString :: [(String, JSValue)] -> String -> Either String String
 getString pairs name = getField pairs name >>= (\v -> 
     case v of
         (JSString s) -> return $ fromJSString s
-        otherwise -> fail $ name ++ " is not a JSString, but a " ++ show v
+        _ -> fail $ name ++ " is not a JSString, but a " ++ show v
     )
 
 getInt :: [(String, JSValue)] -> String -> Either String Int
 getInt pairs name = getField pairs name >>= (\v ->
     case v of
         (JSRational _ n) -> return $ truncate n
-        otherwise -> fail $ name ++ " is not a JSRational, but a " ++ show v
+        _ -> fail $ name ++ " is not a JSRational, but a " ++ show v
     )
 
 getArrayOfObjects :: [(String, JSValue)] -> String -> Either String [[(String, JSValue)]]

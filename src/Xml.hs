@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Xml (
-    decodeXML	
+    decodeXML
 ) where
 
 import Text.Read (readMaybe)

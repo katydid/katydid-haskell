@@ -11,7 +11,6 @@ import Deriv
 import Patterns
 import IfExprs
 import Values
-import Simplify
 import Zip
 import Parsers
 
@@ -71,9 +70,9 @@ vpaderiv current tree = do {
 }
 
 foldLT :: Tree t => Vpa -> VpaState -> [t] -> Except ValueErr [Pattern]
-foldLT _ state [] = return state
-foldLT m state (t:ts) = 
-    let (newstate, newm) = runState (runExceptT $ vpaderiv state t) m
+foldLT _ current [] = return current
+foldLT m current (t:ts) = 
+    let (newstate, newm) = runState (runExceptT $ vpaderiv current t) m
     in case newstate of
         (Left l) -> throwError l
         (Right r) -> foldLT newm r ts

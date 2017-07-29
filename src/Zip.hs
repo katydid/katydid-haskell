@@ -23,14 +23,6 @@ indexOf _ (Not ZAny) = -2
 indexOf ps p = case elemIndex p ps of
     (Just i) -> i
 
-unzippy :: Zipper -> [Pattern] -> [Pattern]
-unzippy z ps = map (ofIndex ps) z
-
-ofIndex :: [Pattern] -> Int -> Pattern
-ofIndex _ (-1) = ZAny
-ofIndex _ (-2) = Not ZAny
-ofIndex ps i = ps !! i
-
 unzipby :: Zipper -> [Bool] -> [Bool]
 unzipby z bs = map (ofIndexb bs) z
 

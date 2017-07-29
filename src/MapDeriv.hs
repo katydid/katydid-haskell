@@ -3,7 +3,7 @@ module MapDeriv (
 ) where
 
 import qualified Data.Map.Strict as DataMap
-import Control.Monad.State (State, runState, evalState, lift, state)
+import Control.Monad.State (State, runState, lift, state)
 import Data.Foldable (foldlM)
 import Control.Monad.Except (ExceptT, runExceptT, Except, throwError, runExcept)
 
@@ -11,7 +11,6 @@ import Deriv
 import Patterns
 import IfExprs
 import Values
-import Simplify
 import Zip
 import Parsers
 
@@ -64,9 +63,6 @@ foldLT m d ps (t:ts) =
     in case newps of
         (Left l) -> throwError l
         (Right r) -> foldLT newm d r ts
-
-removeState :: Mem -> ExceptT ValueErr (State Mem) [Pattern] -> (Either ValueErr [Pattern])
-removeState m e = evalState (runExceptT e) m
 
 mderivs :: Tree t => Refs -> [t] -> Except String Pattern
 mderivs refs ts =

@@ -25,16 +25,16 @@ data Pattern
     deriving (Eq, Ord, Show)
 
 nullable :: Refs -> Pattern -> Bool
-nullable refs Empty = True
-nullable refs ZAny = True
-nullable refs (Node _ _) = False
+nullable _ Empty = True
+nullable _ ZAny = True
+nullable _ (Node _ _) = False
 nullable refs (Or l r) = nullable refs l || nullable refs r
 nullable refs (And l r) = nullable refs l && nullable refs r
 nullable refs (Not p) = not $ nullable refs p
 nullable refs (Concat l r) = nullable refs l && nullable refs r
 nullable refs (Interleave l r) = nullable refs l && nullable refs r
-nullable refs (ZeroOrMore _) = True
-nullable refs (Optional _) = True
+nullable _ (ZeroOrMore _) = True
+nullable _ (Optional _) = True
 nullable refs (Contains p) = nullable refs p
 nullable refs (Reference name) = nullable refs $ lookupRef refs name
 
@@ -53,8 +53,8 @@ lookupRef (Refs m) name = m DataMap.! name
 
 reverseLookupRef :: Pattern -> Refs -> Maybe String
 reverseLookupRef p (Refs m) = case DataMap.keys $ DataMap.filter (== p) m of
-    []  	-> Nothing
-    (k:ks) 	-> Just k
+    []      -> Nothing
+    (k:_)  -> Just k
 
 newRef :: String -> Pattern -> Refs
 newRef key value = Refs $ DataMap.singleton key value
@@ -69,15 +69,15 @@ hasRecursion :: Refs -> Bool
 hasRecursion refs = hasRec refs (DataSet.singleton "main") (lookupRef refs "main")
 
 hasRec :: Refs -> DataSet.Set String -> Pattern -> Bool
-hasRec refs set Empty = False
-hasRec refs set ZAny = False
-hasRec refs set (Node _ _) = False
+hasRec _ _ Empty = False
+hasRec _ _ ZAny = False
+hasRec _ _ (Node _ _) = False
 hasRec refs set (Or l r) = hasRec refs set l || hasRec refs set r
 hasRec refs set (And l r) = hasRec refs set l || hasRec refs set r
 hasRec refs set (Not p) = hasRec refs set p
 hasRec refs set (Concat l r) = hasRec refs set l || (nullable refs l && hasRec refs set r)
 hasRec refs set (Interleave l r) = hasRec refs set l || hasRec refs set r
-hasRec refs set (ZeroOrMore _) = False
+hasRec _ _ (ZeroOrMore _) = False
 hasRec refs set (Optional p) = hasRec refs set p
 hasRec refs set (Contains p) = hasRec refs set p
 hasRec refs set (Reference name) = DataSet.member name set || hasRec refs (DataSet.insert name set) (lookupRef refs name)

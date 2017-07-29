@@ -29,7 +29,7 @@ uValue (JSArray vs) = uArray 0 vs
 uValue (JSObject o) = uObject $ fromJSObject o
 
 uArray :: Int -> [JSValue] -> [JsonTree]
-uArray index [] = []
+uArray _ [] = []
 uArray index (v:vs) = DataTree.Node (Number (toRational index)) (uValue v):uArray (index+1) vs
 
 uObject :: [(String, JSValue)] -> [JsonTree]

@@ -3,7 +3,7 @@ module Deriv (
 ) where
 
 import Data.Foldable (foldlM)
-import Control.Monad.Except (Except, runExcept, mapExcept, throwError)
+import Control.Monad.Except (Except, mapExcept, throwError)
 
 import Patterns
 import Values
@@ -32,16 +32,16 @@ derivCall refs (Contains p) = derivCall refs (Concat ZAny (Concat p ZAny))
 derivCall refs (Optional p) = derivCall refs (Or p Empty)
 
 derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
-derivReturns refs ([], []) = []
+derivReturns _ ([], []) = []
 derivReturns refs (p:tailps, ns) =
     let (dp, tailns) = derivReturn refs p ns
         sp = simplify refs dp
     in  sp:derivReturns refs (tailps, tailns)
 
 derivReturn :: Refs -> Pattern -> [Bool] -> (Pattern, [Bool])
-derivReturn refs Empty ns = (Not ZAny, ns)
-derivReturn refs ZAny ns = (ZAny, ns)
-derivReturn refs (Node v p) ns = if head ns 
+derivReturn _ Empty ns = (Not ZAny, ns)
+derivReturn _ ZAny ns = (ZAny, ns)
+derivReturn _ (Node _ _) ns = if head ns 
     then (Empty, tail ns)
     else (Not ZAny, tail ns)
 derivReturn refs (Concat l r) ns = 
