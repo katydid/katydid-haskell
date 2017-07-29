@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 
+-- |
+-- This module runs the relapse parsing and validation tests.
 module Main where
 
 import qualified Test.HUnit as HUnit
@@ -62,11 +64,12 @@ main = do {
     putStrLn "TESTING DERIVATIVE ALGORITHMS";
     testSuiteCases <- readTestCases;
     nonRecursiveTestCases <- return $ filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases;
-    -- putStrLn $ show $ zip [1..] (map (\(TestSuiteCase name _ _ _) -> name) nonRecursiveTestCases);
+    
     derivTests <- return $ map (newTestCase AlgoDeriv) nonRecursiveTestCases;
     zipTests <- return $ map (newTestCase AlgoZip) nonRecursiveTestCases;
     mapTests <- return $ map (newTestCase AlgoMap) nonRecursiveTestCases;
     vpaTests <- return $ map (newTestCase AlgoVpa) nonRecursiveTestCases;
+    
     counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests ++ mapTests ++ vpaTests;
     putStrLn $ show counts;
     

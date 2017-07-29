@@ -1,3 +1,5 @@
+-- |
+-- Suite parses the testsuite folder and creates test cases
 module Suite (
     readTestCases, TestSuiteCase(..), EncodedData(..)
 ) where
