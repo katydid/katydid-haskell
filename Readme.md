@@ -1,6 +1,8 @@
 # Katydid
 
-A Haskell implementation of Katydid, this includes:
+A Haskell implementation of Katydid.
+
+This includes:
 
   - Relapse: Validation Language 
   - Parsers: JSON and XML
