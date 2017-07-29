@@ -8,7 +8,7 @@
 -- Thus it has no type of memoization.
 
 module Deriv (
-    derivs, calls, returns, zipderivs
+    derive, calls, returns, zipderive
 ) where
 
 import Data.Foldable (foldlM)
@@ -33,23 +33,23 @@ import IfExprs
 -- , where the resulting list of patterns are the child patterns,
 -- that need to be derived given the trees child values.
 calls :: Refs -> [Pattern] -> IfExprs
-calls refs ps = compileIfExprs refs $ concatMap (derivCall refs) ps
+calls refs ps = compileIfExprs refs $ concatMap (deriveCall refs) ps
 
-derivCall :: Refs -> Pattern -> [IfExpr]
-derivCall _ Empty = []
-derivCall _ ZAny = []
-derivCall _ (Node v p) = [(v, p, Not ZAny)]
-derivCall refs (Concat l r) = if nullable refs l
-    then derivCall refs l ++ derivCall refs r
-    else derivCall refs l
-derivCall refs (Or l r) = derivCall refs l ++ derivCall refs r
-derivCall refs (And l r) = derivCall refs l ++ derivCall refs r
-derivCall refs (Interleave l r) = derivCall refs l ++ derivCall refs r
-derivCall refs (ZeroOrMore p) = derivCall refs p
-derivCall refs (Reference name) = derivCall refs $ lookupRef refs name
-derivCall refs (Not p) = derivCall refs p
-derivCall refs (Contains p) = derivCall refs (Concat ZAny (Concat p ZAny))
-derivCall refs (Optional p) = derivCall refs (Or p Empty)
+deriveCall :: Refs -> Pattern -> [IfExpr]
+deriveCall _ Empty = []
+deriveCall _ ZAny = []
+deriveCall _ (Node v p) = [(v, p, Not ZAny)]
+deriveCall refs (Concat l r) = if nullable refs l
+    then deriveCall refs l ++ deriveCall refs r
+    else deriveCall refs l
+deriveCall refs (Or l r) = deriveCall refs l ++ deriveCall refs r
+deriveCall refs (And l r) = deriveCall refs l ++ deriveCall refs r
+deriveCall refs (Interleave l r) = deriveCall refs l ++ deriveCall refs r
+deriveCall refs (ZeroOrMore p) = deriveCall refs p
+deriveCall refs (Reference name) = deriveCall refs $ lookupRef refs name
+deriveCall refs (Not p) = deriveCall refs p
+deriveCall refs (Contains p) = deriveCall refs (Concat ZAny (Concat p ZAny))
+deriveCall refs (Optional p) = deriveCall refs (Or p Empty)
 
 -- |
 -- returns takes a list of patterns and list of bools.
@@ -59,44 +59,44 @@ derivCall refs (Optional p) = derivCall refs (Or p Empty)
 returns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 returns _ ([], []) = []
 returns refs (p:tailps, ns) =
-    let (dp, tailns) = derivReturn refs p ns
+    let (dp, tailns) = deriveReturn refs p ns
         sp = simplify refs dp
     in  sp:returns refs (tailps, tailns)
 
-derivReturn :: Refs -> Pattern -> [Bool] -> (Pattern, [Bool])
-derivReturn _ Empty ns = (Not ZAny, ns)
-derivReturn _ ZAny ns = (ZAny, ns)
-derivReturn _ (Node _ _) ns = if head ns 
+deriveReturn :: Refs -> Pattern -> [Bool] -> (Pattern, [Bool])
+deriveReturn _ Empty ns = (Not ZAny, ns)
+deriveReturn _ ZAny ns = (ZAny, ns)
+deriveReturn _ (Node _ _) ns = if head ns 
     then (Empty, tail ns)
     else (Not ZAny, tail ns)
-derivReturn refs (Concat l r) ns = 
+deriveReturn refs (Concat l r) ns = 
     if nullable refs l
-    then    let (leftDeriv, leftTail) = derivReturn refs l ns
-                (rightDeriv, rightTail) = derivReturn refs r leftTail
+    then    let (leftDeriv, leftTail) = deriveReturn refs l ns
+                (rightDeriv, rightTail) = deriveReturn refs r leftTail
             in  (Or (Concat leftDeriv r) rightDeriv, rightTail)
-    else    let (leftDeriv, leftTail) = derivReturn refs l ns
+    else    let (leftDeriv, leftTail) = deriveReturn refs l ns
             in  (Concat leftDeriv r, leftTail)
-derivReturn refs (Or l r) ns = 
-    let (leftDeriv, leftTail) = derivReturn refs l ns
-        (rightDeriv, rightTail) = derivReturn refs r leftTail
+deriveReturn refs (Or l r) ns = 
+    let (leftDeriv, leftTail) = deriveReturn refs l ns
+        (rightDeriv, rightTail) = deriveReturn refs r leftTail
     in (Or leftDeriv rightDeriv, rightTail)
-derivReturn refs (And l r) ns = 
-    let (leftDeriv, leftTail) = derivReturn refs l ns
-        (rightDeriv, rightTail) = derivReturn refs r leftTail
+deriveReturn refs (And l r) ns = 
+    let (leftDeriv, leftTail) = deriveReturn refs l ns
+        (rightDeriv, rightTail) = deriveReturn refs r leftTail
     in (And leftDeriv rightDeriv, rightTail)
-derivReturn refs (Interleave l r) ns = 
-    let (leftDeriv, leftTail) = derivReturn refs l ns
-        (rightDeriv, rightTail) = derivReturn refs r leftTail
+deriveReturn refs (Interleave l r) ns = 
+    let (leftDeriv, leftTail) = deriveReturn refs l ns
+        (rightDeriv, rightTail) = deriveReturn refs r leftTail
     in (Or (Interleave leftDeriv r) (Interleave rightDeriv l), rightTail)
-derivReturn refs z@(ZeroOrMore p) ns = 
-    let (derivp, tailns) = derivReturn refs p ns
+deriveReturn refs z@(ZeroOrMore p) ns = 
+    let (derivp, tailns) = deriveReturn refs p ns
     in  (Concat derivp z, tailns)
-derivReturn refs (Reference name) ns = derivReturn refs (lookupRef refs name) ns
-derivReturn refs (Not p) ns =
-    let (derivp, tailns) = derivReturn refs p ns
+deriveReturn refs (Reference name) ns = deriveReturn refs (lookupRef refs name) ns
+deriveReturn refs (Not p) ns =
+    let (derivp, tailns) = deriveReturn refs p ns
     in  (Not derivp, tailns)
-derivReturn refs (Contains p) ns = derivReturn refs (Concat ZAny (Concat p ZAny)) ns
-derivReturn refs (Optional p) ns = derivReturn refs (Or p Empty) ns
+deriveReturn refs (Contains p) ns = deriveReturn refs (Concat ZAny (Concat p ZAny)) ns
+deriveReturn refs (Optional p) ns = deriveReturn refs (Or p Empty) ns
 
 onePattern :: Either ValueErr [Pattern] -> Either String Pattern
 onePattern (Right [r]) = return r
@@ -104,9 +104,9 @@ onePattern (Left e) = throwError $ show e
 onePattern (Right rs) = throwError $ "Number of patterns is not one, but " ++ show rs
 
 -- |
--- derivs is the classic derivative implementation for trees.
-derivs :: Tree t => Refs -> [t] -> Except String Pattern
-derivs g ts = mapExcept onePattern $ foldlM (deriv g) [lookupRef g "main"] ts
+-- derive is the classic derivative implementation for trees.
+derive :: Tree t => Refs -> [t] -> Except String Pattern
+derive g ts = mapExcept onePattern $ foldlM (deriv g) [lookupRef g "main"] ts
 
 deriv :: Tree t => Refs -> [Pattern] -> t -> Except ValueErr [Pattern]
 deriv refs ps tree =
@@ -121,10 +121,10 @@ deriv refs ps tree =
     }
 
 -- |
--- zipderivs is a slighty optimized version of derivs.
+-- zipderive is a slighty optimized version of derivs.
 -- It zips its intermediate pattern lists to reduce the state space.
-zipderivs :: Tree t => Refs -> [t] -> Except String Pattern
-zipderivs g ts = mapExcept onePattern $ foldlM (zipderiv g) [lookupRef g "main"] ts
+zipderive :: Tree t => Refs -> [t] -> Except String Pattern
+zipderive g ts = mapExcept onePattern $ foldlM (zipderiv g) [lookupRef g "main"] ts
 
 zipderiv :: Tree t => Refs -> [Pattern] -> t -> Except ValueErr [Pattern]
 zipderiv refs ps tree =

@@ -30,11 +30,11 @@ must e = case runExcept e of
 
 testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
 testDeriv AlgoDeriv name g ts want = 
-    let p = must $ Deriv.derivs g ts 
+    let p = must $ Deriv.derive g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoZip name g ts want = 
-    let p = must $ Deriv.zipderivs g ts 
+    let p = must $ Deriv.zipderive g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoMap name g ts want  = 
