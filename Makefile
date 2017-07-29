@@ -8,7 +8,7 @@ test-trace:
 
 run:
 	stack build
-	stack exec haslapse-exe
+	stack exec katydid-exe
 
 setup:
 	stack setup
