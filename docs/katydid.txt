@@ -12,6 +12,17 @@
 --   <li>Relapse, a validation Language</li>
 --   <li>Parsers for JSON, XML and an abstraction for trees</li>
 --   </ul>
+--   
+--   You should only need the following modules:
+--   
+--   <ul>
+--   <li>The Relapse module is used for validation.</li>
+--   <li>The Json and XML modules are used to create Json and XML trees
+--   that can be validated.</li>
+--   </ul>
+--   
+--   If you want to implement your own parser then you can look at the
+--   Parsers module
 @package katydid
 @version 0.1.0.0
 

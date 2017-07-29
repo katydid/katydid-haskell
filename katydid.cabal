@@ -9,6 +9,13 @@ description:
       - Relapse, a validation Language
       - Parsers for JSON, XML and an abstraction for trees
   .
+  You should only need the following modules:
+  .
+      - The Relapse module is used for validation.
+      - The Json and XML modules are used to create Json and XML trees that can be validated.
+  .
+  If you want to implement your own parser then you can look at the Parsers module
+  .
 
 homepage:            https://github.com/katydid/katydid-haskell
 license:             BSD3
