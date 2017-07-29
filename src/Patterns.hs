@@ -1,3 +1,9 @@
+-- |
+-- This module describes the patterns supported by Relapse.
+--
+-- It also contains some simple functions for the map of references that a Relapse grammar consists of.
+--
+-- Finally it also contains some very simple pattern functions.
 module Patterns (
     Pattern(..), 
     Refs, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion,
@@ -9,6 +15,8 @@ import qualified Data.Set as DataSet
 
 import Values
 
+-- |
+-- Pattern recursively describes a Relapse Pattern.
 data Pattern
     = Empty
     | ZAny
@@ -24,6 +32,9 @@ data Pattern
     | Reference String
     deriving (Eq, Ord, Show)
 
+-- |
+-- The nullable function returns whether a pattern is nullable.
+-- This means that the pattern matches the empty string.
 nullable :: Refs -> Pattern -> Bool
 nullable _ Empty = True
 nullable _ ZAny = True
@@ -38,6 +49,7 @@ nullable _ (Optional _) = True
 nullable refs (Contains p) = nullable refs p
 nullable refs (Reference name) = nullable refs $ lookupRef refs name
 
+-- |
 -- unescapable is used for short circuiting.
 -- A part of the tree can be skipped if all patterns are unescapable.
 unescapable :: Pattern -> Bool
@@ -45,26 +57,40 @@ unescapable ZAny = True
 unescapable (Not ZAny) = True
 unescapable _ = False
 
+-- |
+-- Refs is a map from reference name to pattern and describes a relapse grammar.
 newtype Refs = Refs (DataMap.Map String Pattern)
     deriving (Show, Eq)
 
+-- |
+-- lookupRef looks up a pattern in the reference map, given a reference name.
 lookupRef :: Refs -> String -> Pattern
 lookupRef (Refs m) name = m DataMap.! name
 
+-- |
+-- reverseLookupRef returns the reference name for a given pattern.
 reverseLookupRef :: Pattern -> Refs -> Maybe String
 reverseLookupRef p (Refs m) = case DataMap.keys $ DataMap.filter (== p) m of
     []      -> Nothing
     (k:_)  -> Just k
 
+-- |
+-- newRef returns a new reference map given a single pattern and its reference name.
 newRef :: String -> Pattern -> Refs
 newRef key value = Refs $ DataMap.singleton key value
 
+-- |
+-- emptyRef returns an empty reference map.
 emptyRef :: Refs
 emptyRef = Refs DataMap.empty
 
+-- |
+-- union returns the union of two reference maps.
 union :: Refs -> Refs -> Refs
 union (Refs m1) (Refs m2) = Refs $ DataMap.union m1 m2 
 
+-- |
+-- hasRecursion returns whether an relapse grammar has any recursion, starting from the "main" reference.
 hasRecursion :: Refs -> Bool
 hasRecursion refs = hasRec refs (DataSet.singleton "main") (lookupRef refs "main")
 

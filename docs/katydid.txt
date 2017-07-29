@@ -15,6 +15,12 @@
 @package katydid
 @version 0.1.0.0
 
+module Relapse
+
+
+-- | This module describes the abstract tree that can be validated by
+--   Relapse. The JSON and XML parsers both are both versions of this type
+--   class.
 module Parsers
 class Tree a
 getLabel :: Tree a => a -> Label
@@ -146,7 +152,16 @@ instance GHC.Show.Show Values.BytesExpr
 instance GHC.Classes.Ord Values.BytesExpr
 instance GHC.Classes.Eq Values.BytesExpr
 
+
+-- | This module describes the patterns supported by Relapse.
+--   
+--   It also contains some simple functions for the map of references that
+--   a Relapse grammar consists of.
+--   
+--   Finally it also contains some very simple pattern functions.
 module Patterns
+
+-- | Pattern recursively describes a Relapse Pattern.
 data Pattern
 Empty :: Pattern
 ZAny :: Pattern
@@ -160,14 +175,38 @@ ZeroOrMore :: Pattern -> Pattern
 Optional :: Pattern -> Pattern
 Contains :: Pattern -> Pattern
 Reference :: String -> Pattern
+
+-- | Refs is a map from reference name to pattern and describes a relapse
+--   grammar.
 data Refs
+
+-- | emptyRef returns an empty reference map.
 emptyRef :: Refs
+
+-- | union returns the union of two reference maps.
 union :: Refs -> Refs -> Refs
+
+-- | newRef returns a new reference map given a single pattern and its
+--   reference name.
 newRef :: String -> Pattern -> Refs
+
+-- | reverseLookupRef returns the reference name for a given pattern.
 reverseLookupRef :: Pattern -> Refs -> Maybe String
+
+-- | lookupRef looks up a pattern in the reference map, given a reference
+--   name.
 lookupRef :: Refs -> String -> Pattern
+
+-- | hasRecursion returns whether an relapse grammar has any recursion,
+--   starting from the "main" reference.
 hasRecursion :: Refs -> Bool
+
+-- | The nullable function returns whether a pattern is nullable. This
+--   means that the pattern matches the empty string.
 nullable :: Refs -> Pattern -> Bool
+
+-- | unescapable is used for short circuiting. A part of the tree can be
+--   skipped if all patterns are unescapable.
 unescapable :: Pattern -> Bool
 instance GHC.Classes.Eq Patterns.Refs
 instance GHC.Show.Show Patterns.Refs
@@ -175,6 +214,10 @@ instance GHC.Show.Show Patterns.Pattern
 instance GHC.Classes.Ord Patterns.Pattern
 instance GHC.Classes.Eq Patterns.Pattern
 
+
+-- | This is an internal relapse module. It contains relapse grammar
+--   parsing helper functions and it also contains a parser for the JSON
+--   serialized relapse AST.
 module ParsePatterns
 data Expr
 BoolExpr :: BoolExpr -> Expr
@@ -189,8 +232,14 @@ IntListExpr :: [IntExpr] -> Expr
 UintListExpr :: [UintExpr] -> Expr
 StringListExpr :: [StringExpr] -> Expr
 BytesListExpr :: [BytesExpr] -> Expr
+
+-- | newBuiltIn parsers a builtin function to a relapse expression.
 newBuiltIn :: String -> Expr -> Either String Expr
+
+-- | newFunction parsers a relapse function to a relapse expression.
 newFunction :: String -> [Expr] -> Either String Expr
+
+-- | fromJson parses the relapse AST that has been serialized to JSON.
 fromJson :: String -> Either String Refs
 instance GHC.Show.Show ParsePatterns.Expr
 
@@ -248,11 +297,7 @@ derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 zipderivs :: Tree t => Refs -> [t] -> Except String Pattern
 
 module MapDeriv
-mderivs :: Tree t => Mem -> Refs -> Pattern -> [t] -> Except String Pattern
-type Mem = (NullableM, DerivCallsM, DerivReturnsM)
-derive :: Tree t => Refs -> [t] -> Except String Pattern
-newMem :: Mem
-mnullable :: Refs -> Pattern -> State Mem Bool
+mderivs :: Tree t => Refs -> [t] -> Except String Pattern
 
 module VpaDeriv
 vderivs :: Tree t => Refs -> [t] -> Except String Pattern
@@ -274,9 +319,3 @@ doubleCastLit :: CharParser () Double
 uintCastLit :: CharParser () Int
 intLit :: CharParser () Int
 ws :: CharParser () ()
-
-module Relapse
-parseGrammar :: String -> Except String Refs
-memoize :: Refs -> Mem
-type Refs = Refs
-type Mem = (Refs, Pattern, Mem)

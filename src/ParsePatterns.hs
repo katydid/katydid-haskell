@@ -1,3 +1,8 @@
+-- |
+-- This is an internal relapse module.
+-- It contains relapse grammar parsing helper functions and
+-- it also contains a parser for the JSON serialized relapse AST.
+
 module ParsePatterns (
     Expr(..), newBuiltIn, newFunction, fromJson
 ) where
@@ -22,6 +27,8 @@ data Expr
     | BytesListExpr [BytesExpr]
     deriving Show
 
+-- |
+-- fromJson parses the relapse AST that has been serialized to JSON.
 fromJson :: String -> Either String Refs
 fromJson s = unmarshal $ decode s
 
@@ -265,6 +272,8 @@ uFunction kvs = do {
     newFunction name exprs
 }
 
+-- |
+-- newFunction parsers a relapse function to a relapse expression.
 newFunction :: String -> [Expr] -> Either String Expr
 newFunction "not" [BoolExpr b] = Right $ BoolExpr $ NotFunc b
 newFunction "and" [BoolExpr b1, BoolExpr b2] = Right $ BoolExpr $ AndFunc b1 b2
@@ -360,6 +369,8 @@ uBuiltIn kvs = do {
     return e
 }
 
+-- |
+-- newBuiltIn parsers a builtin function to a relapse expression.
 newBuiltIn :: String -> Expr -> Either String Expr
 newBuiltIn symbol constExpr = funcName symbol >>= (\name ->
         if name /= "type" then
