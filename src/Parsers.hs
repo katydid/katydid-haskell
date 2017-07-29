@@ -1,5 +1,6 @@
 -- |
 -- This module describes the abstract tree that can be validated by Relapse.
+--
 -- The JSON and XML parsers both are both versions of this type class.
 
 module Parsers (

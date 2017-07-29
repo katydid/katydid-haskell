@@ -1,3 +1,10 @@
+-- |
+-- This module contains a VPA (Visual Pushdown Automaton) implementation of the internal derivative algorithm.
+--
+-- It is intended to be used for explanation purposes.
+--
+-- It shows how out algorithm is effective equivalent to a visual pushdown automaton.
+
 module VpaDeriv (
     vderivs      
 ) where

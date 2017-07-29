@@ -1,3 +1,8 @@
+-- |
+-- This is an internal relapse module.
+--
+-- It zips patterns to reduce the state space.
+
 module Zip (
     Zipper, zippy, unzipby
 ) where

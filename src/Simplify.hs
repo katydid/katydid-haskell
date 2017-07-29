@@ -1,3 +1,6 @@
+-- |
+-- This module simplifies Relapse patterns.
+
 module Simplify (
     simplify  
 ) where
@@ -7,6 +10,8 @@ import qualified Data.Set as DataSet
 import Patterns
 import Values
 
+-- |
+-- simplify simplifies an input pattern to an equivalent simpler pattern.
 simplify :: Refs -> Pattern -> Pattern
 simplify refs pattern =
     let simp = simplify' refs

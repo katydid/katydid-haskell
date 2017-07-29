@@ -1,6 +1,8 @@
 -- |
 -- This is an internal relapse module.
+--
 -- It contains relapse grammar parsing helper functions and
+--
 -- it also contains a parser for the JSON serialized relapse AST.
 
 module ParsePatterns (

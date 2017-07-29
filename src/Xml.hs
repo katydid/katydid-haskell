@@ -1,5 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
+-- |
+-- This module contains the XML Parser.
+
 module Xml (
     decodeXML
 ) where
@@ -17,6 +20,8 @@ instance Tree XmlTree where
         (Right r) -> r
     getChildren (NTree _ cs) = cs
 
+-- |
+-- decodeXML returns a XmlTree, given an input string.
 decodeXML :: String -> [XmlTree]
 decodeXML = xread
 

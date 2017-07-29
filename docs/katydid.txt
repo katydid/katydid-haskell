@@ -19,8 +19,9 @@ module Relapse
 
 
 -- | This module describes the abstract tree that can be validated by
---   Relapse. The JSON and XML parsers both are both versions of this type
---   class.
+--   Relapse.
+--   
+--   The JSON and XML parsers both are both versions of this type class.
 module Parsers
 class Tree a
 getLabel :: Tree a => a -> Label
@@ -44,10 +45,19 @@ decodeJSON :: String -> Either String [JsonTree]
 type JsonTree = Tree Label
 instance Parsers.Tree Json.JsonTree
 
+
+-- | This module contains the XML Parser.
 module Xml
+
+-- | decodeXML returns a XmlTree, given an input string.
 decodeXML :: String -> [XmlTree]
 instance Parsers.Tree Text.XML.HXT.DOM.TypeDefs.XmlTree
 
+
+-- | This module contains all the Relapse expressions.
+--   
+--   It also contains an eval function and a simplfication function for
+--   these expressions.
 module Values
 data BoolExpr
 BoolConst :: Bool -> BoolExpr
@@ -127,9 +137,14 @@ data BytesExpr
 BytesConst :: String -> BytesExpr
 BytesVariable :: BytesExpr
 BytesListElemFunc :: [BytesExpr] -> IntExpr -> BytesExpr
+
+-- | simplifyBoolExpr returns an equivalent, but simpler version of the
+--   input boolean expression.
 simplifyBoolExpr :: BoolExpr -> BoolExpr
-data ValueErr
+
+-- | eval evaluates a boolean expression, given an input label.
 eval :: BoolExpr -> Label -> Except ValueErr Bool
+data ValueErr
 instance GHC.Show.Show Values.ValueErr
 instance GHC.Classes.Ord Values.ValueErr
 instance GHC.Classes.Eq Values.ValueErr
@@ -215,9 +230,11 @@ instance GHC.Classes.Ord Patterns.Pattern
 instance GHC.Classes.Eq Patterns.Pattern
 
 
--- | This is an internal relapse module. It contains relapse grammar
---   parsing helper functions and it also contains a parser for the JSON
---   serialized relapse AST.
+-- | This is an internal relapse module.
+--   
+--   It contains relapse grammar parsing helper functions and
+--   
+--   it also contains a parser for the JSON serialized relapse AST.
 module ParsePatterns
 data Expr
 BoolExpr :: BoolExpr -> Expr
@@ -243,17 +260,26 @@ newFunction :: String -> [Expr] -> Either String Expr
 fromJson :: String -> Either String Refs
 instance GHC.Show.Show ParsePatterns.Expr
 
+
+-- | This is an internal relapse module.
+--   
+--   It zips patterns to reduce the state space.
 module Zip
 type Zipper = [Int]
 zippy :: [Pattern] -> ([Pattern], Zipper)
 unzipby :: Zipper -> [Bool] -> [Bool]
 
+
+-- | This module simplifies Relapse patterns.
 module Simplify
+
+-- | simplify simplifies an input pattern to an equivalent simpler pattern.
 simplify :: Refs -> Pattern -> Pattern
 
 
--- | This is an internal relapse module. It contains multiple
---   implementations of if expressions.
+-- | This is an internal relapse module.
+--   
+--   It contains multiple implementations of if expressions.
 module IfExprs
 data IfExprs
 type IfExpr = (BoolExpr, Pattern, Pattern)
@@ -265,9 +291,13 @@ evalZippedIfExprs :: ZippedIfExprs -> Label -> Except ValueErr ([Pattern], Zippe
 
 
 -- | This module is a simple implementation of the internal derivative
---   algorithm. It is intended to be used for explanation purposes. This
---   means that it gives up speed for readability. Thus it has no type of
---   memoization.
+--   algorithm.
+--   
+--   It is intended to be used for explanation purposes.
+--   
+--   This means that it gives up speed for readability.
+--   
+--   Thus it has no type of memoization.
 module Deriv
 
 -- | derivs is the classic derivative implementation for trees.
@@ -299,6 +329,14 @@ zipderivs :: Tree t => Refs -> [t] -> Except String Pattern
 module MapDeriv
 mderivs :: Tree t => Refs -> [t] -> Except String Pattern
 
+
+-- | This module contains a VPA (Visual Pushdown Automaton) implementation
+--   of the internal derivative algorithm.
+--   
+--   It is intended to be used for explanation purposes.
+--   
+--   It shows how out algorithm is effective equivalent to a visual
+--   pushdown automaton.
 module VpaDeriv
 vderivs :: Tree t => Refs -> [t] -> Except String Pattern
 

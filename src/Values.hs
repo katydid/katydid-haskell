@@ -1,6 +1,14 @@
+-- |
+-- This module contains all the Relapse expressions.
+-- 
+-- It also contains an eval function and a simplfication function for these expressions.
 module Values (
+    -- * Expressions
     BoolExpr(..), DoubleExpr(..), IntExpr(..), StringExpr(..), UintExpr(..), BytesExpr(..),
-    simplifyBoolExpr, ValueErr, eval
+    -- * Functions
+    simplifyBoolExpr, eval,
+    -- * Errors
+    ValueErr
 ) where
 
 import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
@@ -128,6 +136,8 @@ data ValueErr
     | ErrNotBytes String
     deriving (Eq, Ord, Show)
 
+-- |
+-- eval evaluates a boolean expression, given an input label.
 eval :: BoolExpr -> Label -> Except ValueErr Bool
 eval = evalBool
 
@@ -375,6 +385,8 @@ evalBytes (BytesListElemFunc es i) v = do {
     return $ es' !! i'
 }
 
+-- |
+-- simplifyBoolExpr returns an equivalent, but simpler version of the input boolean expression.
 simplifyBoolExpr :: BoolExpr -> BoolExpr
 simplifyBoolExpr e@(BoolEqualFunc (BoolConst b1) (BoolConst b2)) = BoolConst $ b1 == b2
 simplifyBoolExpr v@(BoolConst _) = v

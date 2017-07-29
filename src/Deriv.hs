@@ -1,7 +1,10 @@
 -- |
 -- This module is a simple implementation of the internal derivative algorithm.
+--
 -- It is intended to be used for explanation purposes.
+--
 -- This means that it gives up speed for readability.
+--
 -- Thus it has no type of memoization.
 
 module Deriv (
