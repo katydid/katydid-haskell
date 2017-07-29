@@ -1,5 +1,5 @@
 module MapDeriv (
-    derivs, Mem, newMem, mnullable
+    derive, Mem, newMem, nullable
 ) where
 
 import qualified Data.Map.Strict as DataMap
@@ -8,7 +8,8 @@ import Data.Foldable (foldlM)
 import Control.Monad.Except (ExceptT, runExceptT, Except, throwError, runExcept)
 
 import qualified Deriv
-import Patterns
+import qualified Patterns
+import Patterns (Refs, Pattern)
 import IfExprs
 import Values
 import Zip
@@ -21,39 +22,39 @@ mem f k m = if DataMap.member k m
         res = f k
         in (res, DataMap.insert k res m)
 
-type NullableM = DataMap.Map Pattern Bool
-type DerivCallsM = DataMap.Map [Pattern] IfExprs
-type DerivReturnsM = DataMap.Map ([Pattern], [Bool]) [Pattern]
+type Nullable = DataMap.Map Pattern Bool
+type Calls = DataMap.Map [Pattern] IfExprs
+type Returns = DataMap.Map ([Pattern], [Bool]) [Pattern]
 
-type Mem = (NullableM, DerivCallsM, DerivReturnsM)
+type Mem = (Nullable, Calls, Returns)
 
 newMem :: Mem
 newMem = (DataMap.empty, DataMap.empty, DataMap.empty)
 
-mnullable :: Refs -> Pattern -> State Mem Bool
-mnullable refs k = state $ \(n, c, r) -> let (v', n') = mem (nullable refs) k n;
+nullable :: Refs -> Pattern -> State Mem Bool
+nullable refs k = state $ \(n, c, r) -> let (v', n') = mem (Patterns.nullable refs) k n;
     in (v', (n', c, r))
 
-mderivCalls :: Refs -> [Pattern] -> State Mem IfExprs
-mderivCalls refs k = state $ \(n, c, r) -> let (v', c') = mem (Deriv.calls refs) k c;
+calls :: Refs -> [Pattern] -> State Mem IfExprs
+calls refs k = state $ \(n, c, r) -> let (v', c') = mem (Deriv.calls refs) k c;
     in (v', (n, c', r))
 
-mderivReturns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
-mderivReturns refs k = state $ \(n, c, r) -> let (v', r') = mem (Deriv.returns refs) k r;
+returns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
+returns refs k = state $ \(n, c, r) -> let (v', r') = mem (Deriv.returns refs) k r;
     in (v', (n, c, r'))
 
-mderiv :: Tree t => Refs -> [Pattern] -> t -> ExceptT ValueErr (State Mem) [Pattern]
-mderiv refs ps tree = do {
-    ifs <- lift $ mderivCalls refs ps;
+deriv :: Tree t => Refs -> [Pattern] -> t -> ExceptT ValueErr (State Mem) [Pattern]
+deriv refs ps tree = do {
+    ifs <- lift $ calls refs ps;
     childps <- case runExcept $ evalIfExprs ifs (getLabel tree) of
         (Left l) -> throwError l
         (Right r) -> return r
     ;
     (zchildps, zipper) <- return $ zippy childps;
-    childres <- foldlM (mderiv refs) zchildps (getChildren tree);
-    nulls <- lift $ mapM (mnullable refs) childres;
+    childres <- foldlM (deriv refs) zchildps (getChildren tree);
+    nulls <- lift $ mapM (nullable refs) childres;
     unzipns <- return $ unzipby zipper nulls;
-    lift $ mderivReturns refs (ps, unzipns)
+    lift $ returns refs (ps, unzipns)
 }
 
 foldLT :: Tree t => Mem -> ([Pattern] -> t -> ExceptT ValueErr (State Mem) [Pattern]) -> [Pattern] -> [t] -> Except ValueErr [Pattern]
@@ -64,10 +65,10 @@ foldLT m d ps (t:ts) =
         (Left l) -> throwError l
         (Right r) -> foldLT newm d r ts
 
-derivs :: Tree t => Refs -> [t] -> Except String Pattern
-derivs refs ts =
-    let start = [lookupRef refs "main"]
-        f = mderiv refs
+derive :: Tree t => Refs -> [t] -> Except String Pattern
+derive refs ts =
+    let start = [Patterns.lookupRef refs "main"]
+        f = deriv refs
     in case runExcept $ foldLT newMem f start ts of
         (Left l) -> throwError $ show l
         (Right [r]) -> return r
