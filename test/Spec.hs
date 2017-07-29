@@ -38,11 +38,11 @@ testDeriv AlgoZip name g ts want =
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoMap name g ts want  = 
-    let p = must $ MapDeriv.mderivs g ts 
+    let p = must $ MapDeriv.derivs g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoVpa name g ts want  = 
-    let p = must $ VpaDeriv.vderivs g ts 
+    let p = must $ VpaDeriv.derivs g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 

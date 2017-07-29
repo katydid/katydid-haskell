@@ -8,7 +8,7 @@
 -- Thus it has no type of memoization.
 
 module Deriv (
-    derivs, derivCalls, derivReturns, zipderivs
+    derivs, calls, returns, zipderivs
 ) where
 
 import Data.Foldable (foldlM)
@@ -22,9 +22,9 @@ import Zip
 import IfExprs
 
 -- | 
--- derivCalls returns a compiled if expression tree.
+-- calls returns a compiled if expression tree.
 -- Each if expression returns a child pattern, given the input value.
--- In other words derivCalls signature is actually:
+-- In other words calls signature is actually:
 --
 -- @
 --   Refs -> [Pattern] -> Value -> [Pattern]
@@ -32,8 +32,8 @@ import IfExprs
 --
 -- , where the resulting list of patterns are the child patterns,
 -- that need to be derived given the trees child values.
-derivCalls :: Refs -> [Pattern] -> IfExprs
-derivCalls refs ps = compileIfExprs refs $ concatMap (derivCall refs) ps
+calls :: Refs -> [Pattern] -> IfExprs
+calls refs ps = compileIfExprs refs $ concatMap (derivCall refs) ps
 
 derivCall :: Refs -> Pattern -> [IfExpr]
 derivCall _ Empty = []
@@ -52,16 +52,16 @@ derivCall refs (Contains p) = derivCall refs (Concat ZAny (Concat p ZAny))
 derivCall refs (Optional p) = derivCall refs (Or p Empty)
 
 -- |
--- derivReturns takes a list of patterns and list of bools.
+-- returns takes a list of patterns and list of bools.
 -- The list of bools represent the nullability of the derived child patterns.
 -- Each bool will then replace each Node pattern with either an Empty or EmptySet.
 -- The lists do not to be the same length, because each Pattern can contain an arbitrary number of Node Patterns.
-derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
-derivReturns _ ([], []) = []
-derivReturns refs (p:tailps, ns) =
+returns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
+returns _ ([], []) = []
+returns refs (p:tailps, ns) =
     let (dp, tailns) = derivReturn refs p ns
         sp = simplify refs dp
-    in  sp:derivReturns refs (tailps, tailns)
+    in  sp:returns refs (tailps, tailns)
 
 derivReturn :: Refs -> Pattern -> [Bool] -> (Pattern, [Bool])
 derivReturn _ Empty ns = (Not ZAny, ns)
@@ -111,13 +111,13 @@ derivs g ts = mapExcept onePattern $ foldlM (deriv g) [lookupRef g "main"] ts
 deriv :: Tree t => Refs -> [Pattern] -> t -> Except ValueErr [Pattern]
 deriv refs ps tree =
     if all unescapable ps then return ps else
-    let ifs = derivCalls refs ps
+    let ifs = calls refs ps
         d = deriv refs
         nulls = map (nullable refs)
     in do {
         childps <- evalIfExprs ifs (getLabel tree);
         childres <- foldlM d childps (getChildren tree);
-        return $ derivReturns refs (ps, nulls childres);
+        return $ returns refs (ps, nulls childres);
     }
 
 -- |
@@ -129,7 +129,7 @@ zipderivs g ts = mapExcept onePattern $ foldlM (zipderiv g) [lookupRef g "main"]
 zipderiv :: Tree t => Refs -> [Pattern] -> t -> Except ValueErr [Pattern]
 zipderiv refs ps tree =
     if all unescapable ps then return ps else
-    let ifs = derivCalls refs ps
+    let ifs = calls refs ps
         d = zipderiv refs
         nulls = map (nullable refs)
     in do {
@@ -137,5 +137,5 @@ zipderiv refs ps tree =
         (zchildps, zipper) <- return $ zippy childps;
         childres <- foldlM d zchildps (getChildren tree);
         let unzipns = unzipby zipper (nulls childres)
-        in return $ derivReturns refs (ps, unzipns)
+        in return $ returns refs (ps, unzipns)
     }

@@ -1,5 +1,5 @@
 module MapDeriv (
-    mderivs, Mem, newMem, mnullable
+    derivs, Mem, newMem, mnullable
 ) where
 
 import qualified Data.Map.Strict as DataMap
@@ -7,7 +7,7 @@ import Control.Monad.State (State, runState, lift, state)
 import Data.Foldable (foldlM)
 import Control.Monad.Except (ExceptT, runExceptT, Except, throwError, runExcept)
 
-import Deriv
+import qualified Deriv
 import Patterns
 import IfExprs
 import Values
@@ -35,11 +35,11 @@ mnullable refs k = state $ \(n, c, r) -> let (v', n') = mem (nullable refs) k n;
     in (v', (n', c, r))
 
 mderivCalls :: Refs -> [Pattern] -> State Mem IfExprs
-mderivCalls refs k = state $ \(n, c, r) -> let (v', c') = mem (derivCalls refs) k c;
+mderivCalls refs k = state $ \(n, c, r) -> let (v', c') = mem (Deriv.calls refs) k c;
     in (v', (n, c', r))
 
 mderivReturns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
-mderivReturns refs k = state $ \(n, c, r) -> let (v', r') = mem (derivReturns refs) k r;
+mderivReturns refs k = state $ \(n, c, r) -> let (v', r') = mem (Deriv.returns refs) k r;
     in (v', (n, c, r'))
 
 mderiv :: Tree t => Refs -> [Pattern] -> t -> ExceptT ValueErr (State Mem) [Pattern]
@@ -64,8 +64,8 @@ foldLT m d ps (t:ts) =
         (Left l) -> throwError l
         (Right r) -> foldLT newm d r ts
 
-mderivs :: Tree t => Refs -> [t] -> Except String Pattern
-mderivs refs ts =
+derivs :: Tree t => Refs -> [t] -> Except String Pattern
+derivs refs ts =
     let start = [lookupRef refs "main"]
         f = mderiv refs
     in case runExcept $ foldLT newMem f start ts of
