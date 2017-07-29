@@ -1,3 +1,7 @@
+-- |
+-- This is an internal relapse module.
+-- It contains multiple implementations of if expressions.
+
 module IfExprs (
     IfExprs, IfExpr,
     evalIfExprs, compileIfExprs,

@@ -1,5 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
+-- |
+-- This module contains the Json Parser.
+
 module Json (
     decodeJSON, JsonTree
 ) where
@@ -13,8 +16,12 @@ instance Tree JsonTree where
     getLabel (DataTree.Node l _) = l
     getChildren (DataTree.Node _ cs) = cs
 
+-- |
+-- JsonTree is a tree that can be validated by Relapse.
 type JsonTree = DataTree.Tree Label
 
+-- |
+-- decodeJSON returns a JsonTree, given an input string.
 decodeJSON :: String -> Either String [JsonTree]
 decodeJSON s = case decode s of
     (Error e) -> Left e

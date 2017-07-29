@@ -114,6 +114,6 @@ simplifyContains p = Contains p
 
 checkRef :: Refs -> Pattern -> Pattern
 checkRef refs p = case reverseLookupRef p refs of
-    Nothing  	-> p
-    (Just k) 	-> Reference k
+    Nothing     -> p
+    (Just k)    -> Reference k
 

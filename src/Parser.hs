@@ -1,5 +1,12 @@
+-- |
+-- This module parses the Relapse Grammar using the Parsec Library.
+
 module Parser (
-    parseGrammar, grammar, pattern, nameExpr, expr, 
+    -- * Parse Grammar
+    parseGrammar
+    -- * Internal functions
+    -- | These functions are exposed for testing purposes.
+    , grammar, pattern, nameExpr, expr, 
     idLit, bytesCastLit, stringLit, doubleCastLit, uintCastLit, intLit, ws
 ) where
 
@@ -10,6 +17,10 @@ import Data.Char (chr)
 import Values
 import Patterns
 import ParsePatterns
+
+-- | parseGrammar parses the Relapse Grammar.
+parseGrammar :: String -> Either ParseError Refs
+parseGrammar s = parse (grammar <* eof) "" s
 
 infixl 4 <++>
 (<++>) :: CharParser () String -> CharParser () String -> CharParser () String
@@ -353,5 +364,3 @@ grammar :: CharParser () Refs
 grammar = ws *> (foldl1 union <$> many1 (_patternDecl <* ws))
     <|> union <$> (newRef "main" <$> pattern) <*> (foldl union emptyRef <$> many (ws *> _patternDecl <* ws))
 
-parseGrammar :: String -> Either ParseError Refs
-parseGrammar s = parse (grammar <* eof) "" s

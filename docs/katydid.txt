@@ -15,8 +15,6 @@
 @package katydid
 @version 0.1.0.0
 
-module Relapse
-
 module Parsers
 class Tree a
 getLabel :: Tree a => a -> Label
@@ -29,8 +27,14 @@ instance GHC.Classes.Ord Parsers.Label
 instance GHC.Classes.Eq Parsers.Label
 instance GHC.Show.Show Parsers.Label
 
+
+-- | This module contains the Json Parser.
 module Json
+
+-- | decodeJSON returns a JsonTree, given an input string.
 decodeJSON :: String -> Either String [JsonTree]
+
+-- | JsonTree is a tree that can be validated by Relapse.
 type JsonTree = Tree Label
 instance Parsers.Tree Json.JsonTree
 
@@ -198,6 +202,9 @@ unzipby :: Zipper -> [Bool] -> [Bool]
 module Simplify
 simplify :: Refs -> Pattern -> Pattern
 
+
+-- | This is an internal relapse module. It contains multiple
+--   implementations of if expressions.
 module IfExprs
 data IfExprs
 type IfExpr = (BoolExpr, Pattern, Pattern)
@@ -207,19 +214,54 @@ data ZippedIfExprs
 zipIfExprs :: IfExprs -> ZippedIfExprs
 evalZippedIfExprs :: ZippedIfExprs -> Label -> Except ValueErr ([Pattern], Zipper)
 
+
+-- | This module is a simple implementation of the internal derivative
+--   algorithm. It is intended to be used for explanation purposes. This
+--   means that it gives up speed for readability. Thus it has no type of
+--   memoization.
 module Deriv
+
+-- | derivs is the classic derivative implementation for trees.
 derivs :: Tree t => Refs -> [t] -> Except String Pattern
+
+-- | derivCalls returns a compiled if expression tree. Each if expression
+--   returns a child pattern, given the input value. In other words
+--   derivCalls signature is actually:
+--   
+--   <pre>
+--   Refs -&gt; [Pattern] -&gt; Value -&gt; [Pattern]
+--   </pre>
+--   
+--   , where the resulting list of patterns are the child patterns, that
+--   need to be derived given the trees child values.
 derivCalls :: Refs -> [Pattern] -> IfExprs
+
+-- | derivReturns takes a list of patterns and list of bools. The list of
+--   bools represent the nullability of the derived child patterns. Each
+--   bool will then replace each Node pattern with either an Empty or
+--   EmptySet. The lists do not to be the same length, because each Pattern
+--   can contain an arbitrary number of Node Patterns.
 derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
+
+-- | zipderivs is a slighty optimized version of derivs. It zips its
+--   intermediate pattern lists to reduce the state space.
 zipderivs :: Tree t => Refs -> [t] -> Except String Pattern
 
 module MapDeriv
-mderivs :: Tree t => Refs -> [t] -> Except String Pattern
+mderivs :: Tree t => Mem -> Refs -> Pattern -> [t] -> Except String Pattern
+type Mem = (NullableM, DerivCallsM, DerivReturnsM)
+derive :: Tree t => Refs -> [t] -> Except String Pattern
+newMem :: Mem
+mnullable :: Refs -> Pattern -> State Mem Bool
 
 module VpaDeriv
 vderivs :: Tree t => Refs -> [t] -> Except String Pattern
 
+
+-- | This module parses the Relapse Grammar using the Parsec Library.
 module Parser
+
+-- | parseGrammar parses the Relapse Grammar.
 parseGrammar :: String -> Either ParseError Refs
 grammar :: CharParser () Refs
 pattern :: CharParser () Pattern
@@ -232,3 +274,9 @@ doubleCastLit :: CharParser () Double
 uintCastLit :: CharParser () Int
 intLit :: CharParser () Int
 ws :: CharParser () ()
+
+module Relapse
+parseGrammar :: String -> Except String Refs
+memoize :: Refs -> Mem
+type Refs = Refs
+type Mem = (Refs, Pattern, Mem)

@@ -1,3 +1,9 @@
+-- |
+-- This module is a simple implementation of the internal derivative algorithm.
+-- It is intended to be used for explanation purposes.
+-- This means that it gives up speed for readability.
+-- Thus it has no type of memoization.
+
 module Deriv (
     derivs, derivCalls, derivReturns, zipderivs
 ) where
@@ -12,6 +18,17 @@ import Simplify
 import Zip
 import IfExprs
 
+-- | 
+-- derivCalls returns a compiled if expression tree.
+-- Each if expression returns a child pattern, given the input value.
+-- In other words derivCalls signature is actually:
+--
+-- @
+--   Refs -> [Pattern] -> Value -> [Pattern]
+-- @
+--
+-- , where the resulting list of patterns are the child patterns,
+-- that need to be derived given the trees child values.
 derivCalls :: Refs -> [Pattern] -> IfExprs
 derivCalls refs ps = compileIfExprs refs $ concatMap (derivCall refs) ps
 
@@ -31,6 +48,11 @@ derivCall refs (Not p) = derivCall refs p
 derivCall refs (Contains p) = derivCall refs (Concat ZAny (Concat p ZAny))
 derivCall refs (Optional p) = derivCall refs (Or p Empty)
 
+-- |
+-- derivReturns takes a list of patterns and list of bools.
+-- The list of bools represent the nullability of the derived child patterns.
+-- Each bool will then replace each Node pattern with either an Empty or EmptySet.
+-- The lists do not to be the same length, because each Pattern can contain an arbitrary number of Node Patterns.
 derivReturns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 derivReturns _ ([], []) = []
 derivReturns refs (p:tailps, ns) =
@@ -78,6 +100,8 @@ onePattern (Right [r]) = return r
 onePattern (Left e) = throwError $ show e
 onePattern (Right rs) = throwError $ "Number of patterns is not one, but " ++ show rs
 
+-- |
+-- derivs is the classic derivative implementation for trees.
 derivs :: Tree t => Refs -> [t] -> Except String Pattern
 derivs g ts = mapExcept onePattern $ foldlM (deriv g) [lookupRef g "main"] ts
 
@@ -93,6 +117,9 @@ deriv refs ps tree =
         return $ derivReturns refs (ps, nulls childres);
     }
 
+-- |
+-- zipderivs is a slighty optimized version of derivs.
+-- It zips its intermediate pattern lists to reduce the state space.
 zipderivs :: Tree t => Refs -> [t] -> Except String Pattern
 zipderivs g ts = mapExcept onePattern $ foldlM (zipderiv g) [lookupRef g "main"] ts
 
