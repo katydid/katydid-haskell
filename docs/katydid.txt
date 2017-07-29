@@ -352,7 +352,7 @@ nullable :: Refs -> Pattern -> State Mem Bool
 --   It shows how out algorithm is effective equivalent to a visual
 --   pushdown automaton.
 module VpaDerive
-derivs :: Tree t => Refs -> [t] -> Except String Pattern
+derive :: Tree t => Refs -> [t] -> Except String Pattern
 
 
 -- | This module parses the Relapse Grammar using the Parsec Library.
