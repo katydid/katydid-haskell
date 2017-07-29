@@ -42,7 +42,7 @@ testDeriv AlgoMap name g ts want  =
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoVpa name g ts want  = 
-    let p = must $ VpaDerive.derivs g ts 
+    let p = must $ VpaDerive.derive g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 
