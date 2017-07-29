@@ -12,7 +12,7 @@ module IfExprs (
 import Control.Monad.Except (Except)
 
 import Patterns
-import Values
+import Expr
 import Simplify
 import Zip
 import Parsers

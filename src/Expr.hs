@@ -2,7 +2,7 @@
 -- This module contains all the Relapse expressions.
 -- 
 -- It also contains an eval function and a simplfication function for these expressions.
-module Values (
+module Expr (
     -- * Expressions
     BoolExpr(..), DoubleExpr(..), IntExpr(..), StringExpr(..), UintExpr(..), BytesExpr(..),
     -- * Functions

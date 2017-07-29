@@ -7,7 +7,7 @@
 --
 -- Thus it has no type of memoization.
 
-module Deriv (
+module Derive (
     derive, calls, returns, zipderive
 ) where
 
@@ -15,7 +15,7 @@ import Data.Foldable (foldlM)
 import Control.Monad.Except (Except, mapExcept, throwError)
 
 import Patterns
-import Values
+import Expr
 import Parsers
 import Simplify
 import Zip

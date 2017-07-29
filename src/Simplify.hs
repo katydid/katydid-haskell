@@ -8,7 +8,7 @@ module Simplify (
 import qualified Data.Set as DataSet
 
 import Patterns
-import Values
+import Expr
 
 -- |
 -- simplify simplifies an input pattern to an equivalent simpler pattern.

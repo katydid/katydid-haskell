@@ -31,17 +31,17 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:   Patterns
-                     , Deriv
-                     , MapDeriv
+                     , Derive
+                     , MemDerive
                      , Zip
                      , IfExprs
-                     , Values
+                     , Expr
                      , Simplify
                      , Json
                      , Xml
                      , Parsers
                      , ParsePatterns
-                     , VpaDeriv
+                     , VpaDerive
                      , Parser
                      , Relapse
   build-depends:       base >= 4.7 && < 5

@@ -12,7 +12,7 @@ module ParsePatterns (
 import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
 
 import Patterns
-import Values
+import Expr
 
 data Expr 
     = BoolExpr BoolExpr

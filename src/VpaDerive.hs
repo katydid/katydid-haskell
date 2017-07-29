@@ -5,7 +5,7 @@
 --
 -- It shows how out algorithm is effective equivalent to a visual pushdown automaton.
 
-module VpaDeriv (
+module VpaDerive (
     derivs      
 ) where
 
@@ -14,10 +14,10 @@ import Control.Monad.State (State, runState, state, lift)
 import Data.Foldable (foldlM)
 import Control.Monad.Except (Except, ExceptT, throwError, runExcept, runExceptT)
 
-import qualified Deriv
+import qualified Derive
 import Patterns
 import IfExprs
-import Values
+import Expr
 import Zip
 import Parsers
 
@@ -45,7 +45,7 @@ mnullable key = state $ \(n, c, r, refs) -> let (v', n') = mem (map $ nullable r
     in (v', (n', c, r, refs))
 
 mderivCalls :: [Pattern] -> State Vpa ZippedIfExprs
-mderivCalls key = state $ \(n, c, r, refs) -> let (v', c') = mem (zipIfExprs . Deriv.calls refs) key c;
+mderivCalls key = state $ \(n, c, r, refs) -> let (v', c') = mem (zipIfExprs . Derive.calls refs) key c;
     in (v', (n, c', r, refs))
 
 vpacall :: VpaState -> Label -> ExceptT ValueErr (State Vpa) (StackElm, VpaState)
@@ -60,7 +60,9 @@ vpacall vpastate label = do {
 }
 
 mderivReturns :: ([Pattern], Zipper, [Bool]) -> State Vpa [Pattern]
-mderivReturns key = state $ \(n, c, r, refs) -> let (v', r') = mem (\(ps, zipper, znulls) -> Deriv.returns refs (ps, unzipby zipper znulls)) key r;
+mderivReturns key = state $ \(n, c, r, refs) -> 
+    let (v', r') = mem (\(ps, zipper, znulls) -> 
+            Derive.returns refs (ps, unzipby zipper znulls)) key r
     in (v', (n, c, r', refs))
 
 vpareturn :: StackElm -> VpaState -> State Vpa VpaState

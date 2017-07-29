@@ -14,7 +14,7 @@ import Text.ParserCombinators.Parsec
 import Numeric (readDec, readOct, readHex, readFloat)
 import Data.Char (chr)
 
-import Values
+import Expr
 import Patterns
 import ParsePatterns
 

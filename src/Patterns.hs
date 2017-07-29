@@ -13,7 +13,7 @@ module Patterns (
 import qualified Data.Map.Strict as DataMap
 import qualified Data.Set as DataSet
 
-import Values
+import Expr
 
 -- |
 -- Pattern recursively describes a Relapse Pattern.

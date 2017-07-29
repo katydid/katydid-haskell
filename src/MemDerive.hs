@@ -1,4 +1,4 @@
-module MapDeriv (
+module MemDerive (
     derive, Mem, newMem, nullable
 ) where
 
@@ -7,11 +7,11 @@ import Control.Monad.State (State, runState, lift, state)
 import Data.Foldable (foldlM)
 import Control.Monad.Except (ExceptT, runExceptT, Except, throwError, runExcept)
 
-import qualified Deriv
+import qualified Derive
 import qualified Patterns
 import Patterns (Refs, Pattern)
 import IfExprs
-import Values
+import Expr
 import Zip
 import Parsers
 
@@ -36,11 +36,11 @@ nullable refs k = state $ \(n, c, r) -> let (v', n') = mem (Patterns.nullable re
     in (v', (n', c, r))
 
 calls :: Refs -> [Pattern] -> State Mem IfExprs
-calls refs k = state $ \(n, c, r) -> let (v', c') = mem (Deriv.calls refs) k c;
+calls refs k = state $ \(n, c, r) -> let (v', c') = mem (Derive.calls refs) k c;
     in (v', (n, c', r))
 
 returns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
-returns refs k = state $ \(n, c, r) -> let (v', r') = mem (Deriv.returns refs) k r;
+returns refs k = state $ \(n, c, r) -> let (v', r') = mem (Derive.returns refs) k r;
     in (v', (n, c, r'))
 
 deriv :: Tree t => Refs -> [Pattern] -> t -> ExceptT ValueErr (State Mem) [Pattern]

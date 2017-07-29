@@ -9,7 +9,7 @@ import Control.Monad (unless)
 import Text.ParserCombinators.Parsec (CharParser, parse, eof)
 
 import Parser
-import Values
+import Expr
 import Patterns
 
 success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> HUnit.Test

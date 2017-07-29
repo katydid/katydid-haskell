@@ -10,9 +10,9 @@ import Control.Monad.Except (Except(..), runExcept)
 
 import Parsers (Tree)
 import Patterns (Pattern, Refs, nullable, hasRecursion)
-import qualified Deriv
-import qualified MapDeriv
-import qualified VpaDeriv
+import qualified Derive
+import qualified MemDerive
+import qualified VpaDerive
 
 import qualified ParserSpec
 import Suite (readTestCases, TestSuiteCase(..), EncodedData(..))
@@ -30,19 +30,19 @@ must e = case runExcept e of
 
 testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
 testDeriv AlgoDeriv name g ts want = 
-    let p = must $ Deriv.derive g ts 
+    let p = must $ Derive.derive g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoZip name g ts want = 
-    let p = must $ Deriv.zipderive g ts 
+    let p = must $ Derive.zipderive g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoMap name g ts want  = 
-    let p = must $ MapDeriv.derive g ts 
+    let p = must $ MemDerive.derive g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 testDeriv AlgoVpa name g ts want  = 
-    let p = must $ VpaDeriv.derivs g ts 
+    let p = must $ VpaDerive.derivs g ts 
         got = nullable g p
     in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 
