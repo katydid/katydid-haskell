@@ -4,12 +4,14 @@ A Haskell implementation of Katydid.
 
 This includes:
 
-  - Relapse: Validation Language 
-  - Parsers: JSON and XML
+  - [Relapse](https://katydid.github.io/katydid-haskell/Relapse.html): Validation Language 
+  - Parsers: [JSON](https://katydid.github.io/katydid-haskell/Json.html) and [XML](https://katydid.github.io/katydid-haskell/Xml.html)
 
 [Documentation for katydid](http://katydid.github.io/)
 
 [Documentation for katydid-haskell](https://katydid.github.io/katydid-haskell/)
+
+[Documentation for katydid-haskell/Relapse](https://katydid.github.io/katydid-haskell/Relapse.html)
 
 All JSON and XML tests from [the language agnostic test suite](https://github.com/katydid/testsuite) [passes].
 
@@ -20,7 +22,7 @@ Validating a single structure can be done using the validate function:
 validate :: Tree t => Refs -> [t] -> Bool
 ```
 
-, where a tree is a class in the Parsers module:
+, where a tree is a class in the [Parsers](https://katydid.github.io/katydid-haskell/Parsers.html) module:
 ```haskell
 class Tree a where
     getLabel :: a -> Label
