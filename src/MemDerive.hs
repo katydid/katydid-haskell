@@ -1,10 +1,9 @@
 module MemDerive (
-    derive, Mem, newMem, nullable
+    derive, Mem, newMem, nullable, validate
 ) where
 
 import qualified Data.Map.Strict as DataMap
 import Control.Monad.State (State, runState, lift, state)
-import Data.Foldable (foldlM)
 import Control.Monad.Except (ExceptT, runExceptT, Except, throwError, runExcept)
 
 import qualified Derive
@@ -43,33 +42,35 @@ returns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
 returns refs k = state $ \(n, c, r) -> let (v', r') = mem (Derive.returns refs) k r;
     in (v', (n, c, r'))
 
-deriv :: Tree t => Refs -> [Pattern] -> t -> ExceptT ValueErr (State Mem) [Pattern]
-deriv refs ps tree = do {
+mderive :: Tree t => Refs -> [Pattern] -> [t] -> ExceptT ValueErr (State Mem) [Pattern]
+mderive _ ps [] = return ps
+mderive refs ps (tree:ts) = do {
     ifs <- lift $ calls refs ps;
     childps <- case runExcept $ evalIfExprs ifs (getLabel tree) of
         (Left l) -> throwError l
         (Right r) -> return r
     ;
     (zchildps, zipper) <- return $ zippy childps;
-    childres <- foldlM (deriv refs) zchildps (getChildren tree);
+    childres <- mderive refs zchildps (getChildren tree);
     nulls <- lift $ mapM (nullable refs) childres;
     unzipns <- return $ unzipby zipper nulls;
-    lift $ returns refs (ps, unzipns)
+    rs <- lift $ returns refs (ps, unzipns);
+    mderive refs rs ts
 }
-
-foldLT :: Tree t => Mem -> ([Pattern] -> t -> ExceptT ValueErr (State Mem) [Pattern]) -> [Pattern] -> [t] -> Except ValueErr [Pattern]
-foldLT _ _ ps [] = return ps
-foldLT m d ps (t:ts) = 
-    let (newps, newm) = runState (runExceptT $ d ps t) m
-    in case newps of
-        (Left l) -> throwError l
-        (Right r) -> foldLT newm d r ts
 
 derive :: Tree t => Refs -> [t] -> Except String Pattern
 derive refs ts =
     let start = [Patterns.lookupRef refs "main"]
-        f = deriv refs
-    in case runExcept $ foldLT newMem f start ts of
+        (res, _) = runState (runExceptT $ mderive refs start ts) newMem
+    in case res of
         (Left l) -> throwError $ show l
         (Right [r]) -> return r
         (Right rs) -> throwError $ "not a single pattern: " ++ show rs
+
+validate :: Tree t => Refs -> Pattern -> [t] -> (State Mem) Bool
+validate refs start tree = do {
+        rs <- runExceptT (mderive refs [start] tree);
+        case rs of
+        (Right [r]) -> nullable refs r
+        _ -> return False
+    }
