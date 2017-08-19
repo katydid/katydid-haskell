@@ -16,6 +16,7 @@ import qualified VpaDerive
 
 import qualified ParserSpec
 import Suite (readTestCases, TestSuiteCase(..), EncodedData(..))
+import qualified RelapseSpec
 
 data Algo = AlgoDeriv
     | AlgoZip
@@ -72,6 +73,10 @@ main = do {
     
     counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests ++ mapTests ++ vpaTests;
     putStrLn $ show counts;
+
+    putStrLn "TESTING RELAPSE";
+    relapseCounts <- RelapseSpec.relapseSpec;
+    putStrLn $ show relapseCounts;
     
     return ()
 }
