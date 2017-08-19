@@ -26,8 +26,6 @@
 @package katydid
 @version 0.1.0.0
 
-module Relapse
-
 
 -- | This module describes the abstract tree that can be validated by
 --   Relapse.
@@ -337,11 +335,37 @@ returns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 --   intermediate pattern lists to reduce the state space.
 zipderive :: Tree t => Refs -> [t] -> Except String Pattern
 
+
+-- | This module is an efficient implementation of the derivative algorithm
+--   for trees.
+--   
+--   It is intended to be used for production purposes.
+--   
+--   This means that it gives up some readability for speed.
+--   
+--   This module provides memoization of the nullable, calls and returns
+--   functions.
 module MemDerive
+
+-- | derive is the classic derivative implementation for trees.
 derive :: Tree t => Refs -> [t] -> Except String Pattern
+
+-- | Mem is the object used to store memoized results of the nullable,
+--   calls and returns functions.
 type Mem = (Nullable, Calls, Returns)
+
+-- | newMem creates a object used for memoization by the validate function.
+--   Each grammar should create its own memoize object.
 newMem :: Mem
+
+-- | nullable returns whether a pattern is nullable and memoizes the
+--   results.
 nullable :: Refs -> Pattern -> State Mem Bool
+
+-- | validate is the uses the derivative implementation for trees and
+--   return whether tree is valid, given the input grammar and start
+--   pattern.
+validate :: Tree t => Refs -> Pattern -> [t] -> (State Mem) Bool
 
 
 -- | This module contains a VPA (Visual Pushdown Automaton) implementation
@@ -371,3 +395,31 @@ doubleCastLit :: CharParser () Double
 uintCastLit :: CharParser () Int
 intLit :: CharParser () Int
 ws :: CharParser () ()
+
+
+-- | This module provides an implementation of the relapse validation
+--   language.
+--   
+--   Relapse is intended to be used for validation of trees or filtering of
+--   lists of trees.
+--   
+--   Katydid currently provides two types of trees out of the box: Json and
+--   XML, but relapse supports any type of tree as long the type is of the
+--   Tree typeclass provided by the Parsers module.
+--   
+--   The validate and filter functions expects a Tree to be a list of
+--   trees, since not all serialization formats have a single root. For
+--   example, valid json like "[1, 2]" does not have a single root. Relapse
+--   can also validate these types of trees. If your tree has a single
+--   root, simply provide a singleton list as input.
+module Relapse
+
+-- | parseGrammar parses the relapse grammar and returns either a parsed
+--   grammar (Refs, for the list of references) or an error string.
+parseGrammar :: String -> Except String Refs
+
+-- | validate returns whether a tree is valid, given the grammar (Refs).
+validate :: Tree t => Refs -> [t] -> Bool
+
+-- | filter returns a filtered list of trees, given the grammar (Refs).
+filter :: Tree t => Refs -> [[t]] -> [[t]]

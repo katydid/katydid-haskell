@@ -1,3 +1,12 @@
+-- |
+-- This module is an efficient implementation of the derivative algorithm for trees.
+--
+-- It is intended to be used for production purposes.
+--
+-- This means that it gives up some readability for speed.
+--
+-- This module provides memoization of the nullable, calls and returns functions.
+
 module MemDerive (
     derive, Mem, newMem, nullable, validate
 ) where
@@ -25,11 +34,18 @@ type Nullable = DataMap.Map Pattern Bool
 type Calls = DataMap.Map [Pattern] IfExprs
 type Returns = DataMap.Map ([Pattern], [Bool]) [Pattern]
 
+-- |
+-- Mem is the object used to store memoized results of the nullable, calls and returns functions.
 type Mem = (Nullable, Calls, Returns)
 
+-- |
+-- newMem creates a object used for memoization by the validate function.
+-- Each grammar should create its own memoize object.
 newMem :: Mem
 newMem = (DataMap.empty, DataMap.empty, DataMap.empty)
 
+-- |
+-- nullable returns whether a pattern is nullable and memoizes the results.
 nullable :: Refs -> Pattern -> State Mem Bool
 nullable refs k = state $ \(n, c, r) -> let (v', n') = mem (Patterns.nullable refs) k n;
     in (v', (n', c, r))
@@ -58,6 +74,8 @@ mderive refs ps (tree:ts) = do {
     mderive refs rs ts
 }
 
+-- |
+-- derive is the classic derivative implementation for trees.
 derive :: Tree t => Refs -> [t] -> Except String Pattern
 derive refs ts =
     let start = [Patterns.lookupRef refs "main"]
@@ -67,6 +85,9 @@ derive refs ts =
         (Right [r]) -> return r
         (Right rs) -> throwError $ "not a single pattern: " ++ show rs
 
+-- |
+-- validate is the uses the derivative implementation for trees and
+-- return whether tree is valid, given the input grammar and start pattern.
 validate :: Tree t => Refs -> Pattern -> [t] -> (State Mem) Bool
 validate refs start tree = do {
         rs <- runExceptT (mderive refs [start] tree);
