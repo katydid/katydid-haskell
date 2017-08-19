@@ -147,16 +147,10 @@ evalBool (BoolConst b) _ = return b
 evalBool BoolVariable (Bool b) = return b
 evalBool BoolVariable l = throwError $ ErrNotABool $ show l
 
-evalBool (OrFunc e1 e2) v = do {
-    b1 <- evalBool e1 v;
-    b2 <- evalBool e2 v;
-    return $ b1 || b2
-}
-evalBool (AndFunc e1 e2) v = do {
-    b1 <- evalBool e1 v;
-    b2 <- evalBool e2 v;
-    return $ b1 && b2
-}
+evalBool (OrFunc e1 e2) v = (||) <$> (evalBool e1 v) <*> (evalBool e2 v)
+
+evalBool (AndFunc e1 e2) v = (&&) <$> (evalBool e1 v) <*> (evalBool e2 v)
+
 evalBool (NotFunc e) v = case runExcept $ evalBool e v of
     (Right True) -> return False
     _ -> return True
@@ -168,32 +162,18 @@ evalBool (UintEqualFunc e1 e2) v = eq (runExcept $ evalUint e1 v) (runExcept $ e
 evalBool (StringEqualFunc e1 e2) v = eq (runExcept $ evalString e1 v) (runExcept $ evalString e2 v)
 evalBool (BytesEqualFunc e1 e2) v = eq (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
-evalBool (IntListContainsFunc e es) v = do {
-    e' <- evalInt e v;
-    es' <- mapM (`evalInt` v) es;
-    return $ elem e' es'
-}
-evalBool (StringListContainsFunc e es) v = do {
-    e' <- evalString e v;
-    es' <- mapM (`evalString` v) es;
-    return $ elem e' es'
-}
-evalBool (UintListContainsFunc e es) v = do {
-    e' <- evalUint e v;
-    es' <- mapM (`evalUint` v) es;
-    return $ elem e' es'
-}
-evalBool (StringContainsFunc s sub) v = do {
-    s' <- evalString s v;
-    sub' <- evalString sub v;
-    return $ isInfixOf sub' s'
-}
+evalBool (IntListContainsFunc e es) v = elem <$> (evalInt e v) <*> (mapM (`evalInt` v) es)
 
-evalBool (BoolListElemFunc es i) v = do {
-    i' <- evalInt i v;
-    es' <- mapM (`evalBool` v) es;
-    return $ es' !! i'
-}
+evalBool (StringListContainsFunc e es) v = elem <$> (evalString e v) <*> (mapM (`evalString` v) es)
+
+evalBool (UintListContainsFunc e es) v = elem <$> (evalUint e v) <*> (mapM (`evalUint` v) es)
+
+evalBool (StringContainsFunc s sub) v = isInfixOf <$> (evalString sub v) <*> (evalString s v)
+
+evalBool (BoolListElemFunc es i) v =
+    (!!) <$>
+        (mapM (`evalBool` v) es) <*>
+        (evalInt i v)
 
 evalBool (DoubleGreaterOrEqualFunc e1 e2) v = ge (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
 evalBool (IntGreaterOrEqualFunc e1 e2) v = ge (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
@@ -205,16 +185,9 @@ evalBool (IntGreaterThanFunc e1 e2) v = gt (runExcept $ evalInt e1 v) (runExcept
 evalBool (UintGreaterThanFunc e1 e2) v = gt (runExcept $ evalUint e1 v) (runExcept $ evalUint e2 v)
 evalBool (BytesGreaterThanFunc e1 e2) v = gt (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
-evalBool (StringHasPrefixFunc e1 e2) v = do {
-    v1 <- evalString e1 v;
-    v2 <- evalString e2 v;
-    return $ isPrefixOf v2 v1
-}
-evalBool (StringHasSuffixFunc e1 e2) v = do {
-    v1 <- evalString e1 v;
-    v2 <- evalString e2 v;
-    return $ isSuffixOf v2 v1
-}
+evalBool (StringHasPrefixFunc e1 e2) v = isPrefixOf <$> (evalString e2 v) <*> (evalString e1 v)
+
+evalBool (StringHasSuffixFunc e1 e2) v = isSuffixOf <$> (evalString e2 v) <*> (evalString e1 v)
 
 evalBool (DoubleLessOrEqualFunc e1 e2) v = le (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
 evalBool (IntLessOrEqualFunc e1 e2) v = le (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
@@ -252,11 +225,7 @@ evalBool (StringTypeFunc e) v = case runExcept $ evalString e v of
     (Right _) -> return True
     (Left _) -> return False
 
-evalBool (RegexFunc e s) v = do {
-    e' <- evalString e v;
-    s' <- evalString s v;
-    return (s' =~ e' :: Bool)
-}
+evalBool (RegexFunc e s) v = (=~) <$> (evalString s v) <*> (evalString e v)
 
 eq :: (Eq a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
 eq (Right v1) (Right v2) = return $ v1 == v2
@@ -293,97 +262,70 @@ evalDouble (DoubleConst r) _ = return r
 evalDouble DoubleVariable (Number r) = return $ fromRational r
 evalDouble DoubleVariable l = throwError $ ErrNotADouble $ show l
 
-evalDouble (DoubleListElemFunc es i) v = do {
-    i' <- evalInt i v;
-    es' <- mapM (`evalDouble` v) es;
-    return $ es' !! i'
-}
+evalDouble (DoubleListElemFunc es i) v = 
+    (!!) <$> 
+        (mapM (`evalDouble` v) es) <*> 
+        (evalInt i v)
 
 evalInt :: IntExpr -> Label -> Except ValueErr Int
 evalInt (IntConst i) _ = return i
 evalInt IntVariable (Number r) = return (truncate r)
 evalInt IntVariable l = throwError $ ErrNotAnInt $ show l
 
-evalInt (IntListElemFunc es i) v = do {
-    i' <- evalInt i v;
-    es' <- mapM (`evalInt` v) es;
-    return $ es' !! i'
-}
+evalInt (IntListElemFunc es i) v =
+    (!!) <$>
+        (mapM (`evalInt` v) es) <*>
+        (evalInt i v)
 
-evalInt (BytesListLengthFunc es) v = do {
-    es' <- mapM (`evalBytes` v) es;
-    return $ length es'
-}
-evalInt (BoolListLengthFunc es) v = do {
-    es' <- mapM (`evalBool` v) es;
-    return $ length es'
-}
-evalInt (BytesLengthFunc e) v = do {
-    e' <- evalBytes e v;
-    return $ length e'
-}
-evalInt (DoubleListLengthFunc es) v = do {
-    es' <- mapM (`evalDouble` v) es;
-    return $ length es'
-}
-evalInt (IntListLengthFunc es) v = do {
-    es' <- mapM (`evalInt` v) es;
-    return $ length es'
-}
-evalInt (StringListLengthFunc es) v = do {
-    es' <- mapM (`evalString` v) es;
-    return $ length es'
-}
-evalInt (UintListLengthFunc es) v = do {
-    es' <- mapM (`evalUint` v) es;
-    return $ length es'
-}
-evalInt (StringLengthFunc e) v = do {
-    e' <- evalString e v;
-    return $ length e'
-}
+evalInt (BytesListLengthFunc es) v = length <$> mapM (`evalBytes` v) es
+
+evalInt (BoolListLengthFunc es) v = length <$> mapM (`evalBool` v) es
+
+evalInt (BytesLengthFunc e) v = length <$> evalBytes e v
+
+evalInt (DoubleListLengthFunc es) v = length <$> mapM (`evalDouble` v) es
+
+evalInt (IntListLengthFunc es) v = length <$> mapM (`evalInt` v) es
+
+evalInt (StringListLengthFunc es) v = length <$> mapM (`evalString` v) es
+
+evalInt (UintListLengthFunc es) v = length <$> mapM (`evalUint` v) es
+
+evalInt (StringLengthFunc e) v = length <$> evalString e v
 
 evalUint :: UintExpr -> Label -> Except ValueErr Int
 evalUint (UintConst i) _ = return i
 evalUint UintVariable (Number r) = return $ truncate r
 evalUint UintVariable l = throwError $ ErrNotAnUint $ show l
 
-evalUint (UintListElemFunc es i) v = do {
-    i' <- evalInt i v;
-    es' <- mapM (`evalUint` v) es;
-    return $ es' !! i'
-}
+evalUint (UintListElemFunc es i) v =
+    (!!) <$>
+        (mapM (`evalUint` v) es) <*>
+        (evalInt i v)
 
 evalString :: StringExpr -> Label -> Except ValueErr String
 evalString (StringConst i) _ = return i
 evalString StringVariable (String s) = return s
 evalString StringVariable l = throwError $ ErrNotAString $ show l
 
-evalString (StringListElemFunc es i) v = do {
-    i' <- evalInt i v;
-    es' <- mapM (`evalString` v) es;
-    return $ es' !! i'
-}
+evalString (StringListElemFunc es i) v =
+    (!!) <$>
+        (mapM (`evalString` v) es) <*>
+        (evalInt i v)
 
-evalString (StringToLowerFunc s) v = do {
-    s' <- evalString s v;
-    return $ map toLower s'
-}
-evalString (StringToUpperFunc s) v = do {
-    s' <- evalString s v;
-    return $ map toUpper s'
-}
+evalString (StringToLowerFunc s) v = map toLower <$> evalString s v
+
+evalString (StringToUpperFunc s) v = map toUpper <$> evalString s v
 
 evalBytes :: BytesExpr -> Label -> Except ValueErr String
 evalBytes (BytesConst u) _ = return u
 evalBytes BytesVariable (String s) = return s
 evalBytes BytesVariable l = throwError $ ErrNotBytes $ show l
 
-evalBytes (BytesListElemFunc es i) v = do {
-    i' <- evalInt i v;
-    es' <- mapM (`evalBytes` v) es;
-    return $ es' !! i'
-}
+evalBytes (BytesListElemFunc es i) v =
+    (!!) <$>
+        (mapM (`evalBytes` v) es) <*>
+        (evalInt i v)
 
 -- |
 -- simplifyBoolExpr returns an equivalent, but simpler version of the input boolean expression.
