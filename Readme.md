@@ -15,6 +15,12 @@ All JSON and XML tests from [the language agnostic test suite](https://github.co
 
 ## Example
 
+Validating a single structure can be done with the validate function:
+```haskell
+validate :: Tree t => Refs -> [t] -> Bool
+```
+
+Here is an example of its usage:
 ```haskell
 main = 
   case Relapse.parseGrammar ".DragonsExist == true" of
@@ -25,3 +31,12 @@ main =
         then putStrLn "dragons exist"
         else putStrLn "dragons are fictional"
 ```
+
+## Efficiency
+
+If you want to validate multiple trees using the same grammar then the filter function does some internal memoization, which makes a huge difference.
+
+```haskell
+filter :: Tree t => Refs -> [[t]] -> [[t]]
+```
+
