@@ -15,12 +15,19 @@ All JSON and XML tests from [the language agnostic test suite](https://github.co
 
 ## Example
 
-Validating a single structure can be done with the validate function:
+Validating a single structure can be done using the validate function:
 ```haskell
 validate :: Tree t => Refs -> [t] -> Bool
 ```
 
-Here is an example of its usage:
+, where a tree is a class in the Parsers module:
+```haskell
+class Tree a where
+    getLabel :: a -> Label
+    getChildren :: a -> [a]
+```
+
+Here is an example that validates a single JSON tree:
 ```haskell
 main = 
   case Relapse.parseGrammar ".DragonsExist == true" of
