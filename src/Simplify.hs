@@ -35,7 +35,7 @@ simplify' :: Refs -> Pattern -> Pattern
 simplify' refs p = checkRef refs $ simplify refs p
 
 simplifyNode :: (Expr Bool) -> Pattern -> Pattern
-simplifyNode (BoolConst False) _ = Not ZAny
+simplifyNode (Const False) _ = Not ZAny
 simplifyNode v p = Node v p
 
 simplifyConcat :: Pattern -> Pattern -> Pattern

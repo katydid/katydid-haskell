@@ -151,7 +151,7 @@ uInterleave kvs = do {
 
 uNameExpr :: [(String, JSValue)] -> Either String (Expr Bool)
 uNameExpr [("Name", JSObject o)] = return $ uName (fromJSObject o)
-uNameExpr [("AnyName", JSObject o)] = return $ BoolConst True
+uNameExpr [("AnyName", JSObject o)] = return $ Const True
 uNameExpr [("AnyNameEither", JSObject o)] = uNameEither (fromJSObject o)
 uNameExpr [("NameChoice", JSObject o)] = uNameChoice (fromJSObject o)
 
@@ -159,12 +159,12 @@ uName :: [(String, JSValue)] -> (Expr Bool)
 uName kvs = uName' $ head $ filter (\(k,v) -> (k /= "Before")) kvs
 
 uName' :: (String, JSValue) -> (Expr Bool)
-uName' ("DoubleValue", (JSRational _ num)) = DoubleEqualFunc (DoubleConst (fromRational num)) DoubleVariable
-uName' ("IntValue", (JSRational _ num)) = IntEqualFunc (IntConst $ truncate num) IntVariable
-uName' ("UintValue", (JSRational _ num)) = UintEqualFunc (UintConst $ truncate num) UintVariable
-uName' ("BoolValue", (JSBool b)) = BoolEqualFunc (BoolConst b) BoolVariable
-uName' ("StringValue", (JSString s)) = StringEqualFunc (StringConst $ fromJSString s) StringVariable
-uName' ("BytesValue", (JSString s)) = BytesEqualFunc (BytesConst $ fromJSString s) BytesVariable
+uName' ("DoubleValue", (JSRational _ num)) = DoubleEqualFunc (Const (fromRational num)) DoubleVariable
+uName' ("IntValue", (JSRational _ num)) = IntEqualFunc (Const $ truncate num) IntVariable
+uName' ("UintValue", (JSRational _ num)) = UintEqualFunc (Const $ truncate num) UintVariable
+uName' ("BoolValue", (JSBool b)) = BoolEqualFunc (Const b) BoolVariable
+uName' ("StringValue", (JSString s)) = StringEqualFunc (Const $ fromJSString s) StringVariable
+uName' ("BytesValue", (JSString s)) = BytesEqualFunc (Const $ fromJSString s) BytesVariable
 
 uNameEither :: [(String, JSValue)] -> Either String (Expr Bool)
 uNameEither kvs = getObject kvs "Either" >>= uNameExpr >>= return . NotFunc
@@ -233,12 +233,12 @@ uTerminals :: [(String, JSValue)] -> ParsedExpr
 uTerminals kvs = uTerminal $ head $ filter (\(k,v) -> k /= "Before" && k /= "Literal") kvs
 
 uTerminal :: (String, JSValue) -> ParsedExpr
-uTerminal ("DoubleValue", JSRational _ n) = DoubleExpr (DoubleConst (fromRational n))
-uTerminal ("IntValue", JSRational _ n) = IntExpr (IntConst $ truncate n)
-uTerminal ("UintValue", JSRational _ n) = UintExpr (UintConst $ truncate n)
-uTerminal ("BoolValue", JSBool b) = BoolExpr (BoolConst b)
-uTerminal ("StringValue", JSString s) = StringExpr (StringConst $ fromJSString s)
-uTerminal ("BytesValue", JSString s) = BytesExpr (BytesConst $ fromJSString s) -- TODO bytes
+uTerminal ("DoubleValue", JSRational _ n) = DoubleExpr (Const (fromRational n))
+uTerminal ("IntValue", JSRational _ n) = IntExpr (Const $ truncate n)
+uTerminal ("UintValue", JSRational _ n) = UintExpr (Const $ truncate n)
+uTerminal ("BoolValue", JSBool b) = BoolExpr (Const b)
+uTerminal ("StringValue", JSString s) = StringExpr (Const $ fromJSString s)
+uTerminal ("BytesValue", JSString s) = BytesExpr (Const $ fromJSString s) -- TODO bytes
 uTerminal ("Variable", JSObject o) = uVariable $ (fromJSObject o)
 
 uVariable :: [(String, JSValue)] -> ParsedExpr
@@ -384,12 +384,12 @@ newBuiltIn symbol constExpr = funcName symbol >>= (\name ->
     )
 
 constToVar :: ParsedExpr -> ParsedExpr
-constToVar (BoolExpr (BoolConst _)) = BoolExpr BoolVariable
-constToVar (DoubleExpr (DoubleConst _)) = DoubleExpr DoubleVariable
-constToVar (IntExpr (IntConst _)) = IntExpr IntVariable
-constToVar (UintExpr (UintConst _)) = UintExpr UintVariable
-constToVar (BytesExpr (BytesConst _)) = BytesExpr BytesVariable
-constToVar (StringExpr (StringConst _)) = StringExpr StringVariable
+constToVar (BoolExpr Const{}) = BoolExpr BoolVariable
+constToVar (DoubleExpr Const{}) = DoubleExpr DoubleVariable
+constToVar (IntExpr Const{}) = IntExpr IntVariable
+constToVar (UintExpr Const{}) = UintExpr UintVariable
+constToVar (BytesExpr Const{}) = BytesExpr BytesVariable
+constToVar (StringExpr Const{}) = StringExpr StringVariable
 
 funcName :: String -> Either String String
 funcName "==" = return "eq"

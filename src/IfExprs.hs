@@ -47,15 +47,15 @@ simplifyIf refs (IfExpr (c, t, e)) =
     let scond = simplifyBoolExpr c
         sthn  = simplify refs t
         sels  = simplify refs e
-    in if sthn == sels then IfExpr (BoolConst True, sthn, sels) else IfExpr (scond, sthn, sels)
+    in if sthn == sels then IfExpr (Const True, sthn, sels) else IfExpr (scond, sthn, sels)
 
 addIfExpr :: (Expr Bool, Pattern, Pattern) -> IfExprs -> IfExprs
 addIfExpr (c, t, e) (Ret ps) =
     Cond c (Ret (t:ps)) (Ret (e:ps))
 addIfExpr (c, t, e) (Cond cs ts es)
     | c == cs = Cond cs (addRet t ts) (addRet e es)
-    | BoolConst False == simplifyBoolExpr (AndFunc c cs) = Cond cs (addRet e ts) (addIfExpr (c, t, e) es)
-    | BoolConst False == simplifyBoolExpr (AndFunc (NotFunc c) cs) = Cond cs (addIfExpr (c, t, e) ts) (addRet t es)
+    | Const False == simplifyBoolExpr (AndFunc c cs) = Cond cs (addRet e ts) (addIfExpr (c, t, e) es)
+    | Const False == simplifyBoolExpr (AndFunc (NotFunc c) cs) = Cond cs (addIfExpr (c, t, e) ts) (addRet t es)
     | otherwise = Cond cs (addIfExpr (c, t, e) ts) (addIfExpr (c, t, e) es)
 
 addRet :: Pattern -> IfExprs -> IfExprs

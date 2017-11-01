@@ -182,12 +182,12 @@ bytesCastLit :: CharParser () String
 bytesCastLit = string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}'
 
 _literal :: CharParser () ParsedExpr
-_literal = BoolExpr . BoolConst <$> bool
-    <|> IntExpr . IntConst <$> intLit
-    <|> UintExpr . UintConst <$> uintCastLit
-    <|> DoubleExpr . DoubleConst <$> doubleCastLit
-    <|> StringExpr . StringConst <$> stringLit
-    <|> BytesExpr . BytesConst <$> bytesCastLit
+_literal = BoolExpr . Const <$> bool
+    <|> IntExpr . Const <$> intLit
+    <|> UintExpr . Const <$> uintCastLit
+    <|> DoubleExpr . Const <$> doubleCastLit
+    <|> StringExpr . Const <$> stringLit
+    <|> BytesExpr . Const <$> bytesCastLit
 
 _terminal :: CharParser () ParsedExpr
 _terminal = (char '$' *> (
@@ -275,7 +275,7 @@ expr :: CharParser () (Expr Bool)
 expr = (try _terminal <|> _builtin <|> _function) >>= _mustBool
 
 _name :: CharParser () (Expr Bool)
-_name = (newBuiltIn "==" <$> (_literal <|> (StringExpr . StringConst <$> idLit))) >>= check >>= _mustBool
+_name = (newBuiltIn "==" <$> (_literal <|> (StringExpr . Const <$> idLit))) >>= check >>= _mustBool
 
 sepBy2 :: CharParser () a -> String -> CharParser () [a]
 sepBy2 p sep = do {
@@ -290,7 +290,7 @@ _nameChoice :: CharParser () (Expr Bool)
 _nameChoice = foldl1 OrFunc <$> sepBy2 (ws *> nameExpr <* ws) "|"
 
 nameExpr :: CharParser () (Expr Bool)
-nameExpr =  (BoolConst True <$ char '_')
+nameExpr =  (Const True <$ char '_')
     <|> (NotFunc <$> (char '!' *> ws *> char '(' *> ws *> nameExpr <* ws <* char ')'))
     <|> (char '(' *> ws *> _nameChoice <* ws <* char ')')
     <|> _name
