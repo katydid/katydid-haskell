@@ -39,9 +39,9 @@ deriveCall :: Refs -> Pattern -> [IfExpr]
 deriveCall _ Empty = []
 deriveCall _ ZAny = []
 deriveCall _ (Node v p) = [(v, p, Not ZAny)]
-deriveCall refs (Concat l r) = if nullable refs l
-    then deriveCall refs l ++ deriveCall refs r
-    else deriveCall refs l
+deriveCall refs (Concat l r)
+    | nullable refs l = deriveCall refs l ++ deriveCall refs r
+    | otherwise = deriveCall refs l
 deriveCall refs (Or l r) = deriveCall refs l ++ deriveCall refs r
 deriveCall refs (And l r) = deriveCall refs l ++ deriveCall refs r
 deriveCall refs (Interleave l r) = deriveCall refs l ++ deriveCall refs r
@@ -66,15 +66,16 @@ returns refs (p:tailps, ns) =
 deriveReturn :: Refs -> Pattern -> [Bool] -> (Pattern, [Bool])
 deriveReturn _ Empty ns = (Not ZAny, ns)
 deriveReturn _ ZAny ns = (ZAny, ns)
-deriveReturn _ (Node _ _) ns = if head ns 
-    then (Empty, tail ns)
-    else (Not ZAny, tail ns)
-deriveReturn refs (Concat l r) ns = 
-    if nullable refs l
-    then    let (leftDeriv, leftTail) = deriveReturn refs l ns
+deriveReturn _ Node{} ns 
+    | head ns = (Empty, tail ns)
+    | otherwise = (Not ZAny, tail ns)
+deriveReturn refs (Concat l r) ns
+    | nullable refs l = 
+            let (leftDeriv, leftTail) = deriveReturn refs l ns
                 (rightDeriv, rightTail) = deriveReturn refs r leftTail
             in  (Or (Concat leftDeriv r) rightDeriv, rightTail)
-    else    let (leftDeriv, leftTail) = deriveReturn refs l ns
+    | otherwise = 
+            let (leftDeriv, leftTail) = deriveReturn refs l ns
             in  (Concat leftDeriv r, leftTail)
 deriveReturn refs (Or l r) ns = 
     let (leftDeriv, leftTail) = deriveReturn refs l ns

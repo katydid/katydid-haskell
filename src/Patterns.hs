@@ -38,7 +38,7 @@ data Pattern
 nullable :: Refs -> Pattern -> Bool
 nullable _ Empty = True
 nullable _ ZAny = True
-nullable _ (Node _ _) = False
+nullable _ Node{} = False
 nullable refs (Or l r) = nullable refs l || nullable refs r
 nullable refs (And l r) = nullable refs l && nullable refs r
 nullable refs (Not p) = not $ nullable refs p
@@ -97,7 +97,7 @@ hasRecursion refs = hasRec refs (S.singleton "main") (lookupRef refs "main")
 hasRec :: Refs -> S.Set String -> Pattern -> Bool
 hasRec _ _ Empty = False
 hasRec _ _ ZAny = False
-hasRec _ _ (Node _ _) = False
+hasRec _ _ Node{} = False
 hasRec refs set (Or l r) = hasRec refs set l || hasRec refs set r
 hasRec refs set (And l r) = hasRec refs set l || hasRec refs set r
 hasRec refs set (Not p) = hasRec refs set p

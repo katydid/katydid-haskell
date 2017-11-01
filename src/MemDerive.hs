@@ -24,10 +24,9 @@ import Zip
 import Parsers
 
 mem :: Ord k => (k -> v) -> k -> M.Map k v -> (v, M.Map k v)
-mem f k m = if M.member k m
-    then (m M.! k, m)
-    else let
-        res = f k
+mem f k m
+    | M.member k m = (m M.! k, m)
+    | otherwise = let res = f k
         in (res, M.insert k res m)
 
 type Nullable = M.Map Pattern Bool

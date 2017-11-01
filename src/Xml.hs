@@ -32,11 +32,11 @@ xmlLabel x@(XCharRef _) = fail $ "XCharRef not supported" ++ show x
 xmlLabel x@(XEntityRef _) = fail $ "XEntityRef not supported" ++ show x
 xmlLabel x@(XCmt _) = fail $ "XCmt not supported" ++ show x
 xmlLabel (XCdata s) = return $ parseLabel s
-xmlLabel x@(XPi _ _) = fail $ "XPi not supported" ++ show x
+xmlLabel x@XPi{} = fail $ "XPi not supported" ++ show x
 xmlLabel (XTag qname attrs) = return $ parseLabel (localPart qname) -- TODO attrs should be part of the children returned by getChildren
-xmlLabel x@(XDTD _ _) = fail $ "XDTD not supported" ++ show x
+xmlLabel x@XDTD{} = fail $ "XDTD not supported" ++ show x
 xmlLabel (XAttr qname) = return $ parseLabel (localPart qname)
-xmlLabel x@(XError _ _) = fail $ "XError not supported" ++ show x
+xmlLabel x@XError{} = fail $ "XError not supported" ++ show x
 
 -- TODO what about other leaf types
 parseLabel :: String -> Label

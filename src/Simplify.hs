@@ -52,8 +52,12 @@ simplifyOr _ p (Not ZAny) = p
 simplifyOr _ ZAny _ = ZAny
 simplifyOr _ _ ZAny = ZAny
 simplifyOr _ (Node v1 Empty) (Node v2 Empty) = Node (OrFunc v1 v2) Empty
-simplifyOr refs Empty p = if nullable refs p then p else Or Empty p
-simplifyOr refs p Empty = if nullable refs p then p else Or Empty p
+simplifyOr refs Empty p 
+    | nullable refs p = p
+    | otherwise = Or Empty p
+simplifyOr refs p Empty
+    | nullable refs p = p 
+    | otherwise = Or Empty p
 simplifyOr _ p1 p2 = bin Or $ simplifyChildren Or $ S.toAscList $ setOfOrs p1 `S.union` setOfOrs p2
 
 simplifyChildren :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> [Pattern]
@@ -79,8 +83,12 @@ simplifyAnd _ _ (Not ZAny) = Not ZAny
 simplifyAnd _ ZAny p = p
 simplifyAnd _ p ZAny = p
 simplifyAnd _ (Node v1 Empty) (Node v2 Empty) = Node (AndFunc v1 v2) Empty
-simplifyAnd refs Empty p = if nullable refs p then Empty else Not ZAny
-simplifyAnd refs p Empty = if nullable refs p then Empty else Not ZAny
+simplifyAnd refs Empty p
+    | nullable refs p = Empty
+    | otherwise = Not ZAny
+simplifyAnd refs p Empty
+    | nullable refs p = Empty
+    | otherwise = Not ZAny
 simplifyAnd _ p1 p2 = bin And $ simplifyChildren And $ S.toAscList $ setOfAnds p1 `S.union` setOfAnds p2
 
 setOfAnds :: Pattern -> S.Set Pattern
