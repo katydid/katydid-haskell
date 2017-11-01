@@ -326,7 +326,7 @@ simplifyBoolExpr :: Expr Bool -> Expr Bool
 simplifyBoolExpr = simplifyExpr
 
 simplifyExpr :: Expr a -> Expr a
-simplifyExpr e@(BoolEqualFunc (Const b1) (Const b2)) = Const $ b1 == b2
+simplifyExpr (BoolEqualFunc (Const b1) (Const b2)) = Const $ b1 == b2
 simplifyExpr v@(Const _) = v
 simplifyExpr v@BoolVariable = v
 
@@ -434,62 +434,62 @@ simplifyAndFunc v (Const True) = v
 simplifyAndFunc false@(Const False) _ = false
 simplifyAndFunc _ false@(Const False) = false
 
-simplifyAndFunc v1@(StringEqualFunc s1 s2) v2@(StringEqualFunc s1' s2') = 
+simplifyAndFunc v1@(StringEqualFunc s1 s2) (StringEqualFunc s1' s2') = 
     case (s1, s2, s1', s2') of
-    ((Const c1), StringVariable, (Const c2), StringVariable) -> if c1 == c2 then v1 else Const False
-    ((Const c1), StringVariable, StringVariable, (Const c2)) -> if c1 == c2 then v1 else Const False
-    (StringVariable, (Const c1), (Const c2), StringVariable) -> if c1 == c2 then v1 else Const False
-    (StringVariable, (Const c1), StringVariable, (Const c2)) -> if c1 == c2 then v1 else Const False
-simplifyAndFunc v1@(StringEqualFunc s1 s2) v2@(StringNotEqualFunc s1' s2') = 
+    (Const c1, StringVariable, Const c2, StringVariable) -> if c1 == c2 then v1 else Const False
+    (Const c1, StringVariable, StringVariable, Const c2) -> if c1 == c2 then v1 else Const False
+    (StringVariable, Const c1, Const c2, StringVariable) -> if c1 == c2 then v1 else Const False
+    (StringVariable, Const c1, StringVariable, Const c2) -> if c1 == c2 then v1 else Const False
+simplifyAndFunc v1@(StringEqualFunc s1 s2) (StringNotEqualFunc s1' s2') = 
     case (s1, s2, s1', s2') of
-    ((Const c1), StringVariable, (Const c2), StringVariable) -> if c1 /= c2 then v1 else Const False
-    ((Const c1), StringVariable, StringVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
-    (StringVariable, (Const c1), (Const c2), StringVariable) -> if c1 /= c2 then v1 else Const False
-    (StringVariable, (Const c1), StringVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
-simplifyAndFunc v1@(StringNotEqualFunc s1 s2) v2@(StringEqualFunc s1' s2') = 
+    (Const c1, StringVariable, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
+    (Const c1, StringVariable, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+    (StringVariable, Const c1, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
+    (StringVariable, Const c1, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+simplifyAndFunc v1@(StringNotEqualFunc s1 s2) (StringEqualFunc s1' s2') = 
     case (s1, s2, s1', s2') of
-    ((Const c1), StringVariable, (Const c2), StringVariable) -> if c1 /= c2 then v1 else Const False
-    ((Const c1), StringVariable, StringVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
-    (StringVariable, (Const c1), (Const c2), StringVariable) -> if c1 /= c2 then v1 else Const False
-    (StringVariable, (Const c1), StringVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
+    (Const c1, StringVariable, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
+    (Const c1, StringVariable, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+    (StringVariable, Const c1, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
+    (StringVariable, Const c1, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
 
-simplifyAndFunc v1@(IntEqualFunc s1 s2) v2@(IntEqualFunc s1' s2') = 
+simplifyAndFunc v1@(IntEqualFunc s1 s2) (IntEqualFunc s1' s2') = 
     case (s1, s2, s1', s2') of
-    ((Const c1), IntVariable, (Const c2), IntVariable) -> if c1 == c2 then v1 else Const False
-    ((Const c1), IntVariable, IntVariable, (Const c2)) -> if c1 == c2 then v1 else Const False
-    (IntVariable, (Const c1), (Const c2), IntVariable) -> if c1 == c2 then v1 else Const False
-    (IntVariable, (Const c1), IntVariable, (Const c2)) -> if c1 == c2 then v1 else Const False
-simplifyAndFunc v1@(IntEqualFunc s1 s2) v2@(IntNotEqualFunc s1' s2') = 
+    (Const c1, IntVariable, Const c2, IntVariable) -> if c1 == c2 then v1 else Const False
+    (Const c1, IntVariable, IntVariable, Const c2) -> if c1 == c2 then v1 else Const False
+    (IntVariable, Const c1, Const c2, IntVariable) -> if c1 == c2 then v1 else Const False
+    (IntVariable, Const c1, IntVariable, Const c2) -> if c1 == c2 then v1 else Const False
+simplifyAndFunc v1@(IntEqualFunc s1 s2) (IntNotEqualFunc s1' s2') = 
     case (s1, s2, s1', s2') of
-    ((Const c1), IntVariable, (Const c2), IntVariable) -> if c1 /= c2 then v1 else Const False
-    ((Const c1), IntVariable, IntVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
-    (IntVariable, (Const c1), (Const c2), IntVariable) -> if c1 /= c2 then v1 else Const False
-    (IntVariable, (Const c1), IntVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
-simplifyAndFunc v1@(IntNotEqualFunc s1 s2) v2@(IntEqualFunc s1' s2') = 
+    (Const c1, IntVariable, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
+    (Const c1, IntVariable, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+    (IntVariable, Const c1, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
+    (IntVariable, Const c1, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+simplifyAndFunc v1@(IntNotEqualFunc s1 s2) (IntEqualFunc s1' s2') = 
     case (s1, s2, s1', s2') of
-    ((Const c1), IntVariable, (Const c2), IntVariable) -> if c1 /= c2 then v1 else Const False
-    ((Const c1), IntVariable, IntVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
-    (IntVariable, (Const c1), (Const c2), IntVariable) -> if c1 /= c2 then v1 else Const False
-    (IntVariable, (Const c1), IntVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
+    (Const c1, IntVariable, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
+    (Const c1, IntVariable, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+    (IntVariable, Const c1, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
+    (IntVariable, Const c1, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
 
-simplifyAndFunc v1@(UintEqualFunc s1 s2) v2@(UintEqualFunc s1' s2') = 
+simplifyAndFunc v1@(UintEqualFunc s1 s2) (UintEqualFunc s1' s2') = 
     case (s1, s2, s1', s2') of
-    ((Const c1), UintVariable, (Const c2), UintVariable) -> if c1 == c2 then v1 else Const False
-    ((Const c1), UintVariable, UintVariable, (Const c2)) -> if c1 == c2 then v1 else Const False
-    (UintVariable, (Const c1), (Const c2), UintVariable) -> if c1 == c2 then v1 else Const False
-    (UintVariable, (Const c1), UintVariable, (Const c2)) -> if c1 == c2 then v1 else Const False
-simplifyAndFunc v1@(UintEqualFunc s1 s2) v2@(UintNotEqualFunc s1' s2') = 
+    (Const c1, UintVariable, Const c2, UintVariable) -> if c1 == c2 then v1 else Const False
+    (Const c1, UintVariable, UintVariable, Const c2) -> if c1 == c2 then v1 else Const False
+    (UintVariable, Const c1, Const c2, UintVariable) -> if c1 == c2 then v1 else Const False
+    (UintVariable, Const c1, UintVariable, Const c2) -> if c1 == c2 then v1 else Const False
+simplifyAndFunc v1@(UintEqualFunc s1 s2) (UintNotEqualFunc s1' s2') = 
     case (s1, s2, s1', s2') of
-    ((Const c1), UintVariable, (Const c2), UintVariable) -> if c1 /= c2 then v1 else Const False
-    ((Const c1), UintVariable, UintVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
-    (UintVariable, (Const c1), (Const c2), UintVariable) -> if c1 /= c2 then v1 else Const False
-    (UintVariable, (Const c1), UintVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
-simplifyAndFunc v1@(UintNotEqualFunc s1 s2) v2@(UintEqualFunc s1' s2') = 
+    (Const c1, UintVariable, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
+    (Const c1, UintVariable, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+    (UintVariable, Const c1, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
+    (UintVariable, Const c1, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+simplifyAndFunc v1@(UintNotEqualFunc s1 s2) (UintEqualFunc s1' s2') = 
     case (s1, s2, s1', s2') of
-    ((Const c1), UintVariable, (Const c2), UintVariable) -> if c1 /= c2 then v1 else Const False
-    ((Const c1), UintVariable, UintVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
-    (UintVariable, (Const c1), (Const c2), UintVariable) -> if c1 /= c2 then v1 else Const False
-    (UintVariable, (Const c1), UintVariable, (Const c2)) -> if c1 /= c2 then v1 else Const False
+    (Const c1, UintVariable, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
+    (Const c1, UintVariable, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+    (UintVariable, Const c1, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
+    (UintVariable, Const c1, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
 
 simplifyAndFunc v1 v2
     | v1 == v2  = v1
