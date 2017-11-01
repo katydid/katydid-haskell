@@ -15,8 +15,7 @@ import Data.Tree.NTree.TypeDefs (NTree(..))
 import Parsers
 
 instance Tree XmlTree where
-    getLabel (NTree n _ ) = either 
-        (\err -> String $ "XML Parse Error:" ++ err) id (xmlLabel n)
+    getLabel (NTree n _ ) = either (String . ("XML Parse Error:" ++)) id (xmlLabel n)
     getChildren (NTree _ cs) = cs
 
 -- |
@@ -39,4 +38,4 @@ xmlLabel x@XError{} = fail $ "XError not supported" ++ show x
 
 -- TODO what about other leaf types
 parseLabel :: String -> Label
-parseLabel s = maybe (String s) (\i -> Number (toRational i)) (readMaybe s :: Maybe Int)
+parseLabel s = maybe (String s) (Number . toRational) (readMaybe s :: Maybe Int)
