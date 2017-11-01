@@ -9,7 +9,7 @@ module VpaDerive (
     derive      
 ) where
 
-import qualified Data.Map.Strict as DataMap
+import qualified Data.Map.Strict as M
 import Control.Monad.State (State, runState, state, lift)
 import Data.Foldable (foldlM)
 import Control.Monad.Except (Except, ExceptT, throwError, runExcept, runExceptT)
@@ -22,24 +22,24 @@ import Expr
 import Zip
 import Parsers
 
-mem :: Ord k => (k -> v) -> k -> DataMap.Map k v -> (v, DataMap.Map k v)
-mem f k m = if DataMap.member k m
-    then (m DataMap.! k, m)
+mem :: Ord k => (k -> v) -> k -> M.Map k v -> (v, M.Map k v)
+mem f k m = if M.member k m
+    then (m M.! k, m)
     else let
         res = f k
-        in (res, DataMap.insert k res m)
+        in (res, M.insert k res m)
 
 type VpaState = [Pattern]
 type StackElm = ([Pattern], Zipper)
 
-type Calls = DataMap.Map VpaState ZippedIfExprs
-type Nullable = DataMap.Map [Pattern] [Bool]
-type Returns = DataMap.Map ([Pattern], Zipper, [Bool]) [Pattern]
+type Calls = M.Map VpaState ZippedIfExprs
+type Nullable = M.Map [Pattern] [Bool]
+type Returns = M.Map ([Pattern], Zipper, [Bool]) [Pattern]
 
 type Vpa = (Nullable, Calls, Returns, Refs)
 
 newVpa :: Refs -> Vpa
-newVpa refs = (DataMap.empty, DataMap.empty, DataMap.empty, refs)
+newVpa refs = (M.empty, M.empty, M.empty, refs)
 
 nullable :: [Pattern] -> State Vpa [Bool]
 nullable key = state $ \(n, c, r, refs) -> let (v', n') = mem (map $ Patterns.nullable refs) key n;

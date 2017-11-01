@@ -5,7 +5,7 @@ module Simplify (
     simplify  
 ) where
 
-import qualified Data.Set as DataSet
+import qualified Data.Set as S
 
 import Patterns
 import Expr
@@ -54,7 +54,7 @@ simplifyOr _ _ ZAny = ZAny
 simplifyOr _ (Node v1 Empty) (Node v2 Empty) = Node (OrFunc v1 v2) Empty
 simplifyOr refs Empty p = if nullable refs p then p else Or Empty p
 simplifyOr refs p Empty = if nullable refs p then p else Or Empty p
-simplifyOr _ p1 p2 = bin Or $ simplifyChildren Or $ DataSet.toAscList $ setOfOrs p1 `DataSet.union` setOfOrs p2
+simplifyOr _ p1 p2 = bin Or $ simplifyChildren Or $ S.toAscList $ setOfOrs p1 `S.union` setOfOrs p2
 
 simplifyChildren :: (Pattern -> Pattern -> Pattern) -> [Pattern] -> [Pattern]
 simplifyChildren _ [] = []
@@ -69,9 +69,9 @@ bin op [p] = p
 bin op [p1,p2] = op p1 p2
 bin op (p:ps) = op p (bin op ps)
 
-setOfOrs :: Pattern -> DataSet.Set Pattern
-setOfOrs (Or p1 p2) = setOfOrs p1 `DataSet.union` setOfOrs p2
-setOfOrs p = DataSet.singleton p
+setOfOrs :: Pattern -> S.Set Pattern
+setOfOrs (Or p1 p2) = setOfOrs p1 `S.union` setOfOrs p2
+setOfOrs p = S.singleton p
 
 simplifyAnd :: Refs -> Pattern -> Pattern -> Pattern
 simplifyAnd _ (Not ZAny) _ = Not ZAny
@@ -81,11 +81,11 @@ simplifyAnd _ p ZAny = p
 simplifyAnd _ (Node v1 Empty) (Node v2 Empty) = Node (AndFunc v1 v2) Empty
 simplifyAnd refs Empty p = if nullable refs p then Empty else Not ZAny
 simplifyAnd refs p Empty = if nullable refs p then Empty else Not ZAny
-simplifyAnd _ p1 p2 = bin And $ simplifyChildren And $ DataSet.toAscList $ setOfAnds p1 `DataSet.union` setOfAnds p2
+simplifyAnd _ p1 p2 = bin And $ simplifyChildren And $ S.toAscList $ setOfAnds p1 `S.union` setOfAnds p2
 
-setOfAnds :: Pattern -> DataSet.Set Pattern
-setOfAnds (And p1 p2) = setOfAnds p1 `DataSet.union` setOfAnds p2
-setOfAnds p = DataSet.singleton p
+setOfAnds :: Pattern -> S.Set Pattern
+setOfAnds (And p1 p2) = setOfAnds p1 `S.union` setOfAnds p2
+setOfAnds p = S.singleton p
 
 simplifyZeroOrMore :: Pattern -> Pattern
 simplifyZeroOrMore (ZeroOrMore p) = ZeroOrMore p
@@ -105,11 +105,11 @@ simplifyInterleave _ (Not ZAny) = Not ZAny
 simplifyInterleave Empty p = p
 simplifyInterleave p Empty = p
 simplifyInterleave ZAny ZAny = ZAny
-simplifyInterleave p1 p2 = bin Interleave $ DataSet.toAscList $ setOfInterleaves p1 `DataSet.union` setOfInterleaves p2
+simplifyInterleave p1 p2 = bin Interleave $ S.toAscList $ setOfInterleaves p1 `S.union` setOfInterleaves p2
 
-setOfInterleaves :: Pattern -> DataSet.Set Pattern
-setOfInterleaves (Interleave p1 p2) = setOfInterleaves p1 `DataSet.union` setOfInterleaves p2
-setOfInterleaves p = DataSet.singleton p
+setOfInterleaves :: Pattern -> S.Set Pattern
+setOfInterleaves (Interleave p1 p2) = setOfInterleaves p1 `S.union` setOfInterleaves p2
+setOfInterleaves p = S.singleton p
 
 simplifyContains :: Pattern -> Pattern
 simplifyContains Empty = ZAny

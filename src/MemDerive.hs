@@ -11,7 +11,7 @@ module MemDerive (
     derive, Mem, newMem, nullable, validate
 ) where
 
-import qualified Data.Map.Strict as DataMap
+import qualified Data.Map.Strict as M
 import Control.Monad.State (State, runState, lift, state)
 import Control.Monad.Except (ExceptT, runExceptT, Except, throwError, runExcept)
 
@@ -23,16 +23,16 @@ import Expr
 import Zip
 import Parsers
 
-mem :: Ord k => (k -> v) -> k -> DataMap.Map k v -> (v, DataMap.Map k v)
-mem f k m = if DataMap.member k m
-    then (m DataMap.! k, m)
+mem :: Ord k => (k -> v) -> k -> M.Map k v -> (v, M.Map k v)
+mem f k m = if M.member k m
+    then (m M.! k, m)
     else let
         res = f k
-        in (res, DataMap.insert k res m)
+        in (res, M.insert k res m)
 
-type Nullable = DataMap.Map Pattern Bool
-type Calls = DataMap.Map [Pattern] IfExprs
-type Returns = DataMap.Map ([Pattern], [Bool]) [Pattern]
+type Nullable = M.Map Pattern Bool
+type Calls = M.Map [Pattern] IfExprs
+type Returns = M.Map ([Pattern], [Bool]) [Pattern]
 
 -- |
 -- Mem is the object used to store memoized results of the nullable, calls and returns functions.
@@ -42,7 +42,7 @@ type Mem = (Nullable, Calls, Returns)
 -- newMem creates a object used for memoization by the validate function.
 -- Each grammar should create its own memoize object.
 newMem :: Mem
-newMem = (DataMap.empty, DataMap.empty, DataMap.empty)
+newMem = (M.empty, M.empty, M.empty)
 
 -- |
 -- nullable returns whether a pattern is nullable and memoizes the results.

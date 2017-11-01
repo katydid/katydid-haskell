@@ -7,7 +7,7 @@ module Zip (
     Zipper, zippy, unzipby
 ) where
 
-import qualified Data.Set as DataSet
+import qualified Data.Set as S
 import Data.List (elemIndex)
 
 import Patterns
@@ -16,10 +16,10 @@ type Zipper = [Int]
 
 zippy :: [Pattern] -> ([Pattern], Zipper)
 zippy ps =
-    let s = DataSet.fromList ps
-        s' = DataSet.delete ZAny s
-        s'' = DataSet.delete (Not ZAny) s'
-        l = DataSet.toAscList s''
+    let s = S.fromList ps
+        s' = S.delete ZAny s
+        s'' = S.delete (Not ZAny) s'
+        l = S.toAscList s''
     in (l, map (indexOf l) ps)
 
 indexOf :: [Pattern] -> Pattern -> Int

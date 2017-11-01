@@ -10,8 +10,8 @@ module Patterns (
     nullable, unescapable
 ) where
 
-import qualified Data.Map.Strict as DataMap
-import qualified Data.Set as DataSet
+import qualified Data.Map.Strict as M
+import qualified Data.Set as S
 
 import Expr
 
@@ -59,42 +59,42 @@ unescapable _ = False
 
 -- |
 -- Refs is a map from reference name to pattern and describes a relapse grammar.
-newtype Refs = Refs (DataMap.Map String Pattern)
+newtype Refs = Refs (M.Map String Pattern)
     deriving (Show, Eq)
 
 -- |
 -- lookupRef looks up a pattern in the reference map, given a reference name.
 lookupRef :: Refs -> String -> Pattern
-lookupRef (Refs m) name = m DataMap.! name
+lookupRef (Refs m) name = m M.! name
 
 -- |
 -- reverseLookupRef returns the reference name for a given pattern.
 reverseLookupRef :: Pattern -> Refs -> Maybe String
-reverseLookupRef p (Refs m) = case DataMap.keys $ DataMap.filter (== p) m of
+reverseLookupRef p (Refs m) = case M.keys $ M.filter (== p) m of
     []      -> Nothing
     (k:_)  -> Just k
 
 -- |
 -- newRef returns a new reference map given a single pattern and its reference name.
 newRef :: String -> Pattern -> Refs
-newRef key value = Refs $ DataMap.singleton key value
+newRef key value = Refs $ M.singleton key value
 
 -- |
 -- emptyRef returns an empty reference map.
 emptyRef :: Refs
-emptyRef = Refs DataMap.empty
+emptyRef = Refs M.empty
 
 -- |
 -- union returns the union of two reference maps.
 union :: Refs -> Refs -> Refs
-union (Refs m1) (Refs m2) = Refs $ DataMap.union m1 m2 
+union (Refs m1) (Refs m2) = Refs $ M.union m1 m2 
 
 -- |
 -- hasRecursion returns whether an relapse grammar has any recursion, starting from the "main" reference.
 hasRecursion :: Refs -> Bool
-hasRecursion refs = hasRec refs (DataSet.singleton "main") (lookupRef refs "main")
+hasRecursion refs = hasRec refs (S.singleton "main") (lookupRef refs "main")
 
-hasRec :: Refs -> DataSet.Set String -> Pattern -> Bool
+hasRec :: Refs -> S.Set String -> Pattern -> Bool
 hasRec _ _ Empty = False
 hasRec _ _ ZAny = False
 hasRec _ _ (Node _ _) = False
@@ -106,4 +106,4 @@ hasRec refs set (Interleave l r) = hasRec refs set l || hasRec refs set r
 hasRec _ _ (ZeroOrMore _) = False
 hasRec refs set (Optional p) = hasRec refs set p
 hasRec refs set (Contains p) = hasRec refs set p
-hasRec refs set (Reference name) = DataSet.member name set || hasRec refs (DataSet.insert name set) (lookupRef refs name)
+hasRec refs set (Reference name) = S.member name set || hasRec refs (S.insert name set) (lookupRef refs name)
