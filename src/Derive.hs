@@ -38,7 +38,7 @@ calls refs ps = compileIfExprs refs $ concatMap (deriveCall refs) ps
 deriveCall :: Refs -> Pattern -> [IfExpr]
 deriveCall _ Empty = []
 deriveCall _ ZAny = []
-deriveCall _ (Node v p) = [(v, p, Not ZAny)]
+deriveCall _ (Node v p) = [newIfExpr v p (Not ZAny)]
 deriveCall refs (Concat l r)
     | nullable refs l = deriveCall refs l ++ deriveCall refs r
     | otherwise = deriveCall refs l

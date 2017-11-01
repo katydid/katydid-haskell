@@ -15,7 +15,8 @@ import Patterns
 data ZipEntry = ZipVal Int | ZipZAny | ZipNotZAny
     deriving (Eq, Ord)
 
-type Zipper = [ZipEntry]
+newtype Zipper = Zipper [ZipEntry]
+    deriving (Eq, Ord)
 
 zippy :: [Pattern] -> ([Pattern], Zipper)
 zippy ps =
@@ -23,7 +24,7 @@ zippy ps =
         s' = S.delete ZAny s
         s'' = S.delete (Not ZAny) s'
         l = S.toAscList s''
-    in (l, map (indexOf l) ps)
+    in (l, Zipper $ map (indexOf l) ps)
 
 indexOf :: [Pattern] -> Pattern -> ZipEntry
 indexOf _ ZAny = ZipZAny
@@ -32,7 +33,7 @@ indexOf ps p = case elemIndex p ps of
     (Just i) -> ZipVal i
 
 unzipby :: Zipper -> [Bool] -> [Bool]
-unzipby z bs = map (ofIndexb bs) z
+unzipby (Zipper z) bs = map (ofIndexb bs) z
 
 ofIndexb :: [Bool] -> ZipEntry -> Bool
 ofIndexb _ ZipZAny = True

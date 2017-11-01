@@ -35,27 +35,27 @@ type Returns = M.Map ([Pattern], [Bool]) [Pattern]
 
 -- |
 -- Mem is the object used to store memoized results of the nullable, calls and returns functions.
-type Mem = (Nullable, Calls, Returns)
+newtype Mem = Mem (Nullable, Calls, Returns)
 
 -- |
 -- newMem creates a object used for memoization by the validate function.
 -- Each grammar should create its own memoize object.
 newMem :: Mem
-newMem = (M.empty, M.empty, M.empty)
+newMem = Mem (M.empty, M.empty, M.empty)
 
 -- |
 -- nullable returns whether a pattern is nullable and memoizes the results.
 nullable :: Refs -> Pattern -> State Mem Bool
-nullable refs k = state $ \(n, c, r) -> let (v', n') = mem (Patterns.nullable refs) k n;
-    in (v', (n', c, r))
+nullable refs k = state $ \(Mem (n, c, r)) -> let (v', n') = mem (Patterns.nullable refs) k n;
+    in (v', Mem (n', c, r))
 
 calls :: Refs -> [Pattern] -> State Mem IfExprs
-calls refs k = state $ \(n, c, r) -> let (v', c') = mem (Derive.calls refs) k c;
-    in (v', (n, c', r))
+calls refs k = state $ \(Mem (n, c, r)) -> let (v', c') = mem (Derive.calls refs) k c;
+    in (v', Mem (n, c', r))
 
 returns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
-returns refs k = state $ \(n, c, r) -> let (v', r') = mem (Derive.returns refs) k r;
-    in (v', (n, c, r'))
+returns refs k = state $ \(Mem (n, c, r)) -> let (v', r') = mem (Derive.returns refs) k r;
+    in (v', Mem (n, c, r'))
 
 mderive :: Tree t => Refs -> [Pattern] -> [t] -> ExceptT ValueErr (State Mem) [Pattern]
 mderive _ ps [] = return ps

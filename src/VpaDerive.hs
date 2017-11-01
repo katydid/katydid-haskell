@@ -35,18 +35,18 @@ type Calls = M.Map VpaState ZippedIfExprs
 type Nullable = M.Map [Pattern] [Bool]
 type Returns = M.Map ([Pattern], Zipper, [Bool]) [Pattern]
 
-type Vpa = (Nullable, Calls, Returns, Refs)
+newtype Vpa = Vpa (Nullable, Calls, Returns, Refs)
 
 newVpa :: Refs -> Vpa
-newVpa refs = (M.empty, M.empty, M.empty, refs)
+newVpa refs = Vpa (M.empty, M.empty, M.empty, refs)
 
 nullable :: [Pattern] -> State Vpa [Bool]
-nullable key = state $ \(n, c, r, refs) -> let (v', n') = mem (map $ Patterns.nullable refs) key n;
-    in (v', (n', c, r, refs))
+nullable key = state $ \(Vpa (n, c, r, refs)) -> let (v', n') = mem (map $ Patterns.nullable refs) key n;
+    in (v', Vpa (n', c, r, refs))
 
 calls :: [Pattern] -> State Vpa ZippedIfExprs
-calls key = state $ \(n, c, r, refs) -> let (v', c') = mem (zipIfExprs . Derive.calls refs) key c;
-    in (v', (n, c', r, refs))
+calls key = state $ \(Vpa (n, c, r, refs)) -> let (v', c') = mem (zipIfExprs . Derive.calls refs) key c;
+    in (v', Vpa (n, c', r, refs))
 
 vpacall :: VpaState -> Label -> ExceptT ValueErr (State Vpa) (StackElm, VpaState)
 vpacall vpastate label = do {
@@ -61,10 +61,10 @@ vpacall vpastate label = do {
 }
 
 returns :: ([Pattern], Zipper, [Bool]) -> State Vpa [Pattern]
-returns key = state $ \(n, c, r, refs) -> 
+returns key = state $ \(Vpa (n, c, r, refs)) -> 
     let (v', r') = mem (\(ps, zipper, znulls) -> 
             Derive.returns refs (ps, unzipby zipper znulls)) key r
-    in (v', (n, c, r', refs))
+    in (v', Vpa (n, c, r', refs))
 
 vpareturn :: StackElm -> VpaState -> State Vpa VpaState
 vpareturn (vpastate, zipper) current = do {

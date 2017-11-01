@@ -4,7 +4,7 @@
 -- It contains multiple implementations of if expressions.
 
 module IfExprs (
-    IfExprs, IfExpr,
+    IfExprs, IfExpr, newIfExpr,
     evalIfExprs, compileIfExprs,
     ZippedIfExprs, zipIfExprs, evalZippedIfExprs
 ) where
@@ -17,7 +17,10 @@ import Simplify
 import Zip
 import Parsers
 
-type IfExpr = (BoolExpr, Pattern, Pattern)
+newtype IfExpr = IfExpr (BoolExpr, Pattern, Pattern)
+
+newIfExpr :: BoolExpr -> Pattern -> Pattern -> IfExpr
+newIfExpr c t e = IfExpr (c, t, e)
 
 data IfExprs
     = Cond {
@@ -29,7 +32,8 @@ data IfExprs
 
 compileIfExprs :: Refs -> [IfExpr] -> IfExprs
 compileIfExprs _ [] = Ret []
-compileIfExprs refs (e:es) = addIfExpr (simplifyIf refs e) (compileIfExprs refs es)
+compileIfExprs refs (e:es) = let (IfExpr ifExpr) = simplifyIf refs e
+    in addIfExpr ifExpr (compileIfExprs refs es)
 
 evalIfExprs :: IfExprs -> Label -> Except ValueErr [Pattern]
 evalIfExprs (Ret ps) _ = return ps
@@ -39,13 +43,13 @@ evalIfExprs (Cond c t e) l = do {
 }
 
 simplifyIf :: Refs -> IfExpr -> IfExpr
-simplifyIf refs (c, t, e) =
+simplifyIf refs (IfExpr (c, t, e)) =
     let scond = simplifyBoolExpr c
         sthn  = simplify refs t
         sels  = simplify refs e
-    in if sthn == sels then (BoolConst True, sthn, sels) else (scond, sthn, sels)
+    in if sthn == sels then IfExpr (BoolConst True, sthn, sels) else IfExpr (scond, sthn, sels)
 
-addIfExpr :: IfExpr -> IfExprs -> IfExprs
+addIfExpr :: (BoolExpr, Pattern, Pattern) -> IfExprs -> IfExprs
 addIfExpr (c, t, e) (Ret ps) =
     Cond c (Ret (t:ps)) (Ret (e:ps))
 addIfExpr (c, t, e) (Cond cs ts es)
