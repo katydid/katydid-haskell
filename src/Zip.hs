@@ -12,7 +12,10 @@ import Data.List (elemIndex)
 
 import Patterns
 
-type Zipper = [Int]
+data ZipEntry = ZipVal Int | ZipZAny | ZipNotZAny
+    deriving (Eq, Ord)
+
+type Zipper = [ZipEntry]
 
 zippy :: [Pattern] -> ([Pattern], Zipper)
 zippy ps =
@@ -22,16 +25,16 @@ zippy ps =
         l = S.toAscList s''
     in (l, map (indexOf l) ps)
 
-indexOf :: [Pattern] -> Pattern -> Int
-indexOf _ ZAny = -1
-indexOf _ (Not ZAny) = -2
+indexOf :: [Pattern] -> Pattern -> ZipEntry
+indexOf _ ZAny = ZipZAny
+indexOf _ (Not ZAny) = ZipNotZAny
 indexOf ps p = case elemIndex p ps of
-    (Just i) -> i
+    (Just i) -> ZipVal i
 
 unzipby :: Zipper -> [Bool] -> [Bool]
 unzipby z bs = map (ofIndexb bs) z
 
-ofIndexb :: [Bool] -> Int -> Bool
-ofIndexb _ (-1) = True
-ofIndexb _ (-2) = False
-ofIndexb bs i = bs !! i
+ofIndexb :: [Bool] -> ZipEntry -> Bool
+ofIndexb _ ZipZAny = True
+ofIndexb _ ZipNotZAny = False
+ofIndexb bs (ZipVal i) = bs !! i
