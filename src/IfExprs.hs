@@ -17,14 +17,14 @@ import Simplify
 import Zip
 import Parsers
 
-newtype IfExpr = IfExpr (BoolExpr, Pattern, Pattern)
+newtype IfExpr = IfExpr (Expr Bool, Pattern, Pattern)
 
-newIfExpr :: BoolExpr -> Pattern -> Pattern -> IfExpr
+newIfExpr :: Expr Bool -> Pattern -> Pattern -> IfExpr
 newIfExpr c t e = IfExpr (c, t, e)
 
 data IfExprs
     = Cond {
-        cond :: BoolExpr
+        cond :: Expr Bool
         , thn :: IfExprs
         , els :: IfExprs
     }
@@ -49,7 +49,7 @@ simplifyIf refs (IfExpr (c, t, e)) =
         sels  = simplify refs e
     in if sthn == sels then IfExpr (BoolConst True, sthn, sels) else IfExpr (scond, sthn, sels)
 
-addIfExpr :: (BoolExpr, Pattern, Pattern) -> IfExprs -> IfExprs
+addIfExpr :: (Expr Bool, Pattern, Pattern) -> IfExprs -> IfExprs
 addIfExpr (c, t, e) (Ret ps) =
     Cond c (Ret (t:ps)) (Ret (e:ps))
 addIfExpr (c, t, e) (Cond cs ts es)
@@ -64,7 +64,7 @@ addRet p (Cond c t e) = Cond c (addRet p t) (addRet p e)
 
 data ZippedIfExprs
     = ZippedCond {
-        zcond :: BoolExpr
+        zcond :: Expr Bool
         , zthn :: ZippedIfExprs
         , zels :: ZippedIfExprs
     }

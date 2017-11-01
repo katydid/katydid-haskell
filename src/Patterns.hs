@@ -20,7 +20,7 @@ import Expr
 data Pattern
     = Empty
     | ZAny
-    | Node BoolExpr Pattern
+    | Node (Expr Bool) Pattern
     | Or Pattern Pattern
     | And Pattern Pattern
     | Not Pattern

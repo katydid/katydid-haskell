@@ -1,3 +1,5 @@
+{-#LANGUAGE GADTs #-}
+
 -- |
 -- This is an internal relapse module.
 --
@@ -6,7 +8,7 @@
 -- it also contains a parser for the JSON serialized relapse AST.
 
 module ParsePatterns (
-    Expr(..), newBuiltIn, newFunction, fromJson
+    ParsedExpr(..), newBuiltIn, newFunction, fromJson
 ) where
 
 import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
@@ -14,19 +16,19 @@ import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
 import Patterns
 import Expr
 
-data Expr 
-    = BoolExpr BoolExpr
-    | DoubleExpr DoubleExpr
-    | IntExpr IntExpr
-    | UintExpr UintExpr 
-    | StringExpr StringExpr
-    | BytesExpr BytesExpr
-    | BoolListExpr [BoolExpr]
-    | DoubleListExpr [DoubleExpr]
-    | IntListExpr [IntExpr]
-    | UintListExpr [UintExpr]
-    | StringListExpr [StringExpr]
-    | BytesListExpr [BytesExpr]
+data ParsedExpr 
+    = BoolExpr (Expr Bool)
+    | DoubleExpr (Expr Double)
+    | IntExpr (Expr Int)
+    | UintExpr (Expr Uint)
+    | StringExpr (Expr String)
+    | BytesExpr (Expr Bytes)
+    | BoolListExpr [(Expr Bool)]
+    | DoubleListExpr [(Expr Double)]
+    | IntListExpr [(Expr Int)]
+    | UintListExpr [(Expr Uint)]
+    | StringListExpr [(Expr String)]
+    | BytesListExpr [(Expr Bytes)]
     deriving Show
 
 -- |
@@ -147,16 +149,16 @@ uInterleave kvs = do {
     return $ Interleave leftPattern rightPattern
 }
 
-uNameExpr :: [(String, JSValue)] -> Either String BoolExpr
+uNameExpr :: [(String, JSValue)] -> Either String (Expr Bool)
 uNameExpr [("Name", JSObject o)] = return $ uName (fromJSObject o)
 uNameExpr [("AnyName", JSObject o)] = return $ BoolConst True
 uNameExpr [("AnyNameEither", JSObject o)] = uNameEither (fromJSObject o)
 uNameExpr [("NameChoice", JSObject o)] = uNameChoice (fromJSObject o)
 
-uName :: [(String, JSValue)] -> BoolExpr
+uName :: [(String, JSValue)] -> (Expr Bool)
 uName kvs = uName' $ head $ filter (\(k,v) -> (k /= "Before")) kvs
 
-uName' :: (String, JSValue) -> BoolExpr
+uName' :: (String, JSValue) -> (Expr Bool)
 uName' ("DoubleValue", (JSRational _ num)) = DoubleEqualFunc (DoubleConst (fromRational num)) DoubleVariable
 uName' ("IntValue", (JSRational _ num)) = IntEqualFunc (IntConst $ truncate num) IntVariable
 uName' ("UintValue", (JSRational _ num)) = UintEqualFunc (UintConst $ truncate num) UintVariable
@@ -164,10 +166,10 @@ uName' ("BoolValue", (JSBool b)) = BoolEqualFunc (BoolConst b) BoolVariable
 uName' ("StringValue", (JSString s)) = StringEqualFunc (StringConst $ fromJSString s) StringVariable
 uName' ("BytesValue", (JSString s)) = BytesEqualFunc (BytesConst $ fromJSString s) BytesVariable
 
-uNameEither :: [(String, JSValue)] -> Either String BoolExpr
+uNameEither :: [(String, JSValue)] -> Either String (Expr Bool)
 uNameEither kvs = getObject kvs "Either" >>= uNameExpr >>= return . NotFunc
 
-uNameChoice :: [(String, JSValue)] -> Either String BoolExpr
+uNameChoice :: [(String, JSValue)] -> Either String (Expr Bool)
 uNameChoice kvs = do {
     left <- getObject kvs "Left";
     leftName <- uNameExpr left;
@@ -176,61 +178,61 @@ uNameChoice kvs = do {
     return $ OrFunc leftName rightName
 }
 
-uBoolExpr :: [(String, JSValue)] -> Either String BoolExpr
+uBoolExpr :: [(String, JSValue)] -> Either String (Expr Bool)
 uBoolExpr kvs = uExprs kvs >>= (\e ->
     case e of
         (BoolExpr v) -> return v
         _ -> fail $ "not a BoolExpr, but a " ++ show e
     )
 
-uDoubleExpr :: [(String, JSValue)] -> Either String DoubleExpr
+uDoubleExpr :: [(String, JSValue)] -> Either String (Expr Double)
 uDoubleExpr kvs = uExprs kvs >>= (\e ->
     case e of
         (DoubleExpr v) -> return v
         _ -> fail $ "not a DoubleExpr, but a " ++ show e
     )
 
-uIntExpr :: [(String, JSValue)] -> Either String IntExpr
+uIntExpr :: [(String, JSValue)] -> Either String (Expr Int)
 uIntExpr kvs = uExprs kvs >>= (\e ->
     case e of
         (IntExpr v) -> return v
         _ -> fail $ "not a IntExpr, but a " ++ show e
     )
 
-uUintExpr :: [(String, JSValue)] -> Either String UintExpr
+uUintExpr :: [(String, JSValue)] -> Either String (Expr Uint)
 uUintExpr kvs = uExprs kvs >>= (\e -> 
     case e of
         (UintExpr v) -> return v
         _ -> fail $ "not a UintExpr, but a " ++ show e
     )
 
-uStringExpr :: [(String, JSValue)] -> Either String StringExpr
+uStringExpr :: [(String, JSValue)] -> Either String (Expr String)
 uStringExpr kvs = uExprs kvs >>= (\e -> 
     case e of
         (StringExpr v) -> return v
         _ -> fail $ "not a StringExpr, but a " ++ show e
     )
 
-uBytesExpr :: [(String, JSValue)] -> Either String BytesExpr
+uBytesExpr :: [(String, JSValue)] -> Either String (Expr Bytes)
 uBytesExpr kvs = uExprs kvs >>= (\e -> 
     case e of
         (BytesExpr v) -> return v
         _ -> fail $ "not a BytesExpr, but a " ++ show e
     )
 
-uExprs :: [(String, JSValue)] -> Either String Expr
+uExprs :: [(String, JSValue)] -> Either String ParsedExpr
 uExprs kvs = uExpr $ head $ filter (\(k,v) -> k /= "RightArrow" && k /= "Comma") kvs 
 
-uExpr :: (String, JSValue) -> Either String Expr
+uExpr :: (String, JSValue) -> Either String ParsedExpr
 uExpr ("Terminal", (JSObject o)) = return $ uTerminals $ fromJSObject o
 uExpr ("List", (JSObject o)) = uList $ fromJSObject o
 uExpr ("Function", (JSObject o)) = uFunction $ fromJSObject o
 uExpr ("BuiltIn", (JSObject o)) = uBuiltIn $ fromJSObject o
 
-uTerminals :: [(String, JSValue)] -> Expr
+uTerminals :: [(String, JSValue)] -> ParsedExpr
 uTerminals kvs = uTerminal $ head $ filter (\(k,v) -> k /= "Before" && k /= "Literal") kvs
 
-uTerminal :: (String, JSValue) -> Expr
+uTerminal :: (String, JSValue) -> ParsedExpr
 uTerminal ("DoubleValue", JSRational _ n) = DoubleExpr (DoubleConst (fromRational n))
 uTerminal ("IntValue", JSRational _ n) = IntExpr (IntConst $ truncate n)
 uTerminal ("UintValue", JSRational _ n) = UintExpr (UintConst $ truncate n)
@@ -239,7 +241,7 @@ uTerminal ("StringValue", JSString s) = StringExpr (StringConst $ fromJSString s
 uTerminal ("BytesValue", JSString s) = BytesExpr (BytesConst $ fromJSString s) -- TODO bytes
 uTerminal ("Variable", JSObject o) = uVariable $ (fromJSObject o)
 
-uVariable :: [(String, JSValue)] -> Expr
+uVariable :: [(String, JSValue)] -> ParsedExpr
 uVariable [("Type", JSRational _ 101)] = DoubleExpr DoubleVariable
 uVariable [("Type", JSRational _ 103)] = IntExpr IntVariable
 uVariable [("Type", JSRational _ 104)] = UintExpr UintVariable
@@ -247,7 +249,7 @@ uVariable [("Type", JSRational _ 108)] = BoolExpr BoolVariable
 uVariable [("Type", JSRational _ 109)] = StringExpr StringVariable
 uVariable [("Type", JSRational _ 112)] = BytesExpr BytesVariable
 
-uList :: [(String, JSValue)] -> Either String Expr
+uList :: [(String, JSValue)] -> Either String ParsedExpr
 uList kvs = do {
     arr <- getArrayOfObjects kvs "Elems";
     typ <- getInt kvs "Type";
@@ -266,7 +268,7 @@ uList kvs = do {
     212 -> fmap BytesListExpr $ mapM uBytesExpr arr
 }
 
-uFunction :: [(String, JSValue)] -> Either String Expr
+uFunction :: [(String, JSValue)] -> Either String ParsedExpr
 uFunction kvs = do {
     name <- getString kvs "Name";
     arrayObjects <- getArrayOfObjects kvs "Params";
@@ -276,7 +278,7 @@ uFunction kvs = do {
 
 -- |
 -- newFunction parsers a relapse function to a relapse expression.
-newFunction :: String -> [Expr] -> Either String Expr
+newFunction :: String -> [ParsedExpr] -> Either String ParsedExpr
 newFunction "not" [BoolExpr b] = Right $ BoolExpr $ NotFunc b
 newFunction "and" [BoolExpr b1, BoolExpr b2] = Right $ BoolExpr $ AndFunc b1 b2
 newFunction "or" [BoolExpr b1, BoolExpr b2] = Right $ BoolExpr $ OrFunc b1 b2
@@ -361,7 +363,7 @@ newFunction "regex" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ RegexFun
 
 newFunction s t = Left $ "unknown function: " ++ s ++ " for types: " ++ show t
 
-uBuiltIn :: [(String, JSValue)] -> Either String Expr
+uBuiltIn :: [(String, JSValue)] -> Either String ParsedExpr
 uBuiltIn kvs = do {
     exprObject <- getObject kvs "Expr";
     symbolObject <- getObject kvs "Symbol";
@@ -373,7 +375,7 @@ uBuiltIn kvs = do {
 
 -- |
 -- newBuiltIn parsers a builtin function to a relapse expression.
-newBuiltIn :: String -> Expr -> Either String Expr
+newBuiltIn :: String -> ParsedExpr -> Either String ParsedExpr
 newBuiltIn symbol constExpr = funcName symbol >>= (\name ->
         if name /= "type" then
             newFunction name [(constToVar constExpr), constExpr]
@@ -381,7 +383,7 @@ newBuiltIn symbol constExpr = funcName symbol >>= (\name ->
             newFunction name [constExpr]
     )
 
-constToVar :: Expr -> Expr
+constToVar :: ParsedExpr -> ParsedExpr
 constToVar (BoolExpr (BoolConst _)) = BoolExpr BoolVariable
 constToVar (DoubleExpr (DoubleConst _)) = DoubleExpr DoubleVariable
 constToVar (IntExpr (IntConst _)) = IntExpr IntVariable

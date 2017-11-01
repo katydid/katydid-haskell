@@ -181,7 +181,7 @@ _byteElem = _byteLit <|> between (char '\'') (char '\'') (_unicodeValue <|> _oct
 bytesCastLit :: CharParser () String
 bytesCastLit = string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}'
 
-_literal :: CharParser () Expr
+_literal :: CharParser () ParsedExpr
 _literal = BoolExpr . BoolConst <$> bool
     <|> IntExpr . IntConst <$> intLit
     <|> UintExpr . UintConst <$> uintCastLit
@@ -189,7 +189,7 @@ _literal = BoolExpr . BoolConst <$> bool
     <|> StringExpr . StringConst <$> stringLit
     <|> BytesExpr . BytesConst <$> bytesCastLit
 
-_terminal :: CharParser () Expr
+_terminal :: CharParser () ParsedExpr
 _terminal = (char '$' *> (
     BoolExpr BoolVariable <$ string "bool"
     <|> IntExpr IntVariable <$ string "int"
@@ -210,14 +210,14 @@ _builtinSymbol = string "=="
     <|> string "$="
     <|> string "::"
 
-check :: Either String Expr -> CharParser () Expr
+check :: Either String ParsedExpr -> CharParser () ParsedExpr
 check (Right r) = return r
 check (Left l) = fail l
 
-_builtin :: CharParser () Expr
+_builtin :: CharParser () ParsedExpr
 _builtin = newBuiltIn <$> _builtinSymbol <*> (ws *> _expr) >>= check
 
-_function :: CharParser () Expr
+_function :: CharParser () ParsedExpr
 _function = newFunction <$> idLit <*> (char '(' *> sepBy (ws *> _expr <* ws) (char ',') <* char ')') >>= check
 
 _listType :: CharParser () String
@@ -229,31 +229,31 @@ _listType = string "[]" <++> (
     <|> string "string"
     <|> string "[]byte" )
 
-_mustBool :: Expr -> CharParser () BoolExpr
+_mustBool :: ParsedExpr -> CharParser () (Expr Bool)
 _mustBool (BoolExpr e) = return e
 _mustBool e = fail $ "want BoolExpr, got: " ++ show e
 
-_mustInt :: Expr -> CharParser () IntExpr
+_mustInt :: ParsedExpr -> CharParser () (Expr Int)
 _mustInt (IntExpr e) = return e
 _mustInt e = fail $ "want IntExpr, got: " ++ show e
 
-_mustUint :: Expr -> CharParser () UintExpr
+_mustUint :: ParsedExpr -> CharParser () (Expr Uint)
 _mustUint (UintExpr e) = return e
 _mustUint e = fail $ "want UintExpr, got: " ++ show e
 
-_mustDouble :: Expr -> CharParser () DoubleExpr
+_mustDouble :: ParsedExpr -> CharParser () (Expr Double)
 _mustDouble (DoubleExpr e) = return e
 _mustDouble e = fail $ "want DoubleExpr, got: " ++ show e
 
-_mustString :: Expr -> CharParser () StringExpr
+_mustString :: ParsedExpr -> CharParser () (Expr String)
 _mustString (StringExpr e) = return e
 _mustString e = fail $ "want StringExpr, got: " ++ show e
 
-_mustBytes :: Expr -> CharParser () BytesExpr
+_mustBytes :: ParsedExpr -> CharParser () (Expr Bytes)
 _mustBytes (BytesExpr e) = return e
 _mustBytes e = fail $ "want BytesExpr, got: " ++ show e
 
-newList :: String -> [Expr] -> CharParser () Expr
+newList :: String -> [ParsedExpr] -> CharParser () ParsedExpr
 newList "[]bool" es = BoolListExpr <$> mapM _mustBool es
 newList "[]int" es = IntListExpr <$> mapM _mustInt es
 newList "[]uint" es = UintListExpr <$> mapM _mustUint es
@@ -261,20 +261,20 @@ newList "[]double" es = DoubleListExpr <$> mapM _mustDouble es
 newList "[]string" es = StringListExpr <$> mapM _mustString es
 newList "[][]byte" es = BytesListExpr <$> mapM _mustBytes es
 
-_list :: CharParser () Expr
+_list :: CharParser () ParsedExpr
 _list = do {
     ltype <- _listType;
     es <- ws *> char '{' *> sepBy (ws *> _expr <* ws) (char ',') <* char '}';
     newList ltype es
 }
 
-_expr :: CharParser () Expr
+_expr :: CharParser () ParsedExpr
 _expr = try _terminal <|> _list <|> _function
 
-expr :: CharParser () BoolExpr
+expr :: CharParser () (Expr Bool)
 expr = (try _terminal <|> _builtin <|> _function) >>= _mustBool
 
-_name :: CharParser () BoolExpr
+_name :: CharParser () (Expr Bool)
 _name = (newBuiltIn "==" <$> (_literal <|> (StringExpr . StringConst <$> idLit))) >>= check >>= _mustBool
 
 sepBy2 :: CharParser () a -> String -> CharParser () [a]
@@ -286,10 +286,10 @@ sepBy2 p sep = do {
     return (x1:x2:xs)
 }
 
-_nameChoice :: CharParser () BoolExpr
+_nameChoice :: CharParser () (Expr Bool)
 _nameChoice = foldl1 OrFunc <$> sepBy2 (ws *> nameExpr <* ws) "|"
 
-nameExpr :: CharParser () BoolExpr
+nameExpr :: CharParser () (Expr Bool)
 nameExpr =  (BoolConst True <$ char '_')
     <|> (NotFunc <$> (char '!' *> ws *> char '(' *> ws *> nameExpr <* ws <* char ')'))
     <|> (char '(' *> ws *> _nameChoice <* ws <* char ')')

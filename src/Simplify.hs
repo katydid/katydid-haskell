@@ -1,3 +1,5 @@
+{-#LANGUAGE GADTs #-}
+
 -- |
 -- This module simplifies Relapse patterns.
 
@@ -32,7 +34,7 @@ simplify refs pattern =
 simplify' :: Refs -> Pattern -> Pattern
 simplify' refs p = checkRef refs $ simplify refs p
 
-simplifyNode :: BoolExpr -> Pattern -> Pattern
+simplifyNode :: (Expr Bool) -> Pattern -> Pattern
 simplifyNode (BoolConst False) _ = Not ZAny
 simplifyNode v p = Node v p
 
