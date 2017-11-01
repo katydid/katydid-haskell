@@ -69,7 +69,8 @@ mderive refs ps (tree:ts) = do {
     (zchildps, zipper) <- return $ zippy childps;
     childres <- mderive refs zchildps (getChildren tree);
     nulls <- lift $ mapM (nullable refs) childres;
-    unzipns <- return $ unzipby zipper nulls;
+    let unzipns = unzipby zipper nulls
+    ;
     rs <- lift $ returns refs (ps, unzipns);
     mderive refs rs ts
 }

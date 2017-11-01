@@ -147,9 +147,9 @@ evalBool (BoolConst b) _ = return b
 evalBool BoolVariable (Bool b) = return b
 evalBool BoolVariable l = throwError $ ErrNotABool $ show l
 
-evalBool (OrFunc e1 e2) v = (||) <$> (evalBool e1 v) <*> (evalBool e2 v)
+evalBool (OrFunc e1 e2) v = (||) <$> evalBool e1 v <*> evalBool e2 v
 
-evalBool (AndFunc e1 e2) v = (&&) <$> (evalBool e1 v) <*> (evalBool e2 v)
+evalBool (AndFunc e1 e2) v = (&&) <$> evalBool e1 v <*> evalBool e2 v
 
 evalBool (NotFunc e) v = case runExcept $ evalBool e v of
     (Right True) -> return False
@@ -162,18 +162,18 @@ evalBool (UintEqualFunc e1 e2) v = eq (runExcept $ evalUint e1 v) (runExcept $ e
 evalBool (StringEqualFunc e1 e2) v = eq (runExcept $ evalString e1 v) (runExcept $ evalString e2 v)
 evalBool (BytesEqualFunc e1 e2) v = eq (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
-evalBool (IntListContainsFunc e es) v = elem <$> (evalInt e v) <*> (mapM (`evalInt` v) es)
+evalBool (IntListContainsFunc e es) v = elem <$> evalInt e v <*> mapM (`evalInt` v) es
 
-evalBool (StringListContainsFunc e es) v = elem <$> (evalString e v) <*> (mapM (`evalString` v) es)
+evalBool (StringListContainsFunc e es) v = elem <$> evalString e v <*> mapM (`evalString` v) es
 
-evalBool (UintListContainsFunc e es) v = elem <$> (evalUint e v) <*> (mapM (`evalUint` v) es)
+evalBool (UintListContainsFunc e es) v = elem <$> evalUint e v <*> mapM (`evalUint` v) es
 
-evalBool (StringContainsFunc s sub) v = isInfixOf <$> (evalString sub v) <*> (evalString s v)
+evalBool (StringContainsFunc s sub) v = isInfixOf <$> evalString sub v <*> evalString s v
 
 evalBool (BoolListElemFunc es i) v =
     (!!) <$>
-        (mapM (`evalBool` v) es) <*>
-        (evalInt i v)
+        mapM (`evalBool` v) es <*>
+        evalInt i v
 
 evalBool (DoubleGreaterOrEqualFunc e1 e2) v = ge (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
 evalBool (IntGreaterOrEqualFunc e1 e2) v = ge (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
@@ -185,9 +185,9 @@ evalBool (IntGreaterThanFunc e1 e2) v = gt (runExcept $ evalInt e1 v) (runExcept
 evalBool (UintGreaterThanFunc e1 e2) v = gt (runExcept $ evalUint e1 v) (runExcept $ evalUint e2 v)
 evalBool (BytesGreaterThanFunc e1 e2) v = gt (runExcept $ evalBytes e1 v) (runExcept $ evalBytes e2 v)
 
-evalBool (StringHasPrefixFunc e1 e2) v = isPrefixOf <$> (evalString e2 v) <*> (evalString e1 v)
+evalBool (StringHasPrefixFunc e1 e2) v = isPrefixOf <$> evalString e2 v <*> evalString e1 v
 
-evalBool (StringHasSuffixFunc e1 e2) v = isSuffixOf <$> (evalString e2 v) <*> (evalString e1 v)
+evalBool (StringHasSuffixFunc e1 e2) v = isSuffixOf <$> evalString e2 v <*> evalString e1 v
 
 evalBool (DoubleLessOrEqualFunc e1 e2) v = le (runExcept $ evalDouble e1 v) (runExcept $ evalDouble e2 v)
 evalBool (IntLessOrEqualFunc e1 e2) v = le (runExcept $ evalInt e1 v) (runExcept $ evalInt e2 v)
@@ -225,7 +225,7 @@ evalBool (StringTypeFunc e) v = case runExcept $ evalString e v of
     (Right _) -> return True
     (Left _) -> return False
 
-evalBool (RegexFunc e s) v = (=~) <$> (evalString s v) <*> (evalString e v)
+evalBool (RegexFunc e s) v = (=~) <$> evalString s v <*> evalString e v
 
 eq :: (Eq a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
 eq (Right v1) (Right v2) = return $ v1 == v2
@@ -264,8 +264,8 @@ evalDouble DoubleVariable l = throwError $ ErrNotADouble $ show l
 
 evalDouble (DoubleListElemFunc es i) v = 
     (!!) <$> 
-        (mapM (`evalDouble` v) es) <*> 
-        (evalInt i v)
+        mapM (`evalDouble` v) es <*> 
+        evalInt i v
 
 evalInt :: IntExpr -> Label -> Except ValueErr Int
 evalInt (IntConst i) _ = return i
@@ -274,8 +274,8 @@ evalInt IntVariable l = throwError $ ErrNotAnInt $ show l
 
 evalInt (IntListElemFunc es i) v =
     (!!) <$>
-        (mapM (`evalInt` v) es) <*>
-        (evalInt i v)
+        mapM (`evalInt` v) es <*>
+        evalInt i v
 
 evalInt (BytesListLengthFunc es) v = length <$> mapM (`evalBytes` v) es
 
@@ -300,8 +300,8 @@ evalUint UintVariable l = throwError $ ErrNotAnUint $ show l
 
 evalUint (UintListElemFunc es i) v =
     (!!) <$>
-        (mapM (`evalUint` v) es) <*>
-        (evalInt i v)
+        mapM (`evalUint` v) es <*>
+        evalInt i v
 
 evalString :: StringExpr -> Label -> Except ValueErr String
 evalString (StringConst i) _ = return i
@@ -310,8 +310,8 @@ evalString StringVariable l = throwError $ ErrNotAString $ show l
 
 evalString (StringListElemFunc es i) v =
     (!!) <$>
-        (mapM (`evalString` v) es) <*>
-        (evalInt i v)
+        mapM (`evalString` v) es <*>
+        evalInt i v
 
 evalString (StringToLowerFunc s) v = map toLower <$> evalString s v
 
@@ -324,8 +324,8 @@ evalBytes BytesVariable l = throwError $ ErrNotBytes $ show l
 
 evalBytes (BytesListElemFunc es i) v =
     (!!) <$>
-        (mapM (`evalBytes` v) es) <*>
-        (evalInt i v)
+        mapM (`evalBytes` v) es <*>
+        evalInt i v
 
 -- |
 -- simplifyBoolExpr returns an equivalent, but simpler version of the input boolean expression.

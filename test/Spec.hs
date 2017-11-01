@@ -60,23 +60,24 @@ main :: IO ()
 main = do {
     putStrLn "TESTING PARSER";
     parserCounts <- ParserSpec.parserSpec;
-    putStrLn $ show parserCounts;
+    print parserCounts;
 
     putStrLn "TESTING DERIVATIVE ALGORITHMS";
     testSuiteCases <- readTestCases;
-    nonRecursiveTestCases <- return $ filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases;
-    
-    derivTests <- return $ map (newTestCase AlgoDeriv) nonRecursiveTestCases;
-    zipTests <- return $ map (newTestCase AlgoZip) nonRecursiveTestCases;
-    mapTests <- return $ map (newTestCase AlgoMap) nonRecursiveTestCases;
-    vpaTests <- return $ map (newTestCase AlgoVpa) nonRecursiveTestCases;
+
+    let nonRecursiveTestCases = filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases
+        derivTests = map (newTestCase AlgoDeriv) nonRecursiveTestCases
+        zipTests = map (newTestCase AlgoZip) nonRecursiveTestCases
+        mapTests = map (newTestCase AlgoMap) nonRecursiveTestCases
+        vpaTests = map (newTestCase AlgoVpa) nonRecursiveTestCases
+    ;
     
     counts <- HUnit.runTestTT $ HUnit.TestList $ derivTests ++ zipTests ++ mapTests ++ vpaTests;
-    putStrLn $ show counts;
+    print counts;
 
     putStrLn "TESTING RELAPSE";
     relapseCounts <- RelapseSpec.relapseSpec;
-    putStrLn $ show relapseCounts;
+    print relapseCounts;
     
     return ()
 }

@@ -56,7 +56,8 @@ vpacall vpastate label = do {
         (Left l) -> throwError l
         (Right r) -> return r
     ;
-    stackelm <- return $ (vpastate, zipper);
+    let stackelm = (vpastate, zipper)
+    ; 
     return (stackelm, nextstate)
 }
 

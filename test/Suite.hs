@@ -57,9 +57,9 @@ readJsonTest path = do {
     files <- ls path;
     grammarData <- readFile $ getRelapse files;
     jsonData <- readFile $ filepathWithExt files ".json";
-    jValue <- return $ case decodeJSON jsonData of
-        (Left e) -> error e
-        (Right r) -> r
+    let jValue = case decodeJSON jsonData of
+            (Left e) -> error e
+            (Right r) -> r
     ;
     return $ TestSuiteCase (takeBaseName path) (fromGrammar grammarData) (JsonData jValue) (isValidCase files)
 }
