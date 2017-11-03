@@ -8,7 +8,6 @@ import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as HUnit
 
 import Control.Monad.Except (runExcept)
-import Control.Monad (when, unless)
 
 import Relapse
 import Json
@@ -29,14 +28,14 @@ tests = T.testGroup "Relapse" [
         (Left err) -> HUnit.assertFailure $ "relapse parse error: " ++ show err
         (Right refs) -> case Json.decodeJSON "{\"a\":1}" of
             (Left err) -> HUnit.assertFailure $ "json parse error: " ++ show err
-            (Right tree) -> unless (Relapse.validate refs tree) $ HUnit.assertFailure "expected success"
+            (Right tree) -> HUnit.assertBool "expected success" $ Relapse.validate refs tree
 
     , HUnit.testCase "validate failure" $
     case runExcept $ Relapse.parseGrammar "a == 1" of
         (Left err) -> HUnit.assertFailure $ "relapse parse error: " ++ show err
         (Right refs) -> case Json.decodeJSON "{\"a\":2}" of
             (Left err) -> HUnit.assertFailure $ "json parse error: " ++ show err
-            (Right tree) -> when (Relapse.validate refs tree) $ HUnit.assertFailure "expected failure"
+            (Right tree) -> HUnit.assertBool "expected failure" $ not $ Relapse.validate refs tree
 
     , HUnit.testCase "filter" $
     case runExcept $ Relapse.parseGrammar "a == 1" of
@@ -46,6 +45,6 @@ tests = T.testGroup "Relapse" [
             (Right want) -> case Json.decodeJSON "{\"a\":2}" of
                 (Left err) -> HUnit.assertFailure $ "json parse error: " ++ show err
                 (Right other) -> case Relapse.filter refs [want, other] of
-                    [got] -> unless (got == want) $ HUnit.assertFailure "expected the same tree"
+                    [got] -> HUnit.assertEqual "expected the same tree" want got
                     _ -> HUnit.assertFailure "expected a single tree"
     ]

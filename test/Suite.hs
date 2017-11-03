@@ -11,7 +11,6 @@ import System.Directory (getCurrentDirectory, listDirectory)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 import Control.Monad.Except (Except(..), runExcept)
-import Control.Monad (when)
 
 import Parsers (Tree)
 import Patterns (Refs, Pattern, nullable, hasRecursion)
@@ -78,19 +77,19 @@ testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
 testDeriv AlgoDeriv name g ts want = 
     let p = must $ Derive.derive g ts 
         got = nullable g p
-    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got
 testDeriv AlgoZip name g ts want = 
     let p = must $ Derive.zipderive g ts 
         got = nullable g p
-    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
 testDeriv AlgoMap name g ts want  = 
     let p = must $ MemDerive.derive g ts 
         got = nullable g p
-    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
 testDeriv AlgoVpa name g ts want  = 
     let p = must $ VpaDerive.derive g ts 
         got = nullable g p
-    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
 
 getRelapseJson :: [FilePath] -> FilePath
 getRelapseJson paths = head $ filter (\fname -> takeExtension fname == ".json" && takeBaseName fname == "relapse") paths

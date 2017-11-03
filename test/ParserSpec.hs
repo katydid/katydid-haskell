@@ -7,7 +7,6 @@ module ParserSpec (
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as HUnit
 
-import Control.Monad (unless)
 import Text.ParserCombinators.Parsec (CharParser, parse, eof)
 
 import Parser
@@ -17,7 +16,7 @@ import Patterns
 success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> T.TestTree
 success name p input want = HUnit.testCase name $ case parse (p <* eof) "" input of
     (Left err) -> HUnit.assertFailure $ "given input: " ++ input ++ " got error: " ++ show err
-    (Right got) -> unless (got == want) $ HUnit.assertFailure $ "want: " ++ show want ++ " got: " ++ show got
+    (Right got) -> HUnit.assertEqual ("want: " ++ show want ++ " got: " ++ show got) want got
 
 failure :: (Show a) => String -> CharParser () a -> String -> T.TestTree
 failure name p input = HUnit.testCase name $ case parse (p <* eof) "" input of
