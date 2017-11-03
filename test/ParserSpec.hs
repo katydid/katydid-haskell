@@ -131,12 +131,12 @@ tests = HUnit.TestList [
     success "any treenode" pattern "_:*" (Node (Const True) ZAny),
     success "treenode no colon" pattern "_[*,*]" (Node (Const True) (Concat ZAny ZAny)),
 
-    success "single pattern grammar" grammar "*" (newRef "main" ZAny),
-    success "single pattern decl" grammar "#main = *" (newRef "main" ZAny),
+    success "single pattern grammar" grammar "*" $ newRef "main" ZAny,
+    success "single pattern decl" grammar "#main = *" $ newRef "main" ZAny,
     failure "two patterns grammar" grammar "* *",
-    success "two pattern decls" grammar "#main = * #a = *" ((newRef "main" ZAny) `union` (newRef "a" ZAny)),
-    success "one pattern and one pattern decl" grammar "* #a = *" ((newRef "main" ZAny) `union` (newRef "a" ZAny)),
-    success "one pattern and two pattern decls" grammar "* #a = * #b = *" ((newRef "main" ZAny) `union` (newRef "a" ZAny) `union` (newRef "b" ZAny)),
+    success "two pattern decls" grammar "#main = * #a = *" $ newRef "main" ZAny `union` newRef "a" ZAny,
+    success "one pattern and one pattern decl" grammar "* #a = *" $ newRef "main" ZAny `union` newRef "a" ZAny,
+    success "one pattern and two pattern decls" grammar "* #a = * #b = *" $ newRef "main" ZAny `union` newRef "a" ZAny `union` newRef "b" ZAny,
 
     success "not pattern, not name and != conflicts without not enough lookahead" grammar "!(A):*" (newRef "main" (Node (NotFunc (StringEqualFunc StringVariable (Const "A"))) ZAny)),
     success "->type conflicts with ->true and -1 conflicts with ->" grammar "->type($string)" (newRef "main" (Node (StringTypeFunc StringVariable) Empty)),

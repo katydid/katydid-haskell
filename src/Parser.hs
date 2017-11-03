@@ -20,7 +20,7 @@ import ParsePatterns
 
 -- | parseGrammar parses the Relapse Grammar.
 parseGrammar :: String -> Either ParseError Refs
-parseGrammar s = parse (grammar <* eof) "" s
+parseGrammar = parse (grammar <* eof) ""
 
 infixl 4 <++>
 (<++>) :: CharParser () String -> CharParser () String -> CharParser () String
@@ -46,10 +46,10 @@ _comment :: CharParser () ()
 _comment = char '/' *> (_lineComment <|> _blockComment)
 
 _ws :: CharParser () ()
-_ws = _comment <|> (() <$ space)
+_ws = _comment <|> () <$ space
 
 ws :: CharParser () ()
-ws = () <$ (many _ws)
+ws = () <$ many _ws
 
 bool :: CharParser () Bool
 bool = True <$ string "true"
@@ -296,10 +296,10 @@ nameExpr =  (Const True <$ char '_')
     <|> _name
 
 _concatPattern :: CharParser () Pattern
-_concatPattern = char '[' *> (foldl1 Concat <$> sepBy2 (ws *> pattern <* ws) ",") <* (optional ((char ',') <* ws)) <* char ']'
+_concatPattern = char '[' *> (foldl1 Concat <$> sepBy2 (ws *> pattern <* ws) ",") <* optional (char ',' <* ws) <* char ']'
 
 _interleavePattern :: CharParser () Pattern
-_interleavePattern = char '{' *> (foldl1 Interleave <$> sepBy2 (ws *> pattern <* ws) ";") <* (optional ((char ';') <* ws)) <* char '}'
+_interleavePattern = char '{' *> (foldl1 Interleave <$> sepBy2 (ws *> pattern <* ws) ";") <* optional (char ';' <* ws) <* char '}'
 
 _parenPattern :: CharParser () Pattern
 _parenPattern = do {
@@ -314,17 +314,17 @@ _parenPattern = do {
         )
     ) <|> ( 
         (
-            (first <$ (char '|') >>= _orList) <|> 
-            (first <$ (char '&') >>= _andList)
+            (first <$ char '|' >>= _orList) <|> 
+            (first <$ char '&' >>= _andList)
         ) <* char ')'
     )
 }
 
 _orList :: Pattern -> CharParser () Pattern
-_orList p = Or p <$> foldl1 Or <$> sepBy1 (ws *> pattern <* ws) (char '|')
+_orList p = Or p . foldl1 Or <$> sepBy1 (ws *> pattern <* ws) (char '|')
 
 _andList :: Pattern -> CharParser () Pattern
-_andList p = And p <$> foldl1 And <$> sepBy1 (ws *> pattern <* ws) (char '&')
+_andList p = And p . foldl1 And <$> sepBy1 (ws *> pattern <* ws) (char '&')
 
 _refPattern :: CharParser () Pattern
 _refPattern = Reference <$> (char '@' *> ws *> idLit)
@@ -346,16 +346,16 @@ _treenodePattern = Node <$> nameExpr <*> ( ws *> ( try (char ':' *> ws *> patter
 
 _depthPattern :: CharParser () Pattern
 _depthPattern = _concatPattern <|> _interleavePattern <|> _containsPattern 
-    <|> (flip Node) Empty <$> ( (string "->" *> expr ) <|> (_builtin >>= _mustBool) )
+    <|> flip Node Empty <$> ( (string "->" *> expr ) <|> (_builtin >>= _mustBool) )
 
 pattern :: CharParser () Pattern
 pattern = _zanyPattern
     <|> _parenPattern
     <|> _refPattern
-    <|> (try _emptyPattern)
-    <|> (try _treenodePattern)
-    <|> (try _depthPattern)
-    <|> (_notPattern)
+    <|> try _emptyPattern
+    <|> try _treenodePattern
+    <|> try _depthPattern
+    <|> _notPattern
     
 _patternDecl :: CharParser () Refs
 _patternDecl = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *> pattern)

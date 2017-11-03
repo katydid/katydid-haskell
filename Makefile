@@ -26,4 +26,5 @@ doc:
 	cp -R .stack-work/dist/x86_64-osx/Cabal-1.24.0.0/doc/html/katydid/* ./docs/
 
 lint:
-	hlint .
+	# -XNoPatternSynonyms is a temporary workaround for https://github.com/ndmitchell/hlint/issues/216
+	hlint -XNoPatternSynonyms .
