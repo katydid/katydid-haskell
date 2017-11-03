@@ -16,7 +16,6 @@ import Data.Char (chr)
 
 import Expr
 import Patterns
-import ParsePatterns
 
 -- | parseGrammar parses the Relapse Grammar.
 parseGrammar :: String -> Either ParseError Refs
@@ -181,6 +180,21 @@ _byteElem = _byteLit <|> between (char '\'') (char '\'') (_unicodeValue <|> _oct
 bytesCastLit :: CharParser () String
 bytesCastLit = string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}'
 
+data ParsedExpr 
+    = BoolExpr (Expr Bool)
+    | DoubleExpr (Expr Double)
+    | IntExpr (Expr Int)
+    | UintExpr (Expr Uint)
+    | StringExpr (Expr String)
+    | BytesExpr (Expr Bytes)
+    | BoolListExpr [(Expr Bool)]
+    | DoubleListExpr [(Expr Double)]
+    | IntListExpr [(Expr Int)]
+    | UintListExpr [(Expr Uint)]
+    | StringListExpr [(Expr String)]
+    | BytesListExpr [(Expr Bytes)]
+    deriving Show
+
 _literal :: CharParser () ParsedExpr
 _literal = BoolExpr . Const <$> bool
     <|> IntExpr . Const <$> intLit
@@ -214,8 +228,127 @@ check :: Either String ParsedExpr -> CharParser () ParsedExpr
 check (Right r) = return r
 check (Left l) = fail l
 
+funcName :: String -> Either String String
+funcName "==" = return "eq"
+funcName "!=" = return "ne"
+funcName "<" = return "lt"
+funcName ">" = return "gt"
+funcName "<=" = return "le"
+funcName ">=" = return "ge"
+funcName "~=" = return "regex"
+funcName "*=" = return "contains"
+funcName "^=" = return "hasPrefix"
+funcName "$=" = return "hasSuffix"
+funcName "::" = return "type"
+funcName name = fail $ "unexpected funcName: <" ++ name ++ ">"
+
+constToVar :: ParsedExpr -> ParsedExpr
+constToVar (BoolExpr Const{}) = BoolExpr BoolVariable
+constToVar (DoubleExpr Const{}) = DoubleExpr DoubleVariable
+constToVar (IntExpr Const{}) = IntExpr IntVariable
+constToVar (UintExpr Const{}) = UintExpr UintVariable
+constToVar (BytesExpr Const{}) = BytesExpr BytesVariable
+constToVar (StringExpr Const{}) = StringExpr StringVariable
+
+-- |
+-- newBuiltIn parsers a builtin function to a relapse expression.
+newBuiltIn :: String -> ParsedExpr -> Either String ParsedExpr
+newBuiltIn symbol constExpr = funcName symbol >>= (\name ->
+        if name /= "type" then
+            newFunction name [(constToVar constExpr), constExpr]
+        else
+            newFunction name [constExpr]
+    )
+
 _builtin :: CharParser () ParsedExpr
 _builtin = newBuiltIn <$> _builtinSymbol <*> (ws *> _expr) >>= check
+
+-- |
+-- newFunction parsers a relapse function to a relapse expression.
+newFunction :: String -> [ParsedExpr] -> Either String ParsedExpr
+newFunction "not" [BoolExpr b] = Right $ BoolExpr $ NotFunc b
+newFunction "and" [BoolExpr b1, BoolExpr b2] = Right $ BoolExpr $ AndFunc b1 b2
+newFunction "or" [BoolExpr b1, BoolExpr b2] = Right $ BoolExpr $ OrFunc b1 b2
+
+newFunction "contains" [IntExpr i,IntListExpr is] = Right $ BoolExpr $ IntListContainsFunc i is
+newFunction "contains" [StringExpr s, StringListExpr ss] = Right $ BoolExpr $ StringListContainsFunc s ss
+newFunction "contains" [UintExpr u, UintListExpr us] = Right $ BoolExpr $ UintListContainsFunc u us
+newFunction "contains" [StringExpr s, StringExpr ss] = Right $ BoolExpr $ StringContainsFunc s ss
+
+newFunction "elem" [BytesListExpr es, IntExpr i] = Right $ BytesExpr $ BytesListElemFunc es i
+newFunction "elem" [BoolListExpr es, IntExpr i] = Right $ BoolExpr $ BoolListElemFunc es i
+newFunction "elem" [DoubleListExpr es, IntExpr i] = Right $ DoubleExpr $ DoubleListElemFunc es i
+newFunction "elem" [IntListExpr es, IntExpr i] = Right $ IntExpr $ IntListElemFunc es i
+newFunction "elem" [StringListExpr es, IntExpr i] = Right $ StringExpr $ StringListElemFunc es i
+newFunction "elem" [UintListExpr es, IntExpr i] = Right $ UintExpr $ UintListElemFunc es i
+
+newFunction "eq" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesEqualFunc v1 v2
+newFunction "eq" [BoolExpr v1, BoolExpr v2] = Right $ BoolExpr $ BoolEqualFunc v1 v2
+newFunction "eq" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleEqualFunc v1 v2
+newFunction "eq" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntEqualFunc v1 v2
+newFunction "eq" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ StringEqualFunc v1 v2
+newFunction "eq" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintEqualFunc v1 v2
+
+newFunction "eqFold" _ = Left "eqFold function is not supported"
+
+newFunction "ge" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesGreaterOrEqualFunc v1 v2
+newFunction "ge" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleGreaterOrEqualFunc v1 v2
+newFunction "ge" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntGreaterOrEqualFunc v1 v2
+newFunction "ge" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintGreaterOrEqualFunc v1 v2
+
+newFunction "gt" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesGreaterThanFunc v1 v2
+newFunction "gt" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleGreaterThanFunc v1 v2
+newFunction "gt" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntGreaterThanFunc v1 v2
+newFunction "gt" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintGreaterThanFunc v1 v2
+
+newFunction "hasPrefix" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ StringHasPrefixFunc v1 v2
+newFunction "hasSuffix" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ StringHasSuffixFunc v1 v2
+
+newFunction "le" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesLessOrEqualFunc v1 v2
+newFunction "le" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleLessOrEqualFunc v1 v2
+newFunction "le" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntLessOrEqualFunc v1 v2
+newFunction "le" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintLessOrEqualFunc v1 v2
+
+newFunction "length" [BytesListExpr vs] = Right $ IntExpr $ BytesListLengthFunc vs
+newFunction "length" [BoolListExpr vs] = Right $ IntExpr $ BoolListLengthFunc vs
+newFunction "length" [BytesExpr vs] = Right $ IntExpr $ BytesLengthFunc vs
+newFunction "length" [DoubleListExpr vs] = Right $ IntExpr $ DoubleListLengthFunc vs
+newFunction "length" [IntListExpr vs] = Right $ IntExpr $ IntListLengthFunc vs
+newFunction "length" [StringListExpr vs] = Right $ IntExpr $ StringListLengthFunc vs
+newFunction "length" [UintListExpr vs] = Right $ IntExpr $ UintListLengthFunc vs
+newFunction "length" [StringExpr vs] = Right $ IntExpr $ StringLengthFunc vs
+
+newFunction "lt" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesLessThanFunc v1 v2
+newFunction "lt" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleLessThanFunc v1 v2
+newFunction "lt" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntLessThanFunc v1 v2
+newFunction "lt" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintLessThanFunc v1 v2
+
+newFunction "ne" [BytesExpr v1, BytesExpr v2] = Right $ BoolExpr $ BytesNotEqualFunc v1 v2
+newFunction "ne" [BoolExpr v1, BoolExpr v2] = Right $ BoolExpr $ BoolNotEqualFunc v1 v2
+newFunction "ne" [DoubleExpr v1, DoubleExpr v2] = Right $ BoolExpr $ DoubleNotEqualFunc v1 v2
+newFunction "ne" [IntExpr v1, IntExpr v2] = Right $ BoolExpr $ IntNotEqualFunc v1 v2
+newFunction "ne" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ StringNotEqualFunc v1 v2
+newFunction "ne" [UintExpr v1, UintExpr v2] = Right $ BoolExpr $ UintNotEqualFunc v1 v2
+
+newFunction "now" _ = Left "now function is not supported"
+
+newFunction "print" _ = Left "print function is not supported"
+
+newFunction "range" _ = Left "range function is not supported"
+
+newFunction "toLower" [StringExpr s] = Right $ StringExpr $ StringToLowerFunc s
+newFunction "toUpper" [StringExpr s] = Right $ StringExpr $ StringToUpperFunc s
+
+newFunction "type" [BytesExpr b] = Right $ BoolExpr $ BytesTypeFunc b
+newFunction "type" [BoolExpr b] = Right $ BoolExpr $ BoolTypeFunc b
+newFunction "type" [DoubleExpr b] = Right $ BoolExpr $ DoubleTypeFunc b
+newFunction "type" [IntExpr b] = Right $ BoolExpr $ IntTypeFunc b
+newFunction "type" [UintExpr b] = Right $ BoolExpr $ UintTypeFunc b
+newFunction "type" [StringExpr b] = Right $ BoolExpr $ StringTypeFunc b
+
+newFunction "regex" [StringExpr v1, StringExpr v2] = Right $ BoolExpr $ RegexFunc v1 v2
+
+newFunction s t = Left $ "unknown function: " ++ s ++ " for types: " ++ show t
 
 _function :: CharParser () ParsedExpr
 _function = newFunction <$> idLit <*> (char '(' *> sepBy (ws *> _expr <* ws) (char ',') <* char ')') >>= check
@@ -363,4 +496,3 @@ _patternDecl = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *>
 grammar :: CharParser () Refs
 grammar = ws *> (foldl1 union <$> many1 (_patternDecl <* ws))
     <|> union <$> (newRef "main" <$> pattern) <*> (foldl union emptyRef <$> many (ws *> _patternDecl <* ws))
-

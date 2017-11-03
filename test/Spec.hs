@@ -14,9 +14,10 @@ import qualified Derive
 import qualified MemDerive
 import qualified VpaDerive
 
+import qualified JsonSpec
 import qualified ParserSpec
-import Suite (readTestCases, TestSuiteCase(..), EncodedData(..))
 import qualified RelapseSpec
+import Suite (readTestCases, TestSuiteCase(..), EncodedData(..))
 
 data Algo = AlgoDeriv
     | AlgoZip
@@ -58,6 +59,10 @@ newTestCase algo c@(TestSuiteCase name g (JsonData t) want) =
 
 main :: IO ()
 main = do {
+    putStrLn "TESTING JSON";
+    jsonCounts <- JsonSpec.jsonSpec;
+    print jsonCounts;
+
     putStrLn "TESTING PARSER";
     parserCounts <- ParserSpec.parserSpec;
     print parserCounts;

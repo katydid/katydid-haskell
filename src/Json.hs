@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, OverloadedStrings #-}
 
 -- |
 -- This module contains the Json Parser.
@@ -7,7 +7,11 @@ module Json (
     decodeJSON, JsonTree
 ) where
 
-import Text.JSON (decode, Result(..), JSValue(..), fromJSString, fromJSObject)
+import qualified Data.Aeson as A
+import Data.ByteString.Lazy.UTF8 (fromString)
+import qualified Data.Text as T
+import qualified Data.Vector as V
+import qualified Data.HashMap.Lazy as H
 
 import qualified Data.Tree as DataTree
 import Parsers
@@ -23,24 +27,24 @@ type JsonTree = DataTree.Tree Label
 -- |
 -- decodeJSON returns a JsonTree, given an input string.
 decodeJSON :: String -> Either String [JsonTree]
-decodeJSON s = case decode s of
-    (Error e) -> Left e
-    (Ok v) -> Right (uValue v)
+decodeJSON s = case A.eitherDecode (fromString s) of
+    (Left l) -> Left l
+    (Right v) -> Right (uValue v)
 
-uValue :: JSValue -> [JsonTree]
-uValue JSNull = []
-uValue (JSBool b) = [DataTree.Node (Bool b) []]
-uValue (JSRational _ r) = [DataTree.Node (Number r) []]
-uValue (JSString s) = [DataTree.Node (String (fromJSString s)) []]
-uValue (JSArray vs) = uArray 0 vs
-uValue (JSObject o) = uObject $ fromJSObject o
+uValue :: A.Value -> [JsonTree]
+uValue A.Null = []
+uValue (A.Bool b) = [DataTree.Node (Bool b) []]
+uValue (A.Number r) = [DataTree.Node (Number (toRational r)) []]
+uValue (A.String s) = [DataTree.Node (String (T.unpack s)) []]
+uValue (A.Array vs) = uArray 0 (V.toList vs)
+uValue (A.Object o) = uObject $ (H.toList o)
 
-uArray :: Int -> [JSValue] -> [JsonTree]
+uArray :: Int -> [A.Value] -> [JsonTree]
 uArray _ [] = []
 uArray index (v:vs) = DataTree.Node (Number (toRational index)) (uValue v):uArray (index+1) vs
 
-uObject :: [(String, JSValue)] -> [JsonTree]
+uObject :: [(T.Text, A.Value)] -> [JsonTree]
 uObject = map uKeyValue
 
-uKeyValue :: (String, JSValue) -> JsonTree
-uKeyValue (name, value) = DataTree.Node (String name) (uValue value)
+uKeyValue :: (T.Text, A.Value) -> JsonTree
+uKeyValue (name, value) = DataTree.Node (String (T.unpack name)) (uValue value)
