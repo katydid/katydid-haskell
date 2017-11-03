@@ -1,10 +1,12 @@
 -- | 
 -- This module ParserSpec tests the Parser module.
 module ParserSpec (
-    parserSpec
+    tests
 ) where
 
-import qualified Test.HUnit as HUnit
+import qualified Test.Tasty as T
+import qualified Test.Tasty.HUnit as HUnit
+
 import Control.Monad (unless)
 import Text.ParserCombinators.Parsec (CharParser, parse, eof)
 
@@ -12,17 +14,17 @@ import Parser
 import Expr
 import Patterns
 
-success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> HUnit.Test
-success name p input want = HUnit.TestLabel name $ HUnit.TestCase $ case parse (p <* eof) "" input of
+success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> T.TestTree
+success name p input want = HUnit.testCase name $ case parse (p <* eof) "" input of
     (Left err) -> HUnit.assertFailure $ "given input: " ++ input ++ " got error: " ++ show err
     (Right got) -> unless (got == want) $ HUnit.assertFailure $ "want: " ++ show want ++ " got: " ++ show got
 
-failure :: (Show a) => String -> CharParser () a -> String -> HUnit.Test
-failure name p input = HUnit.TestLabel name $ HUnit.TestCase $ case parse (p <* eof) "" input of
+failure :: (Show a) => String -> CharParser () a -> String -> T.TestTree
+failure name p input = HUnit.testCase name $ case parse (p <* eof) "" input of
     (Left _) -> return ()
     (Right got) -> HUnit.assertFailure $ "want error from input: " ++ show input ++ ", but got: " ++ show got
 
-tests = HUnit.TestList [
+tests = T.testGroup "Parser" [
     success "linecomment success" ws "//bla\n" (),
     failure "linecomment failure" ws "//bla",
     success "oneline blockcomment" ws "/*bla*/" (),
@@ -146,7 +148,4 @@ tests = HUnit.TestList [
     success "treenode with child builtin type" grammar "A :: $string" (newRef "main" (Node (StringEqualFunc StringVariable (Const "A")) (Node (StringTypeFunc StringVariable) Empty))),
     success "extra semicolon" grammar "{*;*;}" (newRef "main" (Interleave ZAny ZAny)),
 
-   HUnit.TestCase (return ())]
-
-parserSpec :: IO HUnit.Counts
-parserSpec = HUnit.runTestTT tests
+   HUnit.testCase "" (return ())]

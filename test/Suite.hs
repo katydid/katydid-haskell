@@ -1,17 +1,46 @@
 -- |
 -- Suite parses the testsuite folder and creates test cases
 module Suite (
-    readTestCases, TestSuiteCase(..), EncodedData(..)
+    readTestCases, tests
 ) where
+
+import qualified Test.Tasty as T
+import qualified Test.Tasty.HUnit as HUnit
 
 import System.Directory (getCurrentDirectory, listDirectory)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
+import Control.Monad.Except (Except(..), runExcept)
+import Control.Monad (when)
 
-import Patterns (Refs, Pattern)
+import Parsers (Tree)
+import Patterns (Refs, Pattern, nullable, hasRecursion)
 import Json (JsonTree, decodeJSON)
 import Xml (decodeXML)
 import Parser (parseGrammar)
+
+import qualified Derive
+import qualified MemDerive
+import qualified VpaDerive
+
+tests :: [TestSuiteCase] -> T.TestTree
+tests testSuiteCases = 
+    let nonRecursiveTestCases = filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases
+        derivTests = T.testGroup "derive" $ map (newTestCase AlgoDeriv) nonRecursiveTestCases
+        zipTests = T.testGroup "zip" $ map (newTestCase AlgoZip) nonRecursiveTestCases
+        mapTests = T.testGroup "map" $ map (newTestCase AlgoMap) nonRecursiveTestCases
+        vpaTests = T.testGroup "vpa" $ map (newTestCase AlgoVpa) nonRecursiveTestCases
+    in T.testGroup "Suite" [derivTests, zipTests, mapTests, vpaTests]
+
+readTestCases :: IO [TestSuiteCase]
+readTestCases = do {
+    path <- testPath;
+    jsondirs <- ls $ path </> "json";
+    xmldirs <- ls $ path </> "xml";
+    xmlTestCases <- mapM readXMLTest xmldirs;
+    jsonTestCases <- mapM readJsonTest jsondirs;
+    return $ jsonTestCases ++ xmlTestCases
+}
 
 data TestSuiteCase = TestSuiteCase {
     name        :: String
@@ -25,15 +54,43 @@ data EncodedData
     | JsonData [JsonTree]
     deriving Show
 
-readTestCases :: IO [TestSuiteCase]
-readTestCases = do {
-    path <- testPath;
-    jsondirs <- ls $ path </> "json";
-    xmldirs <- ls $ path </> "xml";
-    xmlTestCases <- mapM readXMLTest xmldirs;
-    jsonTestCases <- mapM readJsonTest jsondirs;
-    return $ jsonTestCases ++ xmlTestCases
-}
+data Algo = AlgoDeriv
+    | AlgoZip
+    | AlgoMap
+    | AlgoVpa
+    deriving Show
+
+newTestCase :: Algo -> TestSuiteCase -> T.TestTree
+newTestCase algo c@(TestSuiteCase name g (XMLData t) want) = 
+    HUnit.testCase (testName algo c) $ testDeriv algo name g t want
+newTestCase algo c@(TestSuiteCase name g (JsonData t) want) = 
+    HUnit.testCase (testName algo c) $ testDeriv algo name g t want
+
+testName :: Algo -> TestSuiteCase -> String
+testName algo (TestSuiteCase name g t want) = name ++ "_" ++ show algo
+
+must :: Except String Pattern -> Pattern
+must e = case runExcept e of
+    (Left l) -> error l
+    (Right r) -> r
+
+testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
+testDeriv AlgoDeriv name g ts want = 
+    let p = must $ Derive.derive g ts 
+        got = nullable g p
+    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+testDeriv AlgoZip name g ts want = 
+    let p = must $ Derive.zipderive g ts 
+        got = nullable g p
+    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+testDeriv AlgoMap name g ts want  = 
+    let p = must $ MemDerive.derive g ts 
+        got = nullable g p
+    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
+testDeriv AlgoVpa name g ts want  = 
+    let p = must $ VpaDerive.derive g ts 
+        got = nullable g p
+    in when (want /= got) $ error $ "want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p
 
 getRelapseJson :: [FilePath] -> FilePath
 getRelapseJson paths = head $ filter (\fname -> takeExtension fname == ".json" && takeBaseName fname == "relapse") paths
