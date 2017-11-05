@@ -13,38 +13,31 @@ import Relapse
 import Json
 
 tests = T.testGroup "Relapse" [
-    HUnit.testCase "parseGrammar success" $
-    case runExcept $ Relapse.parseGrammar "a == 1" of
-        (Left err) -> HUnit.assertFailure $ show err
-        (Right _) -> return ()
+    HUnit.testCase "parseGrammar success" $ either HUnit.assertFailure (\_ -> return ()) $
+        runExcept $ Relapse.parseGrammar "a == 1"
 
-    , HUnit.testCase "parseGrammar failure" $
-    case runExcept $ Relapse.parseGrammar "{ a : 1 }" of
-        (Left err) -> return ()
-        (Right _) -> HUnit.assertFailure "expected error"
+    , HUnit.testCase "parseGrammar failure" $ either (\_ -> return ()) (\_ -> HUnit.assertFailure "expected error") $
+        runExcept $ Relapse.parseGrammar "{ a : 1 }" 
 
-    , HUnit.testCase "validate success" $
-    case runExcept $ Relapse.parseGrammar "a == 1" of
-        (Left err) -> HUnit.assertFailure $ "relapse parse error: " ++ show err
-        (Right refs) -> case Json.decodeJSON "{\"a\":1}" of
-            (Left err) -> HUnit.assertFailure $ "json parse error: " ++ show err
-            (Right tree) -> HUnit.assertBool "expected success" $ Relapse.validate refs tree
+    , HUnit.testCase "validate success" $ 
+        either HUnit.assertFailure (HUnit.assertBool "expected success") $ 
+        Relapse.validate <$> 
+            runExcept (Relapse.parseGrammar "a == 1") <*> 
+            Json.decodeJSON "{\"a\":1}"
 
     , HUnit.testCase "validate failure" $
-    case runExcept $ Relapse.parseGrammar "a == 1" of
-        (Left err) -> HUnit.assertFailure $ "relapse parse error: " ++ show err
-        (Right refs) -> case Json.decodeJSON "{\"a\":2}" of
-            (Left err) -> HUnit.assertFailure $ "json parse error: " ++ show err
-            (Right tree) -> HUnit.assertBool "expected failure" $ not $ Relapse.validate refs tree
+        either HUnit.assertFailure (HUnit.assertBool "expected failure" . not) $
+        Relapse.validate <$> 
+            runExcept (Relapse.parseGrammar "a == 1") <*> 
+            Json.decodeJSON "{\"a\":2}"
 
-    , HUnit.testCase "filter" $
-    case runExcept $ Relapse.parseGrammar "a == 1" of
-        (Left err) -> HUnit.assertFailure $ "relapse parse error: " ++ show err
-        (Right refs) -> case Json.decodeJSON "{\"a\":1}" of
-            (Left err) -> HUnit.assertFailure $ "json parse error: " ++ show err
-            (Right want) -> case Json.decodeJSON "{\"a\":2}" of
-                (Left err) -> HUnit.assertFailure $ "json parse error: " ++ show err
-                (Right other) -> case Relapse.filter refs [want, other] of
-                    [got] -> HUnit.assertEqual "expected the same tree" want got
-                    _ -> HUnit.assertFailure "expected a single tree"
+    , HUnit.testCase "filter" $ case do {
+        refs <- runExcept $ Relapse.parseGrammar "a == 1";
+        want <- Json.decodeJSON "{\"a\":1}";
+        other <- Json.decodeJSON "{\"a\":2}";
+        return (Relapse.filter refs [want, other], [want]);
+    } of
+        (Left err) -> HUnit.assertFailure err
+        (Right (got, want)) -> HUnit.assertEqual "expected the same tree" want got
+
     ]
