@@ -7,7 +7,7 @@ module Suite (
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as HUnit
 
-import System.Directory (getCurrentDirectory, listDirectory)
+import System.Directory (getCurrentDirectory, listDirectory, doesDirectoryExist)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 import Control.Monad.Except (Except(..), runExcept)
@@ -34,11 +34,15 @@ tests testSuiteCases =
 readTestCases :: IO [TestSuiteCase]
 readTestCases = do {
     path <- testPath;
-    jsondirs <- ls $ path </> "json";
-    xmldirs <- ls $ path </> "xml";
-    xmlTestCases <- mapM readXMLTest xmldirs;
-    jsonTestCases <- mapM readJsonTest jsondirs;
-    return $ jsonTestCases ++ xmlTestCases
+    exists <- doesDirectoryExist path;
+    if exists
+    then do {
+        jsondirs <- ls $ path </> "json";
+        xmldirs <- ls $ path </> "xml";
+        xmlTestCases <- mapM readXMLTest xmldirs;
+        jsonTestCases <- mapM readJsonTest jsondirs;
+        return $ jsonTestCases ++ xmlTestCases
+    } else return []
 }
 
 data TestSuiteCase = TestSuiteCase {
