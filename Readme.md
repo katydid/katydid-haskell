@@ -17,6 +17,8 @@ This includes:
 
 All JSON and XML tests from [the language agnostic test suite](https://github.com/katydid/testsuite) [passes].
 
+[Hackage](https://hackage.haskell.org/package/katydid-0.1.0.0).
+
 ## Example
 
 Validating a single structure can be done using the validate function:
