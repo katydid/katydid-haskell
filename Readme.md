@@ -1,5 +1,7 @@
 # Katydid
 
+[![Build Status](https://travis-ci.org/katydid/katydid-haskell.svg?branch=master)](https://travis-ci.org/katydid/katydid-haskell)
+
 A Haskell implementation of Katydid.
 
 This includes:
