@@ -28,3 +28,6 @@ doc:
 lint:
 	# -XNoPatternSynonyms is a temporary workaround for https://github.com/ndmitchell/hlint/issues/216
 	hlint -XNoPatternSynonyms .
+
+pkg:
+	stack sdist
