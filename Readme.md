@@ -33,14 +33,15 @@ class Tree a where
 
 Here is an example that validates a single JSON tree:
 ```haskell
-main = 
-  case Relapse.parseGrammar ".DragonsExist == true" of
-    (Left err) -> putStrLn $ "relapse parse error: " ++ show err
-    (Right refs) -> case Json.decodeJSON "{\"DragonsExist\": false}" of
-      (Left err) -> putStrLn $ "json parse error: " ++ show err
-      (Right tree) -> if (Relapse.validate refs tree)
-        then putStrLn "dragons exist"
+main = either 
+    (\err -> putStrLn $ "error:" ++ err) 
+    (\valid -> if valid 
+        then putStrLn "dragons exist" 
         else putStrLn "dragons are fictional"
+    ) $
+    Relapse.validate <$> 
+        runExcept (Relapse.parseGrammar ".DragonsExist == true") <*> 
+        Json.decodeJSON "{\"DragonsExist\": false}"
 ```
 
 ## Efficiency
