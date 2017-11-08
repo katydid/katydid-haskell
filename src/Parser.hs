@@ -92,7 +92,9 @@ uintCastLit :: CharParser () Int
 uintCastLit = string "uint(" *> _intLit <* char ')'
 
 _exponent :: CharParser () String
-_exponent = oneOf "eE" <::> opt (oneOf "+-") <++> many1 digit
+_exponent = oneOf "eE" <::> (
+    oneOf "+-" <::> many1 digit 
+    <|> many1 digit)
 
 _floatLit :: CharParser () Double
 _floatLit = do
@@ -100,7 +102,7 @@ _floatLit = do
     e <- _exponent 
         <|> ((string "." <|> empty) <++> 
             (_exponent 
-            <|> many1 digit <++> 
+            <|> many1 digit <++>
                 (_exponent
                 <|> empty)
             )
@@ -221,7 +223,7 @@ _function :: CharParser () ParsedExpr
 _function = newFunction <$> idLit <*> (char '(' *> sepBy (ws *> _expr <* ws) (char ',') <* char ')') >>= check
 
 _listType :: CharParser () String
-_listType = string "[]" <++> (
+_listType = char '[' <::> char ']' <::> (
     string "bool"
     <|> string "int"
     <|> string "uint"

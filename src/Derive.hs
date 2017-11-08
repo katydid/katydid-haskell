@@ -33,23 +33,23 @@ import IfExprs
 -- , where the resulting list of patterns are the child patterns,
 -- that need to be derived given the trees child values.
 calls :: Refs -> [Pattern] -> IfExprs
-calls refs ps = compileIfExprs refs $ concatMap (deriveCall refs) ps
+calls refs ps = compileIfExprs refs $ concatMap (\p -> deriveCall refs p []) ps
 
-deriveCall :: Refs -> Pattern -> [IfExpr]
-deriveCall _ Empty = []
-deriveCall _ ZAny = []
-deriveCall _ (Node v p) = [newIfExpr v p (Not ZAny)]
-deriveCall refs (Concat l r)
-    | nullable refs l = deriveCall refs l ++ deriveCall refs r
-    | otherwise = deriveCall refs l
-deriveCall refs (Or l r) = deriveCall refs l ++ deriveCall refs r
-deriveCall refs (And l r) = deriveCall refs l ++ deriveCall refs r
-deriveCall refs (Interleave l r) = deriveCall refs l ++ deriveCall refs r
-deriveCall refs (ZeroOrMore p) = deriveCall refs p
-deriveCall refs (Reference name) = deriveCall refs $ lookupRef refs name
-deriveCall refs (Not p) = deriveCall refs p
-deriveCall refs (Contains p) = deriveCall refs (Concat ZAny (Concat p ZAny))
-deriveCall refs (Optional p) = deriveCall refs (Or p Empty)
+deriveCall :: Refs -> Pattern -> [IfExpr]-> [IfExpr]
+deriveCall _ Empty res = res
+deriveCall _ ZAny res = res
+deriveCall _ (Node v p) res = (newIfExpr v p (Not ZAny)) : res
+deriveCall refs (Concat l r) res
+    | nullable refs l = deriveCall refs l (deriveCall refs r res)
+    | otherwise = deriveCall refs l res
+deriveCall refs (Or l r) res = deriveCall refs l (deriveCall refs r res)
+deriveCall refs (And l r) res = deriveCall refs l (deriveCall refs r res)
+deriveCall refs (Interleave l r) res = deriveCall refs l (deriveCall refs r res)
+deriveCall refs (ZeroOrMore p) res = deriveCall refs p res
+deriveCall refs (Reference name) res = deriveCall refs (lookupRef refs name) res
+deriveCall refs (Not p) res = deriveCall refs p res
+deriveCall refs (Contains p) res = deriveCall refs (Concat ZAny (Concat p ZAny)) res
+deriveCall refs (Optional p) res = deriveCall refs (Or p Empty) res
 
 -- |
 -- returns takes a list of patterns and list of bools.
