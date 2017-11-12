@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
+
 -- |
 -- This module describes the abstract tree that can be validated by Relapse.
 --
@@ -7,11 +9,14 @@ module Parsers (
     Tree(..), Label(..)
 ) where
 
+import Control.DeepSeq (NFData)
+import GHC.Generics (Generic)
+
 data Label
     = String String
     | Number Rational
     | Bool Bool
-    deriving (Show, Eq, Ord)
+    deriving (Show, Eq, Ord, Generic, NFData)
 
 class Tree a where
     getLabel :: a -> Label
