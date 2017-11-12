@@ -1,10 +1,13 @@
-.PHONY: run test setup
+.PHONY: run test setup bench
 
 test: 
 	stack test
 
 test-trace:
-	stack test --trace	
+	stack test --trace
+
+bench:
+	stack bench
 
 run:
 	stack build
