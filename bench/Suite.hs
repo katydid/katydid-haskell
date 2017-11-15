@@ -35,10 +35,11 @@ readBenches = do {
     if exists
     then do {
         jsondirs <- ls $ path </> "json";
-        xmldirs <- ls $ path </> "xml";
-        xmlBenches <- mapM readXMLBench xmldirs;
+        -- TODO create xml benches in testsuite
+        -- xmldirs <- ls $ path </> "xml";
+        -- xmlBenches <- mapM readXMLBench xmldirs;
         jsonBenches <- mapM readJsonBench jsondirs;
-        return $ filter (\(BenchSuiteCase _ g _) -> not (hasRecursion $ fromGrammar g)) (jsonBenches ++ xmlBenches)
+        return $ filter (\(BenchSuiteCase _ g _) -> not (hasRecursion $ fromGrammar g)) jsonBenches
     } else return []
 }
 
