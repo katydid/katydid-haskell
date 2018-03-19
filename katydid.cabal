@@ -1,5 +1,5 @@
 name:                katydid
-version:             0.2.0.0
+version:             0.2.0.1
 synopsis:            A haskell implementation of Katydid
 description:         
   A haskell implementation of Katydid
