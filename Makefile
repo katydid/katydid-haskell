@@ -34,3 +34,4 @@ lint:
 
 pkg:
 	stack sdist
+	echo "Now upload the created file to: https://hackage.haskell.org/upload"
