@@ -89,6 +89,7 @@ tests = T.testGroup "Parser" [
     success "expr bool var" expr "$bool" BoolVariable,
     success "expr bool const" expr "true" (Const True),
     success "expr ==" expr "== true" (BoolEqualFunc BoolVariable (Const True)),
+    success "expr *=" expr "*= \"a\"" (StringContainsFunc StringVariable (Const "a")),
     success "expr not" expr "not(true)" (NotFunc (Const True)),
     success "expr eq bool" expr "eq($bool, true)" (BoolEqualFunc BoolVariable (Const True)),
     success "expr eq int" expr "eq($int, 1)" (IntEqualFunc IntVariable (Const 1)),
@@ -131,6 +132,49 @@ tests = T.testGroup "Parser" [
     success "treenode" pattern "a:*" (Node (StringEqualFunc StringVariable (Const "a")) ZAny),
     success "any treenode" pattern "_:*" (Node (Const True) ZAny),
     success "treenode no colon" pattern "_[*,*]" (Node (Const True) (Concat ZAny ZAny)),
+
+    success "treenode with contains" pattern "a:*=\"b\"" (
+        Node (StringEqualFunc StringVariable (Const "a"))
+            $ Node (StringContainsFunc StringVariable (Const "b")) Empty),
+    success "anynode with contains" pattern "_:*=\"b\"" (
+        Node (Const True)
+            $ Node (StringContainsFunc StringVariable (Const "b")) Empty),
+    success "contains anynode with contains" pattern "._:*=\"b\"" (
+        Contains $ Node (Const True)
+            $ Node (StringContainsFunc StringVariable (Const "b")) Empty),
+    success "contains anynode with contains or" pattern "(._:*=\"b\"|*)" (
+        Or (Contains $ Node (Const True) $ Node (StringContainsFunc StringVariable (Const "b")) Empty)
+           ZAny
+    ),
+    -- (~=\"^([ \t\r\n\v\f])+$\")*
+    success "Page195E0AddrE0NameE0" pattern "Person:{Name:*;(Addr:*)?;(Email:*)*}" (
+        Node (StringEqualFunc StringVariable (Const "Person")) (
+            (Interleave
+                (Interleave
+                    (Node (StringEqualFunc StringVariable (Const "Name")) ZAny)
+                    (Optional $ Node (StringEqualFunc StringVariable (Const "Addr")) ZAny)
+                )
+                (ZeroOrMore (Node (StringEqualFunc StringVariable (Const "Email")) ZAny))
+            )
+        )
+    ),
+    success "whitespace regex" pattern "(~=\"^([ \t\r\n\v\f])+$\")*" (
+        ZeroOrMore $ Node (RegexFunc (Const "^([ \t\r\n\v\f])+$") StringVariable) Empty
+    ),
+    success "Page195E0AddrE0NameE0 with whitespace" pattern "Person:{Name:*;(Addr:*)?;(Email:*)*;(~=\"^([ \t\r\n\v\f])+$\")*}" (
+        Node (StringEqualFunc StringVariable (Const "Person")) (
+            (Interleave
+                (Interleave
+                    (Interleave
+                        (Node (StringEqualFunc StringVariable (Const "Name")) ZAny)
+                        (Optional $ Node (StringEqualFunc StringVariable (Const "Addr")) ZAny)
+                    )
+                    (ZeroOrMore (Node (StringEqualFunc StringVariable (Const "Email")) ZAny))
+                )
+                (ZeroOrMore $ Node (RegexFunc (Const "^([ \t\r\n\v\f])+$") StringVariable) Empty)
+            )
+        )
+    ),
 
     success "single pattern grammar" grammar "*" $ newRef "main" ZAny,
     success "single pattern decl" grammar "#main = *" $ newRef "main" ZAny,

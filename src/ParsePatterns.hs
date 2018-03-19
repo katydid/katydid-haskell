@@ -349,10 +349,12 @@ uBuiltIn kvs = do {
 -- newBuiltIn parsers a builtin function to a relapse expression.
 newBuiltIn :: String -> ParsedExpr -> Either String ParsedExpr
 newBuiltIn symbol constExpr = funcName symbol >>= (\name ->
-        if name /= "type" then
-            newFunction name [constToVar constExpr, constExpr]
-        else
+        if name == "type" then
             newFunction name [constExpr]
+        else if name == "regex" then
+            newFunction name [constExpr, constToVar constExpr]
+        else
+            newFunction name [constToVar constExpr, constExpr]
     )
 
 constToVar :: ParsedExpr -> ParsedExpr

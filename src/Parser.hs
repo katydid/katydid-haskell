@@ -350,9 +350,14 @@ _depthPattern :: CharParser () Pattern
 _depthPattern = _concatPattern <|> _interleavePattern <|> _containsPattern 
     <|> flip Node Empty <$> ( (string "->" *> expr ) <|> (_builtin >>= _mustBool) )
 
+newContains :: CharParser () ParsedExpr -> CharParser () Pattern
+newContains e = flip Node Empty <$> ((newBuiltIn "*=" <$> e) >>= check >>= _mustBool)
+
 pattern :: CharParser () Pattern
-pattern = _zanyPattern
-    <|> _parenPattern
+pattern = char '*' *> (
+        (char '=' *> (newContains (ws *> _expr)))
+        <|> return ZAny
+    ) <|> _parenPattern
     <|> _refPattern
     <|> try _emptyPattern
     <|> try _treenodePattern
