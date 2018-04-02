@@ -5,57 +5,189 @@
 --
 -- Finally it also contains some very simple pattern functions.
 module Patterns (
-    Pattern(..), 
-    Refs, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion,
-    nullable, unescapable
+    Pattern
+    , emptyPat, zanyPat, nodePat
+    , orPat, andPat, notPat 
+    , concatPat, interleavePat
+    , zeroOrMorePat, optionalPat
+    , containsPat, refPat
+    , Refs, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion
+    , nullable, unescapable
 ) where
 
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
+import Control.Monad.State (State, runState, lift, state)
 
 import Expr
 
--- |
--- Pattern recursively describes a Relapse Pattern.
-data Pattern
-    = Empty
+data PatternType = Empty
+    | Node
+    | Concat
+    | Or
+    | And
+    | ZeroOrMore
+    | Reference
+    | Not
     | ZAny
-    | Node (Expr Bool) Pattern
-    | Or Pattern Pattern
-    | And Pattern Pattern
-    | Not Pattern
-    | Concat Pattern Pattern
-    | Interleave Pattern Pattern
-    | ZeroOrMore Pattern
-    | Optional Pattern
-    | Contains Pattern
-    | Reference String
-    deriving (Eq, Ord, Show)
+    | Contains
+    | Optional
+    | Interleave
+    deriving (Show, Ord, Eq)
 
 -- |
--- The nullable function returns whether a pattern is nullable.
--- This means that the pattern matches the empty string.
-nullable :: Refs -> Pattern -> Bool
-nullable _ Empty = True
-nullable _ ZAny = True
-nullable _ Node{} = False
-nullable refs (Or l r) = nullable refs l || nullable refs r
-nullable refs (And l r) = nullable refs l && nullable refs r
-nullable refs (Not p) = not $ nullable refs p
-nullable refs (Concat l r) = nullable refs l && nullable refs r
-nullable refs (Interleave l r) = nullable refs l && nullable refs r
-nullable _ (ZeroOrMore _) = True
-nullable _ (Optional _) = True
-nullable refs (Contains p) = nullable refs p
-nullable refs (Reference name) = nullable refs $ lookupRef refs name
+-- Pattern recursively describes a Relapse Pattern.
+data Pattern = Pattern {
+    typ :: PatternType
+    , func :: Maybe (Expr Bool)
+    , patterns :: [Pattern]
+    , ref :: Maybe String
+    , hash :: Int
+    , nullable :: Bool 
+}
+
+instance Show Pattern where
+    show p = show (typ p) ++ "{" ++ show (patterns p) ++ "}"
+
+instance Ord Pattern where
+    compare = cmp
+
+instance Eq Pattern where
+    (==) a b = cmp a b == EQ
+
+(<>) :: Ordering -> Ordering -> Ordering
+(<>) EQ c = c
+(<>) c _ = c
+
+-- cmp is an efficient comparison function for patterns.
+-- It is very important that cmp is efficient, 
+-- because it is a bottleneck for simplification and smart construction of large queries.
+cmp :: Pattern -> Pattern -> Ordering
+cmp a b = compare (hash a) (hash b) <>
+    compare (typ a) (typ b) <>
+    compare (func a) (func b) <>
+    foldl (<>) EQ (zipWith cmp (patterns a) (patterns b)) <>
+    compare (ref a) (ref b)
+
+emptyPat :: Pattern
+emptyPat = Pattern {
+    typ = Empty
+    , func = Nothing
+    , patterns = []
+    , ref = Nothing
+    , hash = 3
+    , nullable = True
+}
+
+zanyPat :: Pattern
+zanyPat = Pattern {
+    typ = ZAny
+    , func = Nothing
+    , patterns = []
+    , ref = Nothing
+    , hash = 5
+    , nullable = True
+}
+
+notPat :: Pattern -> Pattern
+notPat p
+    | typ p == Not = patterns p !! 0
+    | otherwise = Pattern {
+        typ = Not
+        , func = Nothing
+        , patterns = [p]
+        , ref = Nothing
+        , hash = 31 * 7 + hash p
+        , nullable = not $ nullable p
+    }
+
+nodePat :: Expr Bool -> Pattern -> Pattern
+nodePat e p = 
+    case evalConst e of
+    (Just False) -> notPat zanyPat
+    _ -> Pattern {
+        typ = Node
+        , func = Just e
+        , patterns = [p]
+        , ref = Nothing
+        , hash = 31 * (11 + 31 * _hash (desc e)) + hash p
+        , nullable = False
+    }
+
+isNotZAny :: Pattern -> Bool
+isNotZAny p = typ p == Not && typ (head (patterns p)) == ZAny
+
+concatPat :: Pattern -> Pattern -> Pattern
+concatPat a b
+    | isNotZAny a = notPat zanyPat
+    | isNotZAny b = notPat zanyPat
+    | typ a == Empty = b
+    | typ b == Empty = a
+    | typ a == Concat = concatPat (patterns a !! 0) $ concatPat (patterns a !! 1) b
+    | typ a == ZAny && typ b == Concat && typ (patterns b !! 1) == ZAny = containsPat (patterns b !! 0)
+    | otherwise = Pattern {
+        typ = Concat
+        , func = Nothing
+        , patterns = [a, b]
+        , ref = Nothing
+        , hash = 31 * (13 + 31 * hash a) + hash b
+        , nullable = nullable a && nullable b
+    }
+
+containsPat :: Pattern -> Pattern
+containsPat p
+    | typ p == Empty = zanyPat
+    | typ p == ZAny = zanyPat
+    | isNotZAny p = p
+    | otherwise = Pattern {
+        typ = Contains
+        , func = Nothing
+        , patterns = [p]
+        , ref = Nothing
+        , hash = 31 * 17 + hash p
+        , nullable = nullable p
+    }
+
+optionalPat :: Pattern -> Pattern
+optionalPat p
+    | typ p == Empty = emptyPat
+    | typ p == Optional = p
+    | otherwise = Pattern {
+        typ = Optional
+        , func = Nothing
+        , patterns = [p]
+        , ref = Nothing
+        , hash = 31 * 19 + hash p
+        , nullable = True
+    }
+
+zeroOrMorePat :: Pattern -> Pattern
+zeroOrMorePat p
+    | typ p == ZeroOrMore = p
+    | otherwise = Pattern {
+        typ = ZeroOrMore
+        , func = Nothing
+        , patterns = [p]
+        , ref = Nothing
+        , hash = 31 * 23 + hash p
+        , nullable = True
+    }
+
+refPat :: String -> Pattern
+refPat n = Pattern {
+        typ = Reference
+        , func = Nothing
+        , patterns = []
+        , ref = Just n
+        , hash = 31 * 29 + hashString n
+        , nullable = True
+    }
 
 -- |
 -- unescapable is used for short circuiting.
 -- A part of the tree can be skipped if all patterns are unescapable.
 unescapable :: Pattern -> Bool
-unescapable ZAny = True
-unescapable (Not ZAny) = True
-unescapable _ = False
+unescapable p = typ p == ZAny || isNotZAny p
 
 -- |
 -- Refs is a map from reference name to pattern and describes a relapse grammar.
@@ -95,15 +227,22 @@ hasRecursion :: Refs -> Bool
 hasRecursion refs = hasRec refs (S.singleton "main") (lookupRef refs "main")
 
 hasRec :: Refs -> S.Set String -> Pattern -> Bool
-hasRec _ _ Empty = False
-hasRec _ _ ZAny = False
-hasRec _ _ Node{} = False
-hasRec refs set (Or l r) = hasRec refs set l || hasRec refs set r
-hasRec refs set (And l r) = hasRec refs set l || hasRec refs set r
-hasRec refs set (Not p) = hasRec refs set p
-hasRec refs set (Concat l r) = hasRec refs set l || (nullable refs l && hasRec refs set r)
-hasRec refs set (Interleave l r) = hasRec refs set l || hasRec refs set r
-hasRec _ _ (ZeroOrMore _) = False
-hasRec refs set (Optional p) = hasRec refs set p
-hasRec refs set (Contains p) = hasRec refs set p
-hasRec refs set (Reference name) = S.member name set || hasRec refs (S.insert name set) (lookupRef refs name)
+hasRec refs set p = let 
+    hRec = hasRec refs set
+    p0 = head $ patterns p
+    in case typ p of
+        Empty -> False
+        ZAny -> False
+        Node -> False
+        Or -> any hRec (patterns p)
+        And -> any hRec (patterns p)
+        Interleave -> any hRec (patterns p)
+        Not -> hRec p0
+        Concat -> hRec p0 || (nullable p0 && hRec (patterns p !! 1))
+        ZeroOrMore -> hRec p0
+        Optional -> hRec p0
+        Contains -> hRec p0
+        Reference -> 
+            let (Just name) = ref p
+            in S.member name set || 
+                hasRec refs (S.insert name set) (lookupRef refs name)

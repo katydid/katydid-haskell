@@ -4,7 +4,7 @@ module Expr (
     , Desc(..), mkDesc
     , AnyExpr(..), AnyFunc(..)
     , Expr(..), params, name, hasVar
-    , hashWithName
+    , hashWithName, hashString
     , evalConst, isConst
     , assertArgs0, assertArgs1, assertArgs2
     , mkBoolExpr, mkIntExpr, mkStringExpr, mkDoubleExpr, mkBytesExpr, mkUintExpr

@@ -14,42 +14,7 @@ import Patterns
 import Expr
 import Exprs.Logic
 
--- |
--- simplify simplifies an input pattern to an equivalent simpler pattern.
-simplify :: Refs -> Pattern -> Pattern
-simplify refs pattern =
-    let simp = simplify' refs
-    in case pattern of
-    Empty -> Empty
-    ZAny -> ZAny
-    (Node v p) -> simplifyNode v (simp p)
-    (Concat p1 p2) -> simplifyConcat (simp p1) (simp p2)
-    (Or p1 p2) -> simplifyOr refs (simp p1) (simp p2)
-    (And p1 p2) -> simplifyAnd refs (simp p1) (simp p2)
-    (ZeroOrMore p) -> simplifyZeroOrMore (simp p)
-    (Not p) -> simplifyNot (simp p)
-    (Optional p) -> simplifyOptional (simp p)
-    (Interleave p1 p2) -> simplifyInterleave (simp p1) (simp p2)
-    (Contains p) -> simplifyContains (simp p)
-    p@(Reference _) -> p
 
-simplify' :: Refs -> Pattern -> Pattern
-simplify' refs p = checkRef refs $ simplify refs p
-
-simplifyNode :: Expr Bool -> Pattern -> Pattern
-simplifyNode v p = case evalConst v of
-    (Just False) -> Not ZAny
-    _ -> Node v p
-
-simplifyConcat :: Pattern -> Pattern -> Pattern
-simplifyConcat (Not ZAny) _ = Not ZAny
-simplifyConcat _ (Not ZAny) = Not ZAny
-simplifyConcat (Concat p1 p2) p3 = 
-    simplifyConcat p1 (Concat p2 p3)
-simplifyConcat Empty p = p
-simplifyConcat p Empty = p
-simplifyConcat ZAny (Concat p ZAny) = Contains p
-simplifyConcat p1 p2 = Concat p1 p2
 
 simplifyOr :: Refs -> Pattern -> Pattern -> Pattern
 simplifyOr _ (Not ZAny) p = p
@@ -100,17 +65,7 @@ setOfAnds :: Pattern -> S.Set Pattern
 setOfAnds (And p1 p2) = setOfAnds p1 `S.union` setOfAnds p2
 setOfAnds p = S.singleton p
 
-simplifyZeroOrMore :: Pattern -> Pattern
-simplifyZeroOrMore (ZeroOrMore p) = ZeroOrMore p
-simplifyZeroOrMore p = ZeroOrMore p
 
-simplifyNot :: Pattern -> Pattern
-simplifyNot (Not p) = p
-simplifyNot p = Not p
-
-simplifyOptional :: Pattern -> Pattern
-simplifyOptional Empty = Empty
-simplifyOptional p = Optional p
 
 simplifyInterleave :: Pattern -> Pattern -> Pattern
 simplifyInterleave (Not ZAny) _ = Not ZAny
@@ -124,14 +79,6 @@ setOfInterleaves :: Pattern -> S.Set Pattern
 setOfInterleaves (Interleave p1 p2) = setOfInterleaves p1 `S.union` setOfInterleaves p2
 setOfInterleaves p = S.singleton p
 
-simplifyContains :: Pattern -> Pattern
-simplifyContains Empty = ZAny
-simplifyContains ZAny = ZAny
-simplifyContains (Not ZAny) = Not ZAny
-simplifyContains p = Contains p
 
-checkRef :: Refs -> Pattern -> Pattern
-checkRef refs p = case reverseLookupRef p refs of
-    Nothing     -> p
-    (Just k)    -> Reference k
+
 
