@@ -11,11 +11,16 @@ module Parsers (
 
 import Control.DeepSeq (NFData)
 import GHC.Generics (Generic)
+import Data.Text
+import Data.ByteString
 
 data Label
-    = String String
-    | Number Rational
+    = String Text
+    | Int Int
+    | Uint Word
+    | Double Double
     | Bool Bool
+    | Bytes ByteString
     deriving (Show, Eq, Ord, Generic, NFData)
 
 class Tree a where

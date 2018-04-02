@@ -11,11 +11,12 @@ import Text.Read (readMaybe)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree, XNode(..), blobToString, localPart)
 import Text.XML.HXT.Parser.XmlParsec (xread)
 import Data.Tree.NTree.TypeDefs (NTree(..))
+import qualified Data.Text as Text
 
 import Parsers
 
 instance Tree XmlTree where
-    getLabel (NTree n _ ) = either (String . ("XML Parse Error:" ++)) id (xmlLabel n)
+    getLabel (NTree n _ ) = either (String . Text.pack . ("XML Parse Error:" ++)) id (xmlLabel n)
     getChildren (NTree _ cs) = cs
 
 -- |
@@ -38,4 +39,4 @@ xmlLabel x@XError{} = fail $ "XError not supported" ++ show x
 
 -- TODO what about other leaf types
 parseLabel :: String -> Label
-parseLabel s = maybe (String s) (Number . toRational) (readMaybe s :: Maybe Int)
+parseLabel s = maybe (String (Text.pack s)) Int (readMaybe s :: Maybe Int)

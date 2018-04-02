@@ -7,9 +7,8 @@ module Exprs.Strings (
 ) where
 
 import Control.Monad.Except (Except, runExcept, throwError)
-import Data.List (isPrefixOf, isSuffixOf)
-import Data.Char (toLower, toUpper)
 import Text.Regex.TDFA ((=~))
+import Data.Text (Text, isPrefixOf, isSuffixOf, toLower, toUpper, unpack)
 
 import Expr
 
@@ -21,7 +20,7 @@ mkHasPrefixExpr es = do {
     return $ mkBoolExpr $ hasPrefixExpr s1 s2;
 }
 
-hasPrefixExpr :: Expr String -> Expr String -> Expr Bool
+hasPrefixExpr :: Expr Text -> Expr Text -> Expr Bool
 hasPrefixExpr e1 e2 = trimBool $ Expr {
     desc = mkDesc "hasPrefix" [desc e1, desc e2]
     , eval = \v -> isPrefixOf <$> eval e2 v <*> eval e1 v
@@ -35,7 +34,7 @@ mkHasSuffixExpr es = do {
     return $ mkBoolExpr $ hasSuffixExpr s1 s2;
 }
 
-hasSuffixExpr :: Expr String -> Expr String -> Expr Bool
+hasSuffixExpr :: Expr Text -> Expr Text -> Expr Bool
 hasSuffixExpr e1 e2 = trimBool $ Expr {
     desc = mkDesc "hasSuffix" [desc e1, desc e2]
     , eval = \v -> isSuffixOf <$> eval e2 v <*> eval e1 v
@@ -49,10 +48,14 @@ mkRegexExpr es = do {
     return $ mkBoolExpr $ regexExpr e s;
 }
 
-regexExpr :: Expr String -> Expr String -> Expr Bool
+regexExpr :: Expr Text -> Expr Text -> Expr Bool
 regexExpr e s = trimBool $ Expr {
     desc = mkDesc "regex" [desc e, desc s]
-    , eval = \v -> (=~) <$> eval s v <*> eval e v
+    , eval = \v -> do {
+        s1 <- eval s v;
+        e1 <- eval e v;
+        return $ (=~) (unpack s1) (unpack e1);
+    }
 }
 
 mkToLowerExpr :: [AnyExpr] -> Except String AnyExpr
@@ -62,10 +65,10 @@ mkToLowerExpr es = do {
     return $ mkStringExpr $ toLowerExpr s;
 }
 
-toLowerExpr :: Expr String -> Expr String
+toLowerExpr :: Expr Text -> Expr Text
 toLowerExpr e = trimString $ Expr {
     desc = mkDesc "toLower" [desc e]
-    , eval = \v -> map toLower <$> eval e v
+    , eval = \v -> toLower <$> eval e v
 }
 
 mkToUpperExpr :: [AnyExpr] -> Except String AnyExpr
@@ -75,8 +78,8 @@ mkToUpperExpr es = do {
     return $ mkStringExpr $ toUpperExpr s;
 }
 
-toUpperExpr :: Expr String -> Expr String
+toUpperExpr :: Expr Text -> Expr Text
 toUpperExpr e = trimString $ Expr {
     desc = mkDesc "toUpper" [desc e]
-    , eval = \v -> map toUpper <$> eval e v
+    , eval = \v -> toUpper <$> eval e v
 }

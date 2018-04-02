@@ -1,6 +1,5 @@
 module Expr (
     evalExpr
-    , Bytes, Uint
     , Desc(..), mkDesc
     , AnyExpr(..), AnyFunc(..)
     , Expr(..), params, name, hasVar
@@ -19,6 +18,8 @@ module Expr (
 import Data.Char (ord)
 import Control.Monad.Except (Except, runExcept, throwError)
 import Data.List (intercalate)
+import Data.Text (Text, unpack)
+import Data.ByteString (ByteString)
 
 import qualified Parsers
 
@@ -82,16 +83,16 @@ instance Ord AnyExpr where
 
 data AnyFunc = BoolFunc (Func Bool)
     | IntFunc (Func Int)
-    | StringFunc (Func String)
+    | StringFunc (Func Text)
     | DoubleFunc (Func Double)
-    | UintFunc (Func Uint)
-    | BytesFunc (Func Bytes)
+    | UintFunc (Func Word)
+    | BytesFunc (Func ByteString)
     | BoolsFunc (Func [Bool])
     | IntsFunc (Func [Int])
-    | StringsFunc (Func [String])
+    | StringsFunc (Func [Text])
     | DoublesFunc (Func [Double])
-    | UintsFunc (Func [Uint])
-    | ListOfBytesFunc (Func [Bytes])
+    | UintsFunc (Func [Word])
+    | ListOfBytesFunc (Func [ByteString])
 
 data Expr a = Expr {
     desc :: Desc
@@ -137,10 +138,10 @@ assertDouble :: AnyExpr -> Except String (Expr Double)
 assertDouble (AnyExpr desc (DoubleFunc eval)) = return $ Expr desc eval
 assertDouble (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type double"
 
-mkStringExpr :: Expr String -> AnyExpr
+mkStringExpr :: Expr Text -> AnyExpr
 mkStringExpr (Expr desc eval) = AnyExpr desc (StringFunc eval)
 
-assertString :: AnyExpr -> Except String (Expr String)
+assertString :: AnyExpr -> Except String (Expr Text)
 assertString (AnyExpr desc (StringFunc eval)) = return $ Expr desc eval
 assertString (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type string"
 
@@ -158,10 +159,10 @@ assertInts :: AnyExpr -> Except String (Expr [Int])
 assertInts (AnyExpr desc (IntsFunc eval)) = return $ Expr desc eval
 assertInts (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type ints"
 
-mkUintsExpr :: Expr [Uint] -> AnyExpr
+mkUintsExpr :: Expr [Word] -> AnyExpr
 mkUintsExpr (Expr desc eval) = AnyExpr desc (UintsFunc eval)
 
-assertUints :: AnyExpr -> Except String (Expr [Uint])
+assertUints :: AnyExpr -> Except String (Expr [Word])
 assertUints (AnyExpr desc (UintsFunc eval)) = return $ Expr desc eval
 assertUints (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type uints"
 
@@ -172,35 +173,31 @@ assertDoubles :: AnyExpr -> Except String (Expr [Double])
 assertDoubles (AnyExpr desc (DoublesFunc eval)) = return $ Expr desc eval
 assertDoubles (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type doubles"
 
-mkStringsExpr :: Expr [String] -> AnyExpr
+mkStringsExpr :: Expr [Text] -> AnyExpr
 mkStringsExpr (Expr desc eval) = AnyExpr desc (StringsFunc eval)
 
-assertStrings :: AnyExpr -> Except String (Expr [String])
+assertStrings :: AnyExpr -> Except String (Expr [Text])
 assertStrings (AnyExpr desc (StringsFunc eval)) = return $ Expr desc eval
 assertStrings (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type strings"
 
-mkListOfBytesExpr :: Expr [Bytes] -> AnyExpr
+mkListOfBytesExpr :: Expr [ByteString] -> AnyExpr
 mkListOfBytesExpr (Expr desc eval) = AnyExpr desc (ListOfBytesFunc eval)
 
-assertListOfBytes :: AnyExpr -> Except String (Expr [Bytes])
+assertListOfBytes :: AnyExpr -> Except String (Expr [ByteString])
 assertListOfBytes (AnyExpr desc (ListOfBytesFunc eval)) = return $ Expr desc eval
 assertListOfBytes (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bytes"
 
-type Uint = Int
-
-mkUintExpr :: Expr Uint -> AnyExpr
+mkUintExpr :: Expr Word -> AnyExpr
 mkUintExpr (Expr desc eval) = AnyExpr desc (UintFunc eval)
 
-assertUint :: AnyExpr -> Except String (Expr Uint)
+assertUint :: AnyExpr -> Except String (Expr Word)
 assertUint (AnyExpr desc (UintFunc eval)) = return $ Expr desc eval
 assertUint (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type uint"
 
-type Bytes = String
-
-mkBytesExpr :: Expr Bytes -> AnyExpr
+mkBytesExpr :: Expr ByteString -> AnyExpr
 mkBytesExpr (Expr desc eval) = AnyExpr desc (BytesFunc eval)
 
-assertBytes :: AnyExpr -> Except String (Expr Bytes)
+assertBytes :: AnyExpr -> Except String (Expr ByteString)
 assertBytes (AnyExpr desc (BytesFunc eval)) = return $ Expr desc eval
 assertBytes (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bytes"
 
@@ -229,7 +226,7 @@ hashList :: Int -> [Int] -> Int
 hashList = foldl (\acc h -> 31*acc + h)
 
 noLabel :: Parsers.Label
-noLabel = Parsers.String "not a variable"
+noLabel = Parsers.Bool False
 
 evalConst :: Expr a -> Maybe a
 evalConst e = if hasVar e
@@ -284,36 +281,36 @@ doubleExpr d = Expr {
     , eval = const $ return d
 }
 
-uintExpr :: Uint -> Expr Uint
+uintExpr :: Word -> Expr Word
 uintExpr i = Expr {
     desc = Desc {
         _name = "uint"
         , _toStr = show i
-        , _hash = i
+        , _hash = hashString (show i)
         , _params = []
         , _hasVar = False
     }
     , eval = const $ return i
 }
 
-stringExpr :: String -> Expr String
+stringExpr :: Text -> Expr Text
 stringExpr s = Expr {
     desc = Desc {
         _name = "string"
         , _toStr = show s
-        , _hash = hashString s
+        , _hash = hashString (unpack s)
         , _params = []
         , _hasVar = False
     }
     , eval = const $ return s
 }
 
-bytesExpr :: Bytes -> Expr Bytes
+bytesExpr :: ByteString -> Expr ByteString
 bytesExpr b = Expr {
     desc = Desc {
         _name = "bytes"
-        , _toStr = "[]byte{" ++ b ++ "}"
-        , _hash = hashString b
+        , _toStr = "[]byte{" ++ show b ++ "}"
+        , _hash = hashString (show b)
         , _params = []
         , _hasVar = False
     }
@@ -334,14 +331,14 @@ trimInt e = if hasVar e
         (Left _) -> e
         (Right v) -> intExpr v
 
-trimUint :: Expr Uint -> Expr Uint
+trimUint :: Expr Word -> Expr Word
 trimUint e = if hasVar e 
     then e
     else case runExcept $ eval e noLabel of
         (Left _) -> e
         (Right v) -> uintExpr v
 
-trimString :: Expr String -> Expr String
+trimString :: Expr Text -> Expr Text
 trimString e = if hasVar e 
     then e
     else case runExcept $ eval e noLabel of
@@ -355,7 +352,7 @@ trimDouble e = if hasVar e
         (Left _) -> e
         (Right v) -> doubleExpr v
 
-trimBytes :: Expr Bytes -> Expr Bytes
+trimBytes :: Expr ByteString -> Expr ByteString
 trimBytes e = if hasVar e 
     then e
     else case runExcept $ eval e noLabel of
@@ -368,16 +365,16 @@ boolsExpr = seqExprs "[]bool"
 intsExpr :: [Expr Int] -> Expr [Int]
 intsExpr = seqExprs "[]int"
 
-stringsExpr :: [Expr String] -> Expr [String]
+stringsExpr :: [Expr Text] -> Expr [Text]
 stringsExpr = seqExprs "[]string"
 
 doublesExpr :: [Expr Double] -> Expr [Double]
 doublesExpr = seqExprs "[]double"
 
-listOfBytesExpr :: [Expr Bytes] -> Expr [Bytes]
+listOfBytesExpr :: [Expr ByteString] -> Expr [ByteString]
 listOfBytesExpr = seqExprs "[][]byte"
 
-uintsExpr :: [Expr Uint] -> Expr [Uint]
+uintsExpr :: [Expr Word] -> Expr [Word]
 uintsExpr = seqExprs "[]uint"
 
 seqExprs :: String -> [Expr a] -> Expr [a]
