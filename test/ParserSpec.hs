@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | 
 -- This module ParserSpec tests the Parser module.
 module ParserSpec (

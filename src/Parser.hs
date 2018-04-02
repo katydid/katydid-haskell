@@ -14,6 +14,8 @@ import Text.ParserCombinators.Parsec
 import Numeric (readDec, readOct, readHex, readFloat)
 import Data.Char (chr)
 import Control.Monad.Except (Except, runExcept, throwError)
+import qualified Data.Text as Text
+import qualified Data.ByteString.Char8 as ByteString
 
 import Expr
 import Exprs
@@ -103,8 +105,16 @@ intLit = string "int(" *> _signedIntLit <* char ')'
     <|> _signedIntLit
     <?> "int_lit"
 
-uintCastLit :: CharParser () Int
-uintCastLit = string "uint(" *> _intLit <* char ')'
+uintLit :: CharParser () Word
+uintLit = do {
+    i <- intLit;
+    if i < 0
+        then fail "negative uint" 
+        else return $ fromIntegral i;
+}
+
+uintCastLit :: CharParser () Word
+uintCastLit = string "uint(" *> uintLit <* char ')'
 
 _exponent :: CharParser () String
 _exponent = oneOf "eE" <::> (
@@ -203,8 +213,8 @@ _literal = mkBoolExpr . boolExpr <$> bool
     <|> mkIntExpr . intExpr <$> intLit
     <|> mkUintExpr . uintExpr <$> uintCastLit
     <|> mkDoubleExpr . doubleExpr <$> doubleCastLit
-    <|> mkStringExpr . stringExpr <$> stringLit
-    <|> mkBytesExpr . bytesExpr <$> bytesCastLit
+    <|> mkStringExpr . stringExpr . Text.pack <$> stringLit
+    <|> mkBytesExpr . bytesExpr . ByteString.pack <$> bytesCastLit
 
 _terminal :: CharParser () AnyExpr
 _terminal = (char '$' *> (
@@ -267,7 +277,10 @@ expr :: MkFunc -> CharParser () (Expr Bool)
 expr mkFunc = (try _terminal <|> _builtin mkFunc <|> _function mkFunc) >>= _mustBool
 
 _nameString :: CharParser () (Expr Bool)
-_nameString = (mkBuiltIn "==" <$> (_literal <|> (mkStringExpr . stringExpr <$> idLit))) >>= check >>= _mustBool
+_nameString = (mkBuiltIn "==" <$> 
+    (_literal <|> 
+    (mkStringExpr . stringExpr . Text.pack <$> idLit))) 
+    >>= check >>= _mustBool
 
 sepBy2 :: CharParser () a -> String -> CharParser () [a]
 sepBy2 p sep = do {

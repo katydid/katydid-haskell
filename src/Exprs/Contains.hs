@@ -6,6 +6,7 @@ module Exprs.Contains (
 
 import Control.Monad.Except (Except, runExcept, throwError)
 import Data.List (isInfixOf)
+import qualified Data.Text as Text
 
 import Expr
 
@@ -19,13 +20,13 @@ mkContainsExpr es = do {
     (AnyExpr _ (UintsFunc _)) -> mkContainsExpr' <$> assertUint e1 <*> assertUints e2
 }
 
-mkContainsStringExpr' :: Expr String -> Expr String -> AnyExpr
+mkContainsStringExpr' :: Expr Text.Text -> Expr Text.Text -> AnyExpr
 mkContainsStringExpr' e f = mkBoolExpr $ containsStringExpr e f
 
-containsStringExpr :: Expr String -> Expr String -> Expr Bool
+containsStringExpr :: Expr Text.Text -> Expr Text.Text -> Expr Bool
 containsStringExpr s sub = trimBool $ Expr {
     desc = mkDesc "contains" [desc s, desc sub]
-    , eval = \v -> isInfixOf <$> eval sub v <*> eval s v
+    , eval = \v -> Text.isInfixOf <$> eval sub v <*> eval s v
 }
 
 mkContainsExpr' :: (Eq a) => Expr a -> Expr [a] -> AnyExpr

@@ -9,6 +9,8 @@ module Exprs.Var (
 ) where
 
 import Control.Monad.Except (throwError)
+import Data.Text (Text)
+import Data.ByteString (ByteString)
 
 import qualified Parsers
 import Expr
@@ -47,11 +49,11 @@ varIntExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Number r) -> return $ truncate r
+        (Parsers.Int i) -> return i
         _ -> throwError "not an int"
 }
 
-varUintExpr :: Expr Uint
+varUintExpr :: Expr Word
 varUintExpr = Expr {
     desc = Desc {
         _name = "$uint"
@@ -61,7 +63,7 @@ varUintExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Number r) -> return $ truncate r
+        (Parsers.Uint u) -> return u
         _ -> throwError "not a uint"
 }
 
@@ -75,11 +77,11 @@ varDoubleExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Number r) -> return $ fromRational r
+        (Parsers.Double d) -> return d
         _ -> throwError "not a double"
 }
 
-varStringExpr :: Expr String
+varStringExpr :: Expr Text
 varStringExpr = Expr {
     desc = Desc {
         _name = "$string"
@@ -89,11 +91,11 @@ varStringExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.String s) -> return $ s
+        (Parsers.String s) -> return s
         _ -> throwError "not a string"
 }
 
-varBytesExpr :: Expr Bytes
+varBytesExpr :: Expr ByteString
 varBytesExpr = Expr {
     desc = Desc {
         _name = "$[]byte"
@@ -103,6 +105,6 @@ varBytesExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.String s) -> return $ s
+        (Parsers.Bytes b) -> return b
         _ -> throwError "not bytes"
 }
