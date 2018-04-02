@@ -5,7 +5,7 @@ module Expr (
     , AnyExpr(..), AnyFunc(..)
     , Expr(..), params, name, hasVar
     , hashWithName
-    , evalConst
+    , evalConst, isConst
     , assertArgs0, assertArgs1, assertArgs2
     , mkBoolExpr, mkIntExpr, mkStringExpr, mkDoubleExpr, mkBytesExpr, mkUintExpr
     , assertBool, assertInt, assertString, assertDouble, assertBytes, assertUint
@@ -238,10 +238,20 @@ evalConst e = if hasVar e
         (Left _) -> Nothing
         (Right v) -> Just v
 
+isConst :: Desc -> Bool
+isConst d = length (_params d) /= 0 && case _name d of
+    "bool" -> True
+    "int" -> True
+    "uint" -> True
+    "double" -> True
+    "string" -> True
+    "[]byte" -> True
+    _ -> False
+
 boolExpr :: Bool -> Expr Bool 
 boolExpr b = Expr {
     desc = Desc {
-        _name = if b then "true" else "false"
+        _name = "bool"
         , _toStr = if b then "true" else "false"
         , _hash = if b then 3 else 5
         , _params = []

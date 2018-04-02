@@ -5,12 +5,23 @@ module Exprs.Var (
     , varDoubleExpr
     , varStringExpr
     , varBytesExpr
+    , isVar
 ) where
 
-import Control.Monad.Except (Except, runExcept, throwError)
+import Control.Monad.Except (throwError)
 
 import qualified Parsers
 import Expr
+
+isVar :: Desc -> Bool
+isVar d = length (_params d) == 0 && case _name d of
+    "$bool" -> True
+    "$int" -> True
+    "$uint" -> True
+    "$double" -> True
+    "$string" -> True
+    "$[]byte" -> True
+    _ -> False
 
 varBoolExpr :: Expr Bool
 varBoolExpr = Expr {
@@ -85,9 +96,9 @@ varStringExpr = Expr {
 varBytesExpr :: Expr Bytes
 varBytesExpr = Expr {
     desc = Desc {
-        _name = "$bytes"
-        , _toStr = "$bytes"
-        , _hash = hashWithName "$bytes" []
+        _name = "$[]byte"
+        , _toStr = "$[]byte"
+        , _hash = hashWithName "$[]byte" []
         , _params = []
         , _hasVar = True
     }

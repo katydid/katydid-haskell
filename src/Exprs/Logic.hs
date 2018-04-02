@@ -7,6 +7,7 @@ module Exprs.Logic (
 import Control.Monad.Except (Except, runExcept, throwError)
 
 import Expr
+import Exprs.Var
 
 mkNotExpr :: [AnyExpr] -> Except String AnyExpr
 mkNotExpr es = do {
@@ -56,72 +57,36 @@ andExpr a b = case (evalConst a, evalConst b) of
     (_, Just True) -> a
     _ -> andExpr' a b
 
--- TODO: more simplification rules for AND
--- simplifyAndFunc v1@(StringEqualFunc s1 s2) (StringEqualFunc s1' s2') = 
---     case (s1, s2, s1', s2') of
---     (Const c1, StringVariable, Const c2, StringVariable) -> if c1 == c2 then v1 else Const False
---     (Const c1, StringVariable, StringVariable, Const c2) -> if c1 == c2 then v1 else Const False
---     (StringVariable, Const c1, Const c2, StringVariable) -> if c1 == c2 then v1 else Const False
---     (StringVariable, Const c1, StringVariable, Const c2) -> if c1 == c2 then v1 else Const False
--- simplifyAndFunc v1@(StringEqualFunc s1 s2) (StringNotEqualFunc s1' s2') = 
---     case (s1, s2, s1', s2') of
---     (Const c1, StringVariable, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
---     (Const c1, StringVariable, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
---     (StringVariable, Const c1, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
---     (StringVariable, Const c1, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
--- simplifyAndFunc v1@(StringNotEqualFunc s1 s2) (StringEqualFunc s1' s2') = 
---     case (s1, s2, s1', s2') of
---     (Const c1, StringVariable, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
---     (Const c1, StringVariable, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
---     (StringVariable, Const c1, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
---     (StringVariable, Const c1, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
--- simplifyAndFunc v1@(IntEqualFunc s1 s2) (IntEqualFunc s1' s2') = 
---     case (s1, s2, s1', s2') of
---     (Const c1, IntVariable, Const c2, IntVariable) -> if c1 == c2 then v1 else Const False
---     (Const c1, IntVariable, IntVariable, Const c2) -> if c1 == c2 then v1 else Const False
---     (IntVariable, Const c1, Const c2, IntVariable) -> if c1 == c2 then v1 else Const False
---     (IntVariable, Const c1, IntVariable, Const c2) -> if c1 == c2 then v1 else Const False
--- simplifyAndFunc v1@(IntEqualFunc s1 s2) (IntNotEqualFunc s1' s2') = 
---     case (s1, s2, s1', s2') of
---     (Const c1, IntVariable, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
---     (Const c1, IntVariable, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
---     (IntVariable, Const c1, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
---     (IntVariable, Const c1, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
--- simplifyAndFunc v1@(IntNotEqualFunc s1 s2) (IntEqualFunc s1' s2') = 
---     case (s1, s2, s1', s2') of
---     (Const c1, IntVariable, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
---     (Const c1, IntVariable, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
---     (IntVariable, Const c1, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
---     (IntVariable, Const c1, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
--- simplifyAndFunc v1@(UintEqualFunc s1 s2) (UintEqualFunc s1' s2') = 
---     case (s1, s2, s1', s2') of
---     (Const c1, UintVariable, Const c2, UintVariable) -> if c1 == c2 then v1 else Const False
---     (Const c1, UintVariable, UintVariable, Const c2) -> if c1 == c2 then v1 else Const False
---     (UintVariable, Const c1, Const c2, UintVariable) -> if c1 == c2 then v1 else Const False
---     (UintVariable, Const c1, UintVariable, Const c2) -> if c1 == c2 then v1 else Const False
--- simplifyAndFunc v1@(UintEqualFunc s1 s2) (UintNotEqualFunc s1' s2') = 
---     case (s1, s2, s1', s2') of
---     (Const c1, UintVariable, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
---     (Const c1, UintVariable, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
---     (UintVariable, Const c1, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
---     (UintVariable, Const c1, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
--- simplifyAndFunc v1@(UintNotEqualFunc s1 s2) (UintEqualFunc s1' s2') = 
---     case (s1, s2, s1', s2') of
---     (Const c1, UintVariable, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
---     (Const c1, UintVariable, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
---     (UintVariable, Const c1, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
---     (UintVariable, Const c1, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-
 -- andExpr' creates an `and` expression, but assumes that both expressions have a var.
 andExpr' :: Expr Bool -> Expr Bool -> Expr Bool
 andExpr' a b
     | a == b = a
     | name a == "not" && head (params a) == desc b = (boolExpr False)
     | name b == "not" && head (params b) == desc a = (boolExpr False)
-    | otherwise = Expr {
-        desc = mkDesc "and" [desc a, desc b]
-        , eval = \v -> (&&) <$> eval a v <*> eval b v
-    }
+    | name a == "eq" && name b == "eq" = case (varAndConst a, varAndConst b) of
+        (Just ca, Just cb) -> if ca == cb then a else boolExpr False
+        _ -> defaultAnd a b
+    | name a == "eq" && name b == "ne" = case (varAndConst a, varAndConst b) of
+        (Just ca, Just cb) -> if ca == cb then boolExpr False else a
+        _ -> defaultAnd a b
+    | name a == "ne" && name b == "eq" = case (varAndConst a, varAndConst b) of
+        (Just ca, Just cb) -> if ca == cb then boolExpr False else b
+        _ -> defaultAnd a b
+    | otherwise = defaultAnd a b
+
+defaultAnd :: Expr Bool -> Expr Bool -> Expr Bool
+defaultAnd a b = Expr {
+    desc = mkDesc "and" [desc a, desc b]
+    , eval = \v -> (&&) <$> eval a v <*> eval b v
+}
+
+varAndConst :: Expr Bool -> Maybe Desc
+varAndConst e = let ps = params e
+    in if length ps /= 2 then Nothing
+    else let (a:b:[]) = ps in
+        if isVar a && isConst b then Just b
+        else if isVar b && isConst a then Just a
+        else Nothing
 
 mkOrExpr :: [AnyExpr] -> Except String AnyExpr
 mkOrExpr es = do {
