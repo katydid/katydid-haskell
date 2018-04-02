@@ -99,7 +99,7 @@ deriveReturn refs (Not p) ns =
 deriveReturn refs (Contains p) ns = deriveReturn refs (Concat ZAny (Concat p ZAny)) ns
 deriveReturn refs (Optional p) ns = deriveReturn refs (Or p Empty) ns
 
-onePattern :: Either ValueErr [Pattern] -> Either String Pattern
+onePattern :: Either String [Pattern] -> Either String Pattern
 onePattern (Right [r]) = return r
 onePattern (Left e) = throwError $ show e
 onePattern (Right rs) = throwError $ "Number of patterns is not one, but " ++ show rs
@@ -109,7 +109,7 @@ onePattern (Right rs) = throwError $ "Number of patterns is not one, but " ++ sh
 derive :: Tree t => Refs -> [t] -> Except String Pattern
 derive g ts = mapExcept onePattern $ foldlM (deriv g) [lookupRef g "main"] ts
 
-deriv :: Tree t => Refs -> [Pattern] -> t -> Except ValueErr [Pattern]
+deriv :: Tree t => Refs -> [Pattern] -> t -> Except String [Pattern]
 deriv refs ps tree =
     if all unescapable ps then return ps else
     let ifs = calls refs ps
@@ -127,7 +127,7 @@ deriv refs ps tree =
 zipderive :: Tree t => Refs -> [t] -> Except String Pattern
 zipderive g ts = mapExcept onePattern $ foldlM (zipderiv g) [lookupRef g "main"] ts
 
-zipderiv :: Tree t => Refs -> [Pattern] -> t -> Except ValueErr [Pattern]
+zipderiv :: Tree t => Refs -> [Pattern] -> t -> Except String [Pattern]
 zipderiv refs ps tree =
     if all unescapable ps then return ps else
     let ifs = calls refs ps

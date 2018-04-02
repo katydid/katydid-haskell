@@ -11,6 +11,14 @@ import Text.ParserCombinators.Parsec (CharParser, parse, eof)
 
 import Parser
 import Expr
+import Exprs.Compare
+import Exprs.Contains
+import Exprs.Elem
+import Exprs.Length
+import Exprs.Logic
+import Exprs.Strings
+import Exprs.Type
+import Exprs.Var
 import Patterns
 
 success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> T.TestTree
@@ -86,22 +94,22 @@ tests = T.testGroup "Parser" [
     success "id with underscore" idLit "abc_123" "abc_123",
     failure "id starts with number" idLit "123abc",
 
-    success "expr bool var" expr "$bool" BoolVariable,
-    success "expr bool const" expr "true" (Const True),
-    success "expr ==" expr "== true" (BoolEqualFunc BoolVariable (Const True)),
-    success "expr *=" expr "*= \"a\"" (StringContainsFunc StringVariable (Const "a")),
-    success "expr not" expr "not(true)" (NotFunc (Const True)),
-    success "expr eq bool" expr "eq($bool, true)" (BoolEqualFunc BoolVariable (Const True)),
-    success "expr eq int" expr "eq($int, 1)" (IntEqualFunc IntVariable (Const 1)),
+    success "expr bool var" expr "$bool" varBoolExpr,
+    success "expr bool const" expr "true" (boolExpr True),
+    success "expr ==" expr "== true" (eqExpr varBoolExpr (boolExpr True)),
+    success "expr *=" expr "*= \"a\"" (containsStringExpr varStringExpr (stringExpr "a")),
+    success "expr not" expr "not(true)" (notExpr (boolExpr True)),
+    success "expr eq bool" expr "eq($bool, true)" (eqExpr varBoolExpr (boolExpr True)),
+    success "expr eq int" expr "eq($int, 1)" (eqExpr varIntExpr (intExpr 1)),
     failure "expr eq type mismatch" expr "eq($bool, 1)",
-    success "expr list" expr "eq($int, length([]int{1,2}))" (IntEqualFunc IntVariable (IntListLengthFunc [Const 1, Const 2])),
+    success "expr list" expr "eq($int, length([]int{1,2}))" (eqExpr varIntExpr (lengthListExpr $ intsExpr [intExpr 1, intExpr 2])),
     
-    success "name bool" nameExpr "true" (BoolEqualFunc BoolVariable (Const True)),
-    success "name id" nameExpr "a" (StringEqualFunc StringVariable (Const "a")),
-    success "name string" nameExpr "\"a\"" (StringEqualFunc StringVariable (Const "a")),
-    success "name not" nameExpr "!(a)" (NotFunc (StringEqualFunc StringVariable (Const "a"))),
-    success "name any" nameExpr "_" (Const True),
-    success "name or" nameExpr "(a|b)" (OrFunc (StringEqualFunc StringVariable (Const "a")) (StringEqualFunc StringVariable (Const "b"))),
+    success "name bool" nameExpr "true" (eqExpr varBoolExpr (boolExpr True)),
+    success "name id" nameExpr "a" (eqExpr varStringExpr (stringExpr "a")),
+    success "name string" nameExpr "\"a\"" (eqExpr varStringExpr (stringExpr "a")),
+    success "name not" nameExpr "!(a)" (notExpr (eqExpr varStringExpr (stringExpr "a"))),
+    success "name any" nameExpr "_" (boolExpr True),
+    success "name or" nameExpr "(a|b)" (orExpr (eqExpr varStringExpr (stringExpr "a")) (eqExpr varStringExpr (stringExpr "b"))),
     failure "name grouping" nameExpr "((a))",
 
     success "empty" pattern "<empty>" Empty,
@@ -127,51 +135,51 @@ tests = T.testGroup "Parser" [
     failure "empty interleave" pattern "{}",
     failure "single interleave" pattern "{*}",
     success "contains" pattern ".*" (Contains ZAny),
-    success "leaf builtin" pattern "== 1" (Node (IntEqualFunc IntVariable (Const 1)) Empty),
-    success "leaf function" pattern "->eq($int, 1)" (Node (IntEqualFunc IntVariable (Const 1)) Empty),
-    success "treenode" pattern "a:*" (Node (StringEqualFunc StringVariable (Const "a")) ZAny),
-    success "any treenode" pattern "_:*" (Node (Const True) ZAny),
-    success "treenode no colon" pattern "_[*,*]" (Node (Const True) (Concat ZAny ZAny)),
+    success "leaf builtin" pattern "== 1" (Node (eqExpr varIntExpr (intExpr 1)) Empty),
+    success "leaf function" pattern "->eq($int, 1)" (Node (eqExpr varIntExpr (intExpr 1)) Empty),
+    success "treenode" pattern "a:*" (Node (eqExpr varStringExpr (stringExpr "a")) ZAny),
+    success "any treenode" pattern "_:*" (Node (boolExpr True) ZAny),
+    success "treenode no colon" pattern "_[*,*]" (Node (boolExpr True) (Concat ZAny ZAny)),
 
     success "treenode with contains" pattern "a:*=\"b\"" (
-        Node (StringEqualFunc StringVariable (Const "a"))
-            $ Node (StringContainsFunc StringVariable (Const "b")) Empty),
+        Node (eqExpr varStringExpr (stringExpr "a"))
+            $ Node (containsStringExpr varStringExpr (stringExpr "b")) Empty),
     success "anynode with contains" pattern "_:*=\"b\"" (
-        Node (Const True)
-            $ Node (StringContainsFunc StringVariable (Const "b")) Empty),
+        Node (boolExpr True)
+            $ Node (containsStringExpr varStringExpr (stringExpr "b")) Empty),
     success "contains anynode with contains" pattern "._:*=\"b\"" (
-        Contains $ Node (Const True)
-            $ Node (StringContainsFunc StringVariable (Const "b")) Empty),
+        Contains $ Node (boolExpr True)
+            $ Node (containsStringExpr varStringExpr (stringExpr "b")) Empty),
     success "contains anynode with contains or" pattern "(._:*=\"b\"|*)" (
-        Or (Contains $ Node (Const True) $ Node (StringContainsFunc StringVariable (Const "b")) Empty)
+        Or (Contains $ Node (boolExpr True) $ Node (containsStringExpr varStringExpr (stringExpr "b")) Empty)
            ZAny
     ),
     -- (~=\"^([ \t\r\n\v\f])+$\")*
     success "Page195E0AddrE0NameE0" pattern "Person:{Name:*;(Addr:*)?;(Email:*)*}" (
-        Node (StringEqualFunc StringVariable (Const "Person")) (
+        Node (eqExpr varStringExpr (stringExpr "Person")) (
             (Interleave
                 (Interleave
-                    (Node (StringEqualFunc StringVariable (Const "Name")) ZAny)
-                    (Optional $ Node (StringEqualFunc StringVariable (Const "Addr")) ZAny)
+                    (Node (eqExpr varStringExpr (stringExpr "Name")) ZAny)
+                    (Optional $ Node (eqExpr varStringExpr (stringExpr "Addr")) ZAny)
                 )
-                (ZeroOrMore (Node (StringEqualFunc StringVariable (Const "Email")) ZAny))
+                (ZeroOrMore (Node (eqExpr varStringExpr (stringExpr "Email")) ZAny))
             )
         )
     ),
     success "whitespace regex" pattern "(~=\"^([ \t\r\n\v\f])+$\")*" (
-        ZeroOrMore $ Node (RegexFunc (Const "^([ \t\r\n\v\f])+$") StringVariable) Empty
+        ZeroOrMore $ Node (regexExpr (stringExpr "^([ \t\r\n\v\f])+$") varStringExpr) Empty
     ),
     success "Page195E0AddrE0NameE0 with whitespace" pattern "Person:{Name:*;(Addr:*)?;(Email:*)*;(~=\"^([ \t\r\n\v\f])+$\")*}" (
-        Node (StringEqualFunc StringVariable (Const "Person")) (
+        Node (eqExpr varStringExpr (stringExpr "Person")) (
             (Interleave
                 (Interleave
                     (Interleave
-                        (Node (StringEqualFunc StringVariable (Const "Name")) ZAny)
-                        (Optional $ Node (StringEqualFunc StringVariable (Const "Addr")) ZAny)
+                        (Node (eqExpr varStringExpr (stringExpr "Name")) ZAny)
+                        (Optional $ Node (eqExpr varStringExpr (stringExpr "Addr")) ZAny)
                     )
-                    (ZeroOrMore (Node (StringEqualFunc StringVariable (Const "Email")) ZAny))
+                    (ZeroOrMore (Node (eqExpr varStringExpr (stringExpr "Email")) ZAny))
                 )
-                (ZeroOrMore $ Node (RegexFunc (Const "^([ \t\r\n\v\f])+$") StringVariable) Empty)
+                (ZeroOrMore $ Node (regexExpr (stringExpr "^([ \t\r\n\v\f])+$") varStringExpr) Empty)
             )
         )
     ),
@@ -183,12 +191,12 @@ tests = T.testGroup "Parser" [
     success "one pattern and one pattern decl" grammar "* #a = *" $ newRef "main" ZAny `union` newRef "a" ZAny,
     success "one pattern and two pattern decls" grammar "* #a = * #b = *" $ newRef "main" ZAny `union` newRef "a" ZAny `union` newRef "b" ZAny,
 
-    success "not pattern, not name and != conflicts without not enough lookahead" grammar "!(A):*" (newRef "main" (Node (NotFunc (StringEqualFunc StringVariable (Const "A"))) ZAny)),
-    success "->type conflicts with ->true and -1 conflicts with ->" grammar "->type($string)" (newRef "main" (Node (StringTypeFunc StringVariable) Empty)),
-    success "<= conflicts with <empty>" grammar "<= 0" (newRef "main" (Node (IntLessOrEqualFunc IntVariable (Const 0)) Empty)),
-    success "unexpected space builtin treenode child" grammar "A == \"F\"" (newRef "main" (Node (StringEqualFunc StringVariable (Const "A")) (Node (StringEqualFunc StringVariable (Const "F")) Empty))),
+    success "not pattern, not name and != conflicts without not enough lookahead" grammar "!(A):*" (newRef "main" (Node (notExpr (eqExpr varStringExpr (stringExpr "A"))) ZAny)),
+    success "->type conflicts with ->true and -1 conflicts with ->" grammar "->type($string)" (newRef "main" (Node (typeExpr varStringExpr) Empty)),
+    success "<= conflicts with <empty>" grammar "<= 0" (newRef "main" (Node (leExpr varIntExpr (intExpr 0)) Empty)),
+    success "unexpected space builtin treenode child" grammar "A == \"F\"" (newRef "main" (Node (eqExpr varStringExpr (stringExpr "A")) (Node (eqExpr varStringExpr (stringExpr "F")) Empty))),
     success "unexpected space after comment" grammar "(* & */*spaces*/ )" (newRef "main" (And ZAny ZAny)),
-    success "treenode with child builtin type" grammar "A :: $string" (newRef "main" (Node (StringEqualFunc StringVariable (Const "A")) (Node (StringTypeFunc StringVariable) Empty))),
+    success "treenode with child builtin type" grammar "A :: $string" (newRef "main" (Node (eqExpr varStringExpr (stringExpr "A")) (Node (typeExpr varStringExpr) Empty))),
     success "extra semicolon" grammar "{*;*;}" (newRef "main" (Interleave ZAny ZAny)),
 
    HUnit.testCase "" (return ())]

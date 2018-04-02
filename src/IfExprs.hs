@@ -13,6 +13,7 @@ import Control.Monad.Except (Except)
 
 import Patterns
 import Expr
+import Exprs.Logic
 import Simplify
 import Zip
 import Parsers
@@ -35,7 +36,7 @@ compileIfExprs _ [] = Ret []
 compileIfExprs refs (e:es) = let (IfExpr ifExpr) = simplifyIf refs e
     in addIfExpr ifExpr (compileIfExprs refs es)
 
-evalIfExprs :: IfExprs -> Label -> Except ValueErr [Pattern]
+evalIfExprs :: IfExprs -> Label -> Except String [Pattern]
 evalIfExprs (Ret ps) _ = return ps
 evalIfExprs (Cond c t e) l = do {
     b <- eval c l;
@@ -44,18 +45,18 @@ evalIfExprs (Cond c t e) l = do {
 
 simplifyIf :: Refs -> IfExpr -> IfExpr
 simplifyIf refs (IfExpr (c, t, e)) =
-    let scond = simplifyBoolExpr c
+    let scond = c
         sthn  = simplify refs t
         sels  = simplify refs e
-    in if sthn == sels then IfExpr (Const True, sthn, sels) else IfExpr (scond, sthn, sels)
+    in if sthn == sels then IfExpr (boolExpr True, sthn, sels) else IfExpr (scond, sthn, sels)
 
 addIfExpr :: (Expr Bool, Pattern, Pattern) -> IfExprs -> IfExprs
 addIfExpr (c, t, e) (Ret ps) =
     Cond c (Ret (t:ps)) (Ret (e:ps))
 addIfExpr (c, t, e) (Cond cs ts es)
     | c == cs = Cond cs (addRet t ts) (addRet e es)
-    | Const False == simplifyBoolExpr (AndFunc c cs) = Cond cs (addRet e ts) (addIfExpr (c, t, e) es)
-    | Const False == simplifyBoolExpr (AndFunc (NotFunc c) cs) = Cond cs (addIfExpr (c, t, e) ts) (addRet t es)
+    | boolExpr False == (andExpr c cs) = Cond cs (addRet e ts) (addIfExpr (c, t, e) es)
+    | boolExpr False == (andExpr (notExpr c) cs) = Cond cs (addIfExpr (c, t, e) ts) (addRet t es)
     | otherwise = Cond cs (addIfExpr (c, t, e) ts) (addIfExpr (c, t, e) es)
 
 addRet :: Pattern -> IfExprs -> IfExprs
@@ -74,7 +75,7 @@ zipIfExprs :: IfExprs -> ZippedIfExprs
 zipIfExprs (Cond c t e) = ZippedCond c (zipIfExprs t) (zipIfExprs e)
 zipIfExprs (Ret ps) = let (zps, zs) = zippy ps in ZippedRet zps zs
 
-evalZippedIfExprs :: ZippedIfExprs -> Label -> Except ValueErr ([Pattern], Zipper)
+evalZippedIfExprs :: ZippedIfExprs -> Label -> Except String ([Pattern], Zipper)
 evalZippedIfExprs (ZippedRet ps zs) _ = return (ps, zs)
 evalZippedIfExprs (ZippedCond c t e) v = do {
     b <- eval c v;

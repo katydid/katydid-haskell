@@ -54,3 +54,11 @@ If you want to validate multiple trees using the same grammar then the filter fu
 filter :: Tree t => Refs -> [[t]] -> [[t]]
 ```
 
+## Roadmap
+
+  - User defined functions for leaf values
+  - Smart constructors instead of out of band simplification
+  - Fully define Parsers.Label (`ByteString` for Bytes, `Text` for Strings, ? of Uint)
+  - Protobuf parser
+  - Profile and Optimize (bring up to par with Go version)
+  - Typed DSL (Combinator)

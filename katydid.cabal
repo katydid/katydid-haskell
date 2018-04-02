@@ -36,11 +36,19 @@ library
                      , Zip
                      , IfExprs
                      , Expr
+                     , Exprs.Compare
+                     , Exprs.Contains
+                     , Exprs.Elem
+                     , Exprs.Length
+                     , Exprs.Logic
+                     , Exprs.Strings
+                     , Exprs.Type
+                     , Exprs.Var
+                     , Exprs
                      , Simplify
                      , Json
                      , Xml
                      , Parsers
-                     , ParsePatterns
                      , VpaDerive
                      , Parser
                      , Relapse
