@@ -3,7 +3,7 @@
 
 module Parser (
     -- * Parse Grammar
-    parseGrammar
+    parseGrammar, parseGrammarWithUDFs
     -- * Internal functions
     -- | These functions are exposed for testing purposes.
     , grammar, pattern, nameExpr, expr, 
@@ -23,7 +23,14 @@ import Patterns
 
 -- | parseGrammar parses the Relapse Grammar.
 parseGrammar :: String -> Either ParseError Refs
-parseGrammar = parse (grammar <* eof) ""
+parseGrammar = parseGrammarWithUDFs stdOnly
+
+parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Refs
+parseGrammarWithUDFs extraMkFunc = 
+    let mkFunc = \n es -> case runExcept $ mkExpr n es of
+            (Left _) -> extraMkFunc n es
+            (Right v) -> return v
+    in parse (grammar mkFunc <* eof) ""
 
 infixl 4 <++>
 (<++>) :: CharParser () String -> CharParser () String -> CharParser () String
@@ -220,11 +227,11 @@ _builtinSymbol = string "=="
     <|> string "$="
     <|> string "::"
 
-_builtin :: CharParser () AnyExpr
-_builtin = mkBuiltIn <$> _builtinSymbol <*> (ws *> _expr) >>= check
+_builtin :: MkFunc -> CharParser () AnyExpr
+_builtin mkFunc = mkBuiltIn <$> _builtinSymbol <*> (ws *> _expr mkFunc) >>= check
 
-_function :: CharParser () AnyExpr
-_function = mkExpr <$> idLit <*> (char '(' *> sepBy (ws *> _expr <* ws) (char ',') <* char ')') >>= check
+_function :: MkFunc -> CharParser () AnyExpr
+_function mkFunc = mkFunc <$> idLit <*> (char '(' *> sepBy (ws *> _expr mkFunc <* ws) (char ',') <* char ')') >>= check
 
 _listType :: CharParser () String
 _listType = char '[' <::> char ']' <::> (
@@ -246,18 +253,18 @@ newList "[]double" es = mkDoublesExpr . doublesExpr <$> mapM (check . assertDoub
 newList "[]string" es = mkStringsExpr . stringsExpr <$> mapM (check . assertString) es
 newList "[][]byte" es = mkListOfBytesExpr . listOfBytesExpr <$> mapM (check . assertBytes) es
 
-_list :: CharParser () AnyExpr
-_list = do {
+_list :: MkFunc -> CharParser () AnyExpr
+_list mkFunc = do {
     ltype <- _listType;
-    es <- ws *> char '{' *> sepBy (ws *> _expr <* ws) (char ',') <* char '}';
+    es <- ws *> char '{' *> sepBy (ws *> _expr mkFunc <* ws) (char ',') <* char '}';
     newList ltype es
 }
 
-_expr :: CharParser () AnyExpr
-_expr = try _terminal <|> _list <|> _function
+_expr :: MkFunc -> CharParser () AnyExpr
+_expr mkFunc = try _terminal <|> _list mkFunc <|> _function mkFunc
 
-expr :: CharParser () (Expr Bool)
-expr = (try _terminal <|> _builtin <|> _function) >>= _mustBool
+expr :: MkFunc -> CharParser () (Expr Bool)
+expr mkFunc = (try _terminal <|> _builtin mkFunc <|> _function mkFunc) >>= _mustBool
 
 _nameString :: CharParser () (Expr Bool)
 _nameString = (mkBuiltIn "==" <$> (_literal <|> (mkStringExpr . stringExpr <$> idLit))) >>= check >>= _mustBool
@@ -280,17 +287,17 @@ nameExpr =  (boolExpr True <$ char '_')
     <|> (char '(' *> ws *> _nameChoice <* ws <* char ')')
     <|> _nameString
 
-_concatPattern :: CharParser () Pattern
-_concatPattern = char '[' *> (foldl1 Concat <$> sepBy2 (ws *> pattern <* ws) ",") <* optional (char ',' <* ws) <* char ']'
+_concatPattern :: MkFunc -> CharParser () Pattern
+_concatPattern mkFunc = char '[' *> (foldl1 Concat <$> sepBy2 (ws *> pattern mkFunc <* ws) ",") <* optional (char ',' <* ws) <* char ']'
 
-_interleavePattern :: CharParser () Pattern
-_interleavePattern = char '{' *> (foldl1 Interleave <$> sepBy2 (ws *> pattern <* ws) ";") <* optional (char ';' <* ws) <* char '}'
+_interleavePattern :: MkFunc -> CharParser () Pattern
+_interleavePattern mkFunc = char '{' *> (foldl1 Interleave <$> sepBy2 (ws *> pattern mkFunc <* ws) ";") <* optional (char ';' <* ws) <* char '}'
 
-_parenPattern :: CharParser () Pattern
-_parenPattern = do {
+_parenPattern :: MkFunc -> CharParser () Pattern
+_parenPattern mkFunc = do {
     char '(';
     ws;
-    first <- pattern;
+    first <- pattern mkFunc;
     ws;
     ( char ')' *> ws *>
         (
@@ -299,23 +306,23 @@ _parenPattern = do {
         )
     ) <|> ( 
         (
-            (first <$ char '|' >>= _orList) <|> 
-            (first <$ char '&' >>= _andList)
+            (first <$ char '|' >>= _orList mkFunc) <|> 
+            (first <$ char '&' >>= _andList mkFunc)
         ) <* char ')'
     )
 }
 
-_orList :: Pattern -> CharParser () Pattern
-_orList p = Or p . foldl1 Or <$> sepBy1 (ws *> pattern <* ws) (char '|')
+_orList :: MkFunc -> Pattern -> CharParser () Pattern
+_orList mkFunc p = Or p . foldl1 Or <$> sepBy1 (ws *> pattern mkFunc <* ws) (char '|')
 
-_andList :: Pattern -> CharParser () Pattern
-_andList p = And p . foldl1 And <$> sepBy1 (ws *> pattern <* ws) (char '&')
+_andList :: MkFunc -> Pattern -> CharParser () Pattern
+_andList mkFunc p = And p . foldl1 And <$> sepBy1 (ws *> pattern mkFunc <* ws) (char '&')
 
 _refPattern :: CharParser () Pattern
 _refPattern = Reference <$> (char '@' *> ws *> idLit)
 
-_notPattern :: CharParser () Pattern
-_notPattern = Not <$> (char '!' *> ws *> char '(' *> ws *> pattern <* ws <* char ')')
+_notPattern :: MkFunc -> CharParser () Pattern
+_notPattern mkFunc = Not <$> (char '!' *> ws *> char '(' *> ws *> pattern mkFunc <* ws <* char ')')
 
 _emptyPattern :: CharParser () Pattern
 _emptyPattern = Empty <$ string "<empty>"
@@ -323,34 +330,34 @@ _emptyPattern = Empty <$ string "<empty>"
 _zanyPattern :: CharParser () Pattern
 _zanyPattern = ZAny <$ string "*"
 
-_containsPattern :: CharParser () Pattern
-_containsPattern = Contains <$> (char '.' *> pattern)
+_containsPattern :: MkFunc -> CharParser () Pattern
+_containsPattern mkFunc = Contains <$> (char '.' *> pattern mkFunc)
 
-_treenodePattern :: CharParser () Pattern
-_treenodePattern = Node <$> nameExpr <*> ( ws *> ( try (char ':' *> ws *> pattern) <|> _depthPattern ) )
+_treenodePattern :: MkFunc -> CharParser () Pattern
+_treenodePattern mkFunc = Node <$> nameExpr <*> ( ws *> ( try (char ':' *> ws *> pattern mkFunc) <|> _depthPattern mkFunc) )
 
-_depthPattern :: CharParser () Pattern
-_depthPattern = _concatPattern <|> _interleavePattern <|> _containsPattern 
-    <|> flip Node Empty <$> ( (string "->" *> expr ) <|> (_builtin >>= _mustBool) )
+_depthPattern :: MkFunc -> CharParser () Pattern
+_depthPattern mkFunc = _concatPattern mkFunc <|> _interleavePattern mkFunc<|> _containsPattern mkFunc
+    <|> flip Node Empty <$> ( (string "->" *> expr mkFunc) <|> (_builtin mkFunc>>= _mustBool) )
 
 newContains :: CharParser () AnyExpr -> CharParser () Pattern
 newContains e = flip Node Empty <$> ((mkBuiltIn "*=" <$> e) >>= check >>= _mustBool)
 
-pattern :: CharParser () Pattern
-pattern = char '*' *> (
-        (char '=' *> (newContains (ws *> _expr)))
+pattern :: MkFunc -> CharParser () Pattern
+pattern mkFunc = char '*' *> (
+        (char '=' *> (newContains (ws *> _expr mkFunc)))
         <|> return ZAny
-    ) <|> _parenPattern
+    ) <|> _parenPattern mkFunc
     <|> _refPattern
     <|> try _emptyPattern
-    <|> try _treenodePattern
-    <|> try _depthPattern
-    <|> _notPattern
+    <|> try (_treenodePattern mkFunc)
+    <|> try (_depthPattern mkFunc)
+    <|> _notPattern mkFunc
     
-_patternDecl :: CharParser () Refs
-_patternDecl = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *> pattern)
+_patternDecl :: MkFunc -> CharParser () Refs
+_patternDecl mkFunc = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *> pattern mkFunc)
 
-grammar :: CharParser () Refs
-grammar = ws *> (foldl1 union <$> many1 (_patternDecl <* ws))
-    <|> union <$> (newRef "main" <$> pattern) <*> (foldl union emptyRef <$> many (ws *> _patternDecl <* ws))
+grammar :: MkFunc -> CharParser () Refs
+grammar mkFunc = ws *> (foldl1 union <$> many1 (_patternDecl mkFunc <* ws))
+    <|> union <$> (newRef "main" <$> pattern mkFunc) <*> (foldl union emptyRef <$> many (ws *> _patternDecl mkFunc <* ws))
 

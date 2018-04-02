@@ -19,6 +19,7 @@ import Exprs.Logic
 import Exprs.Strings
 import Exprs.Type
 import Exprs.Var
+import Exprs
 import Patterns
 
 success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> T.TestTree
@@ -94,15 +95,15 @@ tests = T.testGroup "Parser" [
     success "id with underscore" idLit "abc_123" "abc_123",
     failure "id starts with number" idLit "123abc",
 
-    success "expr bool var" expr "$bool" varBoolExpr,
-    success "expr bool const" expr "true" (boolExpr True),
-    success "expr ==" expr "== true" (eqExpr varBoolExpr (boolExpr True)),
-    success "expr *=" expr "*= \"a\"" (containsStringExpr varStringExpr (stringExpr "a")),
-    success "expr not" expr "not(true)" (notExpr (boolExpr True)),
-    success "expr eq bool" expr "eq($bool, true)" (eqExpr varBoolExpr (boolExpr True)),
-    success "expr eq int" expr "eq($int, 1)" (eqExpr varIntExpr (intExpr 1)),
-    failure "expr eq type mismatch" expr "eq($bool, 1)",
-    success "expr list" expr "eq($int, length([]int{1,2}))" (eqExpr varIntExpr (lengthListExpr $ intsExpr [intExpr 1, intExpr 2])),
+    success "expr bool var" (expr mkExpr) "$bool" varBoolExpr,
+    success "expr bool const" (expr mkExpr) "true" (boolExpr True),
+    success "expr ==" (expr mkExpr) "== true" (eqExpr varBoolExpr (boolExpr True)),
+    success "expr *=" (expr mkExpr) "*= \"a\"" (containsStringExpr varStringExpr (stringExpr "a")),
+    success "expr not" (expr mkExpr) "not(true)" (notExpr (boolExpr True)),
+    success "expr eq bool" (expr mkExpr) "eq($bool, true)" (eqExpr varBoolExpr (boolExpr True)),
+    success "expr eq int" (expr mkExpr) "eq($int, 1)" (eqExpr varIntExpr (intExpr 1)),
+    failure "expr eq type mismatch" (expr mkExpr) "eq($bool, 1)",
+    success "expr list" (expr mkExpr) "eq($int, length([]int{1,2}))" (eqExpr varIntExpr (lengthListExpr $ intsExpr [intExpr 1, intExpr 2])),
     
     success "name bool" nameExpr "true" (eqExpr varBoolExpr (boolExpr True)),
     success "name id" nameExpr "a" (eqExpr varStringExpr (stringExpr "a")),
@@ -112,50 +113,50 @@ tests = T.testGroup "Parser" [
     success "name or" nameExpr "(a|b)" (orExpr (eqExpr varStringExpr (stringExpr "a")) (eqExpr varStringExpr (stringExpr "b"))),
     failure "name grouping" nameExpr "((a))",
 
-    success "empty" pattern "<empty>" Empty,
-    success "zany" pattern "*" ZAny,
-    success "or" pattern "(*|*)" (Or ZAny ZAny),
-    success "or list" pattern "(*|*|*)" (Or ZAny (Or ZAny ZAny)),
-    success "or list longer" pattern "(*|*|*|*|*)" (Or ZAny (Or (Or (Or ZAny ZAny) ZAny) ZAny)),
-    success "and" pattern "(*&*)" (And ZAny ZAny),
-    success "and list" pattern "(*&*&*)" (And ZAny (And ZAny ZAny)),
-    failure "mix and or" pattern "(*|*&*)",
-    failure "one item in paren" pattern "(*)",
-    failure "empty paren" pattern "()",
-    success "zero or more" pattern "(*)*" (ZeroOrMore ZAny),
-    success "optional" pattern "(*)?" (Optional ZAny),
-    success "not" pattern "!(*)" (Not ZAny),
-    success "reference" pattern "@name" (Reference "name"),
-    success "concat" pattern "[*,*]" (Concat ZAny ZAny),
-    failure "single concat" pattern "[*]",
-    failure "empty concat" pattern "[]",
-    success "concat list" pattern "[*,*,*]" (Concat (Concat ZAny ZAny) ZAny),
-    success "interleave" pattern "{*;*}" (Interleave ZAny ZAny),
-    success "interleave list" pattern "{*;*;*}" (Interleave (Interleave ZAny ZAny) ZAny),
-    failure "empty interleave" pattern "{}",
-    failure "single interleave" pattern "{*}",
-    success "contains" pattern ".*" (Contains ZAny),
-    success "leaf builtin" pattern "== 1" (Node (eqExpr varIntExpr (intExpr 1)) Empty),
-    success "leaf function" pattern "->eq($int, 1)" (Node (eqExpr varIntExpr (intExpr 1)) Empty),
-    success "treenode" pattern "a:*" (Node (eqExpr varStringExpr (stringExpr "a")) ZAny),
-    success "any treenode" pattern "_:*" (Node (boolExpr True) ZAny),
-    success "treenode no colon" pattern "_[*,*]" (Node (boolExpr True) (Concat ZAny ZAny)),
+    success "empty" (pattern mkExpr) "<empty>" Empty,
+    success "zany" (pattern mkExpr) "*" ZAny,
+    success "or" (pattern mkExpr) "(*|*)" (Or ZAny ZAny),
+    success "or list" (pattern mkExpr) "(*|*|*)" (Or ZAny (Or ZAny ZAny)),
+    success "or list longer" (pattern mkExpr) "(*|*|*|*|*)" (Or ZAny (Or (Or (Or ZAny ZAny) ZAny) ZAny)),
+    success "and" (pattern mkExpr) "(*&*)" (And ZAny ZAny),
+    success "and list" (pattern mkExpr) "(*&*&*)" (And ZAny (And ZAny ZAny)),
+    failure "mix and or" (pattern mkExpr) "(*|*&*)",
+    failure "one item in paren" (pattern mkExpr) "(*)",
+    failure "empty paren" (pattern mkExpr) "()",
+    success "zero or more" (pattern mkExpr) "(*)*" (ZeroOrMore ZAny),
+    success "optional" (pattern mkExpr) "(*)?" (Optional ZAny),
+    success "not" (pattern mkExpr) "!(*)" (Not ZAny),
+    success "reference" (pattern mkExpr) "@name" (Reference "name"),
+    success "concat" (pattern mkExpr) "[*,*]" (Concat ZAny ZAny),
+    failure "single concat" (pattern mkExpr) "[*]",
+    failure "empty concat" (pattern mkExpr) "[]",
+    success "concat list" (pattern mkExpr) "[*,*,*]" (Concat (Concat ZAny ZAny) ZAny),
+    success "interleave" (pattern mkExpr) "{*;*}" (Interleave ZAny ZAny),
+    success "interleave list" (pattern mkExpr) "{*;*;*}" (Interleave (Interleave ZAny ZAny) ZAny),
+    failure "empty interleave" (pattern mkExpr) "{}",
+    failure "single interleave" (pattern mkExpr) "{*}",
+    success "contains" (pattern mkExpr) ".*" (Contains ZAny),
+    success "leaf builtin" (pattern mkExpr) "== 1" (Node (eqExpr varIntExpr (intExpr 1)) Empty),
+    success "leaf function" (pattern mkExpr) "->eq($int, 1)" (Node (eqExpr varIntExpr (intExpr 1)) Empty),
+    success "treenode" (pattern mkExpr) "a:*" (Node (eqExpr varStringExpr (stringExpr "a")) ZAny),
+    success "any treenode" (pattern mkExpr) "_:*" (Node (boolExpr True) ZAny),
+    success "treenode no colon" (pattern mkExpr) "_[*,*]" (Node (boolExpr True) (Concat ZAny ZAny)),
 
-    success "treenode with contains" pattern "a:*=\"b\"" (
+    success "treenode with contains" (pattern mkExpr) "a:*=\"b\"" (
         Node (eqExpr varStringExpr (stringExpr "a"))
             $ Node (containsStringExpr varStringExpr (stringExpr "b")) Empty),
-    success "anynode with contains" pattern "_:*=\"b\"" (
+    success "anynode with contains" (pattern mkExpr) "_:*=\"b\"" (
         Node (boolExpr True)
             $ Node (containsStringExpr varStringExpr (stringExpr "b")) Empty),
-    success "contains anynode with contains" pattern "._:*=\"b\"" (
+    success "contains anynode with contains" (pattern mkExpr) "._:*=\"b\"" (
         Contains $ Node (boolExpr True)
             $ Node (containsStringExpr varStringExpr (stringExpr "b")) Empty),
-    success "contains anynode with contains or" pattern "(._:*=\"b\"|*)" (
+    success "contains anynode with contains or" (pattern mkExpr) "(._:*=\"b\"|*)" (
         Or (Contains $ Node (boolExpr True) $ Node (containsStringExpr varStringExpr (stringExpr "b")) Empty)
            ZAny
     ),
     -- (~=\"^([ \t\r\n\v\f])+$\")*
-    success "Page195E0AddrE0NameE0" pattern "Person:{Name:*;(Addr:*)?;(Email:*)*}" (
+    success "Page195E0AddrE0NameE0" (pattern mkExpr) "Person:{Name:*;(Addr:*)?;(Email:*)*}" (
         Node (eqExpr varStringExpr (stringExpr "Person")) (
             (Interleave
                 (Interleave
@@ -166,10 +167,10 @@ tests = T.testGroup "Parser" [
             )
         )
     ),
-    success "whitespace regex" pattern "(~=\"^([ \t\r\n\v\f])+$\")*" (
+    success "whitespace regex" (pattern mkExpr) "(~=\"^([ \t\r\n\v\f])+$\")*" (
         ZeroOrMore $ Node (regexExpr (stringExpr "^([ \t\r\n\v\f])+$") varStringExpr) Empty
     ),
-    success "Page195E0AddrE0NameE0 with whitespace" pattern "Person:{Name:*;(Addr:*)?;(Email:*)*;(~=\"^([ \t\r\n\v\f])+$\")*}" (
+    success "Page195E0AddrE0NameE0 with whitespace" (pattern mkExpr) "Person:{Name:*;(Addr:*)?;(Email:*)*;(~=\"^([ \t\r\n\v\f])+$\")*}" (
         Node (eqExpr varStringExpr (stringExpr "Person")) (
             (Interleave
                 (Interleave
@@ -184,19 +185,19 @@ tests = T.testGroup "Parser" [
         )
     ),
 
-    success "single pattern grammar" grammar "*" $ newRef "main" ZAny,
-    success "single pattern decl" grammar "#main = *" $ newRef "main" ZAny,
-    failure "two patterns grammar" grammar "* *",
-    success "two pattern decls" grammar "#main = * #a = *" $ newRef "main" ZAny `union` newRef "a" ZAny,
-    success "one pattern and one pattern decl" grammar "* #a = *" $ newRef "main" ZAny `union` newRef "a" ZAny,
-    success "one pattern and two pattern decls" grammar "* #a = * #b = *" $ newRef "main" ZAny `union` newRef "a" ZAny `union` newRef "b" ZAny,
+    success "single pattern grammar" (grammar mkExpr) "*" $ newRef "main" ZAny,
+    success "single pattern decl" (grammar mkExpr) "#main = *" $ newRef "main" ZAny,
+    failure "two patterns grammar" (grammar mkExpr) "* *",
+    success "two pattern decls" (grammar mkExpr) "#main = * #a = *" $ newRef "main" ZAny `union` newRef "a" ZAny,
+    success "one pattern and one pattern decl" (grammar mkExpr) "* #a = *" $ newRef "main" ZAny `union` newRef "a" ZAny,
+    success "one pattern and two pattern decls" (grammar mkExpr) "* #a = * #b = *" $ newRef "main" ZAny `union` newRef "a" ZAny `union` newRef "b" ZAny,
 
-    success "not pattern, not name and != conflicts without not enough lookahead" grammar "!(A):*" (newRef "main" (Node (notExpr (eqExpr varStringExpr (stringExpr "A"))) ZAny)),
-    success "->type conflicts with ->true and -1 conflicts with ->" grammar "->type($string)" (newRef "main" (Node (typeExpr varStringExpr) Empty)),
-    success "<= conflicts with <empty>" grammar "<= 0" (newRef "main" (Node (leExpr varIntExpr (intExpr 0)) Empty)),
-    success "unexpected space builtin treenode child" grammar "A == \"F\"" (newRef "main" (Node (eqExpr varStringExpr (stringExpr "A")) (Node (eqExpr varStringExpr (stringExpr "F")) Empty))),
-    success "unexpected space after comment" grammar "(* & */*spaces*/ )" (newRef "main" (And ZAny ZAny)),
-    success "treenode with child builtin type" grammar "A :: $string" (newRef "main" (Node (eqExpr varStringExpr (stringExpr "A")) (Node (typeExpr varStringExpr) Empty))),
-    success "extra semicolon" grammar "{*;*;}" (newRef "main" (Interleave ZAny ZAny)),
+    success "not pattern, not name and != conflicts without not enough lookahead" (grammar mkExpr) "!(A):*" (newRef "main" (Node (notExpr (eqExpr varStringExpr (stringExpr "A"))) ZAny)),
+    success "->type conflicts with ->true and -1 conflicts with ->" (grammar mkExpr) "->type($string)" (newRef "main" (Node (typeExpr varStringExpr) Empty)),
+    success "<= conflicts with <empty>" (grammar mkExpr) "<= 0" (newRef "main" (Node (leExpr varIntExpr (intExpr 0)) Empty)),
+    success "unexpected space builtin treenode child" (grammar mkExpr) "A == \"F\"" (newRef "main" (Node (eqExpr varStringExpr (stringExpr "A")) (Node (eqExpr varStringExpr (stringExpr "F")) Empty))),
+    success "unexpected space after comment" (grammar mkExpr) "(* & */*spaces*/ )" (newRef "main" (And ZAny ZAny)),
+    success "treenode with child builtin type" (grammar mkExpr) "A :: $string" (newRef "main" (Node (eqExpr varStringExpr (stringExpr "A")) (Node (typeExpr varStringExpr) Empty))),
+    success "extra semicolon" (grammar mkExpr) "{*;*;}" (newRef "main" (Interleave ZAny ZAny)),
 
    HUnit.testCase "" (return ())]

@@ -1,6 +1,8 @@
 module Exprs (
     mkBuiltIn
     , mkExpr
+    , MkFunc
+    , stdOnly
 ) where
 
 import Control.Monad.Except (Except, throwError)
@@ -14,6 +16,8 @@ import Exprs.Logic
 import Exprs.Strings
 import Exprs.Type
 import Exprs.Var
+
+type MkFunc = String -> [AnyExpr] -> Except String AnyExpr
 
 mkExpr :: String -> [AnyExpr] -> Except String AnyExpr
 mkExpr "eq" es = mkEqExpr es
@@ -35,6 +39,9 @@ mkExpr "toLower" es = mkToLowerExpr es
 mkExpr "toUpper" es = mkToUpperExpr es
 mkExpr "type" es = mkTypeExpr es
 mkExpr n _ = throwError $ "unknown function: " ++ n
+
+stdOnly :: String -> [AnyExpr] -> Except String AnyExpr
+stdOnly n _ = throwError $ "unknown function: " ++ n
 
 -- |
 -- mkBuiltIn parsers a builtin function to a relapse expression.

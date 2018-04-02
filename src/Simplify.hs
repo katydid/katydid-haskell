@@ -37,11 +37,9 @@ simplify' :: Refs -> Pattern -> Pattern
 simplify' refs p = checkRef refs $ simplify refs p
 
 simplifyNode :: Expr Bool -> Pattern -> Pattern
-simplifyNode v p = if not (hasVar v)
-    then case evalConst v of
-        (Just False) -> Not ZAny
-        _ -> Node v p
-    else Node v p
+simplifyNode v p = case evalConst v of
+    (Just False) -> Not ZAny
+    _ -> Node v p
 
 simplifyConcat :: Pattern -> Pattern -> Pattern
 simplifyConcat (Not ZAny) _ = Not ZAny
