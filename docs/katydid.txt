@@ -351,16 +351,43 @@ mkTypeExpr :: [AnyExpr] -> Except String AnyExpr
 --   varBoolExpr)` will ony return true is the field value is a bool.
 typeExpr :: Expr a -> Expr Bool
 
+
+-- | This module contains the Relapse string expressions.
 module Exprs.Strings
+
+-- | mkHasPrefixExpr dynamically creates a hasPrefix expression.
 mkHasPrefixExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | hasPrefixExpr creates a hasPrefix expression that returns true if the
+--   second is a prefix of the first.
 hasPrefixExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | mkHasSuffixExpr dynamically creates a hasSuffix expression.
 mkHasSuffixExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | hasSuffixExpr creates a hasSuffix expression that returns true if the
+--   second is a suffix of the first.
 hasSuffixExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | mkRegexExpr dynamically creates a regex expression.
 mkRegexExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | regexExpr creates a regex expression that returns true if the first
+--   expression matches the second string.
 regexExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | mkToLowerExpr dynamically creates a toLower expression.
 mkToLowerExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | toLowerExpr creates a toLower expression that converts the input
+--   string to a lowercase string.
 toLowerExpr :: Expr Text -> Expr Text
+
+-- | mkToUpperExpr dynamically creates a toUpper expression.
 mkToUpperExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | toUpperExpr creates a toUpper expression that converts the input
+--   string to an uppercase string.
 toUpperExpr :: Expr Text -> Expr Text
 
 module Exprs.Logic
