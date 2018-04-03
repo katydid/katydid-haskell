@@ -32,9 +32,15 @@
 --   
 --   The JSON and XML parsers both are both versions of this type class.
 module Parsers
+
+-- | Tree is the type class that should be implemented by a katydid parser.
+--   This is implemented by the Json and XML parser.
 class Tree a
 getLabel :: Tree a => a -> Label
 getChildren :: Tree a => a -> [a]
+
+-- | Label is a tagged union of all possible value types that can returned
+--   by a katydid parser: String, Int, Uint, Double, Bool and Bytes.
 data Label
 String :: Text -> Label
 Int :: Int -> Label
@@ -59,6 +65,9 @@ decodeJSON :: String -> Either String [JsonTree]
 type JsonTree = Tree Label
 instance Parsers.Tree Json.JsonTree
 
+
+-- | This module contains all the functions you need to implement a Relapse
+--   expression.
 module Expr
 
 -- | Desc is the description of a function, especially built to make
@@ -303,17 +312,43 @@ instance GHC.Show.Show Expr.Desc
 instance GHC.Classes.Ord Expr.Desc
 instance GHC.Classes.Eq Expr.Desc
 
+
+-- | This module contains all expressions for Relapse variables.
 module Exprs.Var
+
+-- | varBoolExpr creates a bool variable expression.
 varBoolExpr :: Expr Bool
+
+-- | varIntExpr creates an int variable expression.
 varIntExpr :: Expr Int
+
+-- | varUintExpr creates a uint variable expression.
 varUintExpr :: Expr Word
+
+-- | varDoubleExpr creates a double variable expression.
 varDoubleExpr :: Expr Double
+
+-- | varStringExpr creates a string variable expression.
 varStringExpr :: Expr Text
+
+-- | varBytesExpr creates a bytes variable expression.
 varBytesExpr :: Expr ByteString
+
+-- | isVar returns whether an expression is one of the six variable
+--   expressions.
 isVar :: Desc -> Bool
 
+
+-- | This module contains the Relapse type expression.
 module Exprs.Type
+
+-- | mkTypeExpr is used by the parser to create a type expression for the
+--   specific input type.
 mkTypeExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | typeExpr creates an expression that returns true if the containing
+--   expression does not return an error. For example: `(typeExpr
+--   varBoolExpr)` will ony return true is the field value is a bool.
 typeExpr :: Expr a -> Expr Bool
 
 module Exprs.Strings

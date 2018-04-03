@@ -1,3 +1,6 @@
+-- |
+-- This module contains all the functions you need to implement a Relapse expression.
+
 module Expr (
     Desc(..), mkDesc
     , AnyExpr(..), AnyFunc(..)
