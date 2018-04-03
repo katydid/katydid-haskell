@@ -7,10 +7,13 @@ module RelapseSpec (
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as HUnit
 
-import Control.Monad.Except (runExcept)
+import Control.Monad.Except (Except, runExcept)
 
 import Relapse
 import Json
+import UserDefinedFuncs
+import Expr (AnyExpr)
+import Exprs (mkExpr)
 
 tests = T.testGroup "Relapse" [
     HUnit.testCase "parseGrammar success" $ either HUnit.assertFailure (\_ -> return ()) $
@@ -35,6 +38,15 @@ tests = T.testGroup "Relapse" [
         refs <- runExcept $ Relapse.parseGrammar "a == 1";
         want <- Json.decodeJSON "{\"a\":1}";
         other <- Json.decodeJSON "{\"a\":2}";
+        return (Relapse.filter refs [want, other], [want]);
+    } of
+        (Left err) -> HUnit.assertFailure err
+        (Right (got, want)) -> HUnit.assertEqual "expected the same tree" want got
+
+    , HUnit.testCase "user defined function" $ case do {
+        refs <- runExcept $ Relapse.parseGrammarWithUDFs mkUserDefinedLibrary "a->isPrime($int)";
+        want <- Json.decodeJSON "{\"a\":3}";
+        other <- Json.decodeJSON "{\"a\":4}";
         return (Relapse.filter refs [want, other], [want]);
     } of
         (Left err) -> HUnit.assertFailure err

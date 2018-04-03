@@ -10,6 +10,7 @@ import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as HUnit
 
 import Text.ParserCombinators.Parsec (CharParser, parse, eof)
+import Control.Monad.Except (Except, runExcept)
 
 import Parser
 import Expr
@@ -23,6 +24,8 @@ import Exprs.Type
 import Exprs.Var
 import Exprs
 import Patterns
+
+import UserDefinedFuncs
 
 success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> T.TestTree
 success name p input want = HUnit.testCase name $ case parse (p <* eof) "" input of
@@ -200,4 +203,12 @@ tests = T.testGroup "Parser" [
     success "treenode with child builtin type" (grammar mkExpr) "A :: $string" (newRef "main" (Node (eqExpr varStringExpr (stringExpr "A")) (Node (typeExpr varStringExpr) Empty))),
     success "extra semicolon" (grammar mkExpr) "{*;*;}" (newRef "main" (Interleave ZAny ZAny)),
 
+    success "user defined function" (grammar userLib) "->isPrime($int)" (newRef "main" (Node (isPrimeExpr varIntExpr) Empty)),
+    failure "user defined function" (grammar mkExpr) "->isPrime($int)",
+
    HUnit.testCase "" (return ())]
+
+userLib :: String -> [AnyExpr] -> Except String AnyExpr
+userLib name args = case runExcept $ mkExpr name args of
+    (Left err) -> mkUserDefinedLibrary name args
+    (Right expr) -> return expr
