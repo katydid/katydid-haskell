@@ -1,5 +1,5 @@
 module UserDefinedFuncs (
-    mkUserDefinedLibrary
+    userLib
     , incExpr
     , concatExpr
     , isPrimeExpr
@@ -13,12 +13,12 @@ import Data.Numbers.Primes (isPrime)
 import Expr
 
 -- |
--- mkUserDefinedLibrary is a library of user defined functions that can be passed to the parser.
-mkUserDefinedLibrary :: String -> [AnyExpr] -> Except String AnyExpr
-mkUserDefinedLibrary "inc" args = mkIncExpr args
-mkUserDefinedLibrary "concat" args = mkConcatExpr args
-mkUserDefinedLibrary "isPrime" args = mkIsPrime args
-mkUserDefinedLibrary n _ = throwError $ "undefined function: " ++ n
+-- userLib is a library of user defined functions that can be passed to the parser.
+userLib :: String -> [AnyExpr] -> Except String AnyExpr
+userLib "inc" args = mkIncExpr args
+userLib "concat" args = mkConcatExpr args
+userLib "isPrime" args = mkIsPrime args
+userLib n _ = throwError $ "undefined function: " ++ n
 
 -- |
 -- mkIncExpr tries to create an incExpr from a variable number and dynamically types arguments.

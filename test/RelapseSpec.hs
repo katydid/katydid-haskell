@@ -44,7 +44,7 @@ tests = T.testGroup "Relapse" [
         (Right (got, want)) -> HUnit.assertEqual "expected the same tree" want got
 
     , HUnit.testCase "user defined function" $ case do {
-        refs <- runExcept $ Relapse.parseGrammarWithUDFs mkUserDefinedLibrary "a->isPrime($int)";
+        refs <- runExcept $ Relapse.parseGrammarWithUDFs userLib "a->isPrime($int)";
         want <- Json.decodeJSON "{\"a\":3}";
         other <- Json.decodeJSON "{\"a\":4}";
         return (Relapse.filter refs [want, other], [want]);

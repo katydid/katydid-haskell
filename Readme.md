@@ -4,6 +4,8 @@
 
 A Haskell implementation of Katydid.
 
+![Katydid Logo](https://cdn.rawgit.com/katydid/katydid.github.io/master/logo.png)
+
 This includes:
 
   - [Relapse](https://katydid.github.io/katydid-haskell/Relapse.html): Validation Language 
@@ -17,7 +19,7 @@ This includes:
 
 All JSON and XML tests from [the language agnostic test suite](https://github.com/katydid/testsuite) [passes].
 
-[Hackage](https://hackage.haskell.org/package/katydid-0.1.0.0).
+[Hackage](https://hackage.haskell.org/package/katydid-0.1.0.0)
 
 ## Example
 
@@ -52,6 +54,46 @@ If you want to validate multiple trees using the same grammar then the filter fu
 
 ```haskell
 filter :: Tree t => Refs -> [[t]] -> [[t]]
+```
+
+## User Defined Functions
+
+If you want to create your own extra functions for operating on the leaves,
+then you can inject them into the parse function:
+
+```haskell
+main = either
+    (\err -> putStrLn $ "error:" ++ err)
+    (\valid -> if valid
+        then putStrLn "prime birthday !!!"
+        else putStrLn "JOMO"
+    ) $
+    Relapse.validate <$>
+        runExcept (Relapse.parseGrammarWithUDFs userLib ".Survived->isPrime($int)") <*>
+        Json.decodeJSON "{\"Survived\": 104743}"
+```
+
+Defining your own user library to inject is easy.
+The `Expr` library provides many useful helper functions:
+```
+import Data.Numbers.Primes (isPrime)
+import Expr
+
+userLib :: String -> [AnyExpr] -> Except String AnyExpr
+userLib "isPrime" args = mkIsPrime args
+userLib n _ = throwError $ "undefined function: " ++ n
+
+mkIsPrime :: [AnyExpr] -> Except String AnyExpr
+mkIsPrime args = do {
+    arg <- assertArgs1 "isPrime" args;
+    mkBoolExpr . isPrimeExpr <$> assertInt arg;
+}
+
+isPrimeExpr :: Integral a => Expr a -> Expr Bool
+isPrimeExpr numExpr = trimBool Expr {
+    desc = mkDesc "isPrime" [desc numExpr]
+    , eval = \fieldValue -> isPrime <$> eval numExpr fieldValue
+}
 ```
 
 ## Roadmap

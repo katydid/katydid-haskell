@@ -203,12 +203,12 @@ tests = T.testGroup "Parser" [
     success "treenode with child builtin type" (grammar mkExpr) "A :: $string" (newRef "main" (Node (eqExpr varStringExpr (stringExpr "A")) (Node (typeExpr varStringExpr) Empty))),
     success "extra semicolon" (grammar mkExpr) "{*;*;}" (newRef "main" (Interleave ZAny ZAny)),
 
-    success "user defined function" (grammar userLib) "->isPrime($int)" (newRef "main" (Node (isPrimeExpr varIntExpr) Empty)),
+    success "user defined function" (grammar bothLibs) "->isPrime($int)" (newRef "main" (Node (isPrimeExpr varIntExpr) Empty)),
     failure "user defined function" (grammar mkExpr) "->isPrime($int)",
 
    HUnit.testCase "" (return ())]
 
-userLib :: String -> [AnyExpr] -> Except String AnyExpr
-userLib name args = case runExcept $ mkExpr name args of
-    (Left err) -> mkUserDefinedLibrary name args
+bothLibs :: String -> [AnyExpr] -> Except String AnyExpr
+bothLibs name args = case runExcept $ mkExpr name args of
+    (Left err) -> userLib name args
     (Right expr) -> return expr
