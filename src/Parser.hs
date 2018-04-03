@@ -176,8 +176,8 @@ _interpretedString = between (char '"') (char '"') (many _unicodeValue)
 _rawString :: CharParser () String
 _rawString = between (char '`') (char '`') (many $ noneOf "`")
 
-stringLit :: CharParser () String
-stringLit = _rawString <|> _interpretedString
+stringLit :: CharParser () Text.Text
+stringLit = Text.pack <$> (_rawString <|> _interpretedString)
 
 _hexByteUValue :: CharParser () Char
 _hexByteUValue = char 'x' *> do {
@@ -205,16 +205,16 @@ _byteLit = do {
 _byteElem :: CharParser () Char
 _byteElem = _byteLit <|> between (char '\'') (char '\'') (_unicodeValue <|> _octalByteUValue <|> _hexByteUValue)
 
-bytesCastLit :: CharParser () String
-bytesCastLit = string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}'
+bytesCastLit :: CharParser () ByteString.ByteString
+bytesCastLit = ByteString.pack <$> (string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}')
 
 _literal :: CharParser () AnyExpr
 _literal = mkBoolExpr . boolExpr <$> bool
     <|> mkIntExpr . intExpr <$> intLit
     <|> mkUintExpr . uintExpr <$> uintCastLit
     <|> mkDoubleExpr . doubleExpr <$> doubleCastLit
-    <|> mkStringExpr . stringExpr . Text.pack <$> stringLit
-    <|> mkBytesExpr . bytesExpr . ByteString.pack <$> bytesCastLit
+    <|> mkStringExpr . stringExpr <$> stringLit
+    <|> mkBytesExpr . bytesExpr <$> bytesCastLit
 
 _terminal :: CharParser () AnyExpr
 _terminal = (char '$' *> (
