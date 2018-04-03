@@ -75,7 +75,8 @@ main = either
 
 Defining your own user library to inject is easy.
 The `Expr` library provides many useful helper functions:
-```
+
+```haskell
 import Data.Numbers.Primes (isPrime)
 import Expr
 
