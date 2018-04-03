@@ -15,9 +15,14 @@ import Patterns
 data ZipEntry = ZipVal Int | ZipZAny | ZipNotZAny
     deriving (Eq, Ord)
 
+-- |
+-- Zipper represents compressed indexes
+-- that resulted from compressing a list of patterns.
+-- This can be used to uncompress a list of bools (nullability of patterns).
 newtype Zipper = Zipper [ZipEntry]
     deriving (Eq, Ord)
 
+-- | zippy compresses a list of patterns.
 zippy :: [Pattern] -> ([Pattern], Zipper)
 zippy ps =
     let s = S.fromList ps
@@ -32,6 +37,7 @@ indexOf _ (Not ZAny) = ZipNotZAny
 indexOf ps p = case elemIndex p ps of
     (Just i) -> ZipVal i
 
+-- | unzipby uncompresses a list of bools (nullability of patterns).
 unzipby :: Zipper -> [Bool] -> [Bool]
 unzipby (Zipper z) bs = map (ofIndexb bs) z
 

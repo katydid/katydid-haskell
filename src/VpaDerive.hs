@@ -87,6 +87,9 @@ foldLT m current (t:ts) =
         (Left l) -> throwError l
         (Right r) -> foldLT newm r ts
 
+-- |
+-- derive is the derivative implementation for trees.
+-- This implementation makes use of visual pushdown automata.
 derive :: Tree t => Refs -> [t] -> Except String Pattern
 derive refs ts = 
     let start = [Patterns.lookupRef refs "main"]

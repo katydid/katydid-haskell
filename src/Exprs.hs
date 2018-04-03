@@ -1,3 +1,6 @@
+-- |
+-- This module contains the standard library of expressions, used by the Relapse parser.
+
 module Exprs (
     mkBuiltIn
     , mkExpr

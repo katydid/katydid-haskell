@@ -427,6 +427,9 @@ gtExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 mkLtExpr :: [AnyExpr] -> Except String AnyExpr
 ltExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 
+
+-- | This module contains the standard library of expressions, used by the
+--   Relapse parser.
 module Exprs
 
 -- | mkBuiltIn parsers a builtin function to a relapse expression.
@@ -513,17 +516,42 @@ module Parser
 
 -- | parseGrammar parses the Relapse Grammar.
 parseGrammar :: String -> Either ParseError Refs
+
+-- | parseGrammarWithUDFs parses the Relapse Grammar with extra user
+--   defined functions.
 parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Refs
+
+-- | For internal testing
 grammar :: MkFunc -> CharParser () Refs
+
+-- | For internal testing
 pattern :: MkFunc -> CharParser () Pattern
+
+-- | For internal testing
 nameExpr :: CharParser () (Expr Bool)
+
+-- | For internal testing
 expr :: MkFunc -> CharParser () (Expr Bool)
+
+-- | For internal testing
 idLit :: CharParser () String
+
+-- | For internal testing
 bytesCastLit :: CharParser () ByteString
+
+-- | For internal testing
 stringLit :: CharParser () Text
+
+-- | For internal testing
 doubleCastLit :: CharParser () Double
+
+-- | For internal testing
 uintCastLit :: CharParser () Word
+
+-- | For internal testing
 intLit :: CharParser () Int
+
+-- | For internal testing
 ws :: CharParser () ()
 
 
@@ -546,8 +574,16 @@ instance Parsers.Tree Text.XML.HXT.DOM.TypeDefs.XmlTree
 --   
 --   It zips patterns to reduce the state space.
 module Zip
+
+-- | Zipper represents compressed indexes that resulted from compressing a
+--   list of patterns. This can be used to uncompress a list of bools
+--   (nullability of patterns).
 data Zipper
+
+-- | zippy compresses a list of patterns.
 zippy :: [Pattern] -> ([Pattern], Zipper)
+
+-- | unzipby uncompresses a list of bools (nullability of patterns).
 unzipby :: Zipper -> [Bool] -> [Bool]
 instance GHC.Classes.Ord Zip.Zipper
 instance GHC.Classes.Eq Zip.Zipper
@@ -614,6 +650,9 @@ zipderive :: Tree t => Refs -> [t] -> Except String Pattern
 --   It shows how out algorithm is effective equivalent to a visual
 --   pushdown automaton.
 module VpaDerive
+
+-- | derive is the derivative implementation for trees. This implementation
+--   makes use of visual pushdown automata.
 derive :: Tree t => Refs -> [t] -> Except String Pattern
 
 
