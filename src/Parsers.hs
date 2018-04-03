@@ -11,8 +11,8 @@ module Parsers (
 
 import Control.DeepSeq (NFData)
 import GHC.Generics (Generic)
-import Data.Text
-import Data.ByteString
+import Data.Text (Text)
+import Data.ByteString (ByteString)
 
 data Label
     = String Text
