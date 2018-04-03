@@ -24,7 +24,7 @@ mkContainsStringExpr' :: Expr Text.Text -> Expr Text.Text -> AnyExpr
 mkContainsStringExpr' e f = mkBoolExpr $ containsStringExpr e f
 
 containsStringExpr :: Expr Text.Text -> Expr Text.Text -> Expr Bool
-containsStringExpr s sub = trimBool $ Expr {
+containsStringExpr s sub = trimBool Expr {
     desc = mkDesc "contains" [desc s, desc sub]
     , eval = \v -> Text.isInfixOf <$> eval sub v <*> eval s v
 }
@@ -33,7 +33,7 @@ mkContainsExpr' :: (Eq a) => Expr a -> Expr [a] -> AnyExpr
 mkContainsExpr' e f = mkBoolExpr $ containsExpr e f
 
 containsExpr :: (Eq a) => Expr a -> Expr [a] -> Expr Bool
-containsExpr e es = trimBool $ Expr {
+containsExpr e es = trimBool Expr {
     desc = mkDesc "contains" [desc e, desc es]
     , eval = \v -> elem <$> eval e v <*> eval es v
 }

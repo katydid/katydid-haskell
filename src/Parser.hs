@@ -29,7 +29,7 @@ parseGrammar = parseGrammarWithUDFs stdOnly
 
 parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Refs
 parseGrammarWithUDFs extraMkFunc = 
-    let mkFunc = \n es -> case runExcept $ mkExpr n es of
+    let mkFunc n es = case runExcept $ mkExpr n es of
             (Left _) -> extraMkFunc n es
             (Right v) -> return v
     in parse (grammar mkFunc <* eof) ""
@@ -358,7 +358,7 @@ newContains e = flip Node Empty <$> ((mkBuiltIn "*=" <$> e) >>= check >>= _mustB
 
 pattern :: MkFunc -> CharParser () Pattern
 pattern mkFunc = char '*' *> (
-        (char '=' *> (newContains (ws *> _expr mkFunc)))
+        (char '=' *> newContains (ws *> _expr mkFunc))
         <|> return ZAny
     ) <|> _parenPattern mkFunc
     <|> _refPattern

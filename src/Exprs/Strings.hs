@@ -21,7 +21,7 @@ mkHasPrefixExpr es = do {
 }
 
 hasPrefixExpr :: Expr Text -> Expr Text -> Expr Bool
-hasPrefixExpr e1 e2 = trimBool $ Expr {
+hasPrefixExpr e1 e2 = trimBool Expr {
     desc = mkDesc "hasPrefix" [desc e1, desc e2]
     , eval = \v -> isPrefixOf <$> eval e2 v <*> eval e1 v
 }
@@ -35,7 +35,7 @@ mkHasSuffixExpr es = do {
 }
 
 hasSuffixExpr :: Expr Text -> Expr Text -> Expr Bool
-hasSuffixExpr e1 e2 = trimBool $ Expr {
+hasSuffixExpr e1 e2 = trimBool Expr {
     desc = mkDesc "hasSuffix" [desc e1, desc e2]
     , eval = \v -> isSuffixOf <$> eval e2 v <*> eval e1 v
 }
@@ -49,7 +49,7 @@ mkRegexExpr es = do {
 }
 
 regexExpr :: Expr Text -> Expr Text -> Expr Bool
-regexExpr e s = trimBool $ Expr {
+regexExpr e s = trimBool Expr {
     desc = mkDesc "regex" [desc e, desc s]
     , eval = \v -> do {
         s1 <- eval s v;
@@ -66,7 +66,7 @@ mkToLowerExpr es = do {
 }
 
 toLowerExpr :: Expr Text -> Expr Text
-toLowerExpr e = trimString $ Expr {
+toLowerExpr e = trimString Expr {
     desc = mkDesc "toLower" [desc e]
     , eval = \v -> toLower <$> eval e v
 }
@@ -79,7 +79,7 @@ mkToUpperExpr es = do {
 }
 
 toUpperExpr :: Expr Text -> Expr Text
-toUpperExpr e = trimString $ Expr {
+toUpperExpr e = trimString Expr {
     desc = mkDesc "toUpper" [desc e]
     , eval = \v -> toUpper <$> eval e v
 }

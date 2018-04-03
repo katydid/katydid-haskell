@@ -16,7 +16,7 @@ import qualified Parsers
 import Expr
 
 isVar :: Desc -> Bool
-isVar d = length (_params d) == 0 && case _name d of
+isVar d = null (_params d) && case _name d of
     "$bool" -> True
     "$int" -> True
     "$uint" -> True

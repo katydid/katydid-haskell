@@ -27,7 +27,7 @@ mkEqExpr' :: (Eq a) => Expr a -> Expr a -> AnyExpr
 mkEqExpr' e f = mkBoolExpr $ eqExpr e f
 
 eqExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
-eqExpr a b = trimBool $ Expr {
+eqExpr a b = trimBool Expr {
     desc = mkDesc "eq" [desc a, desc b]
     , eval = \v -> eq (runExcept $ eval a v) (runExcept $ eval b v)
 }
@@ -53,7 +53,7 @@ mkNeExpr' :: (Eq a) => Expr a -> Expr a -> AnyExpr
 mkNeExpr' e f = mkBoolExpr $ neExpr e f
 
 neExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
-neExpr a b = trimBool $ Expr {
+neExpr a b = trimBool Expr {
     desc = mkDesc "ne" [desc a, desc b]
     , eval = \v -> ne (runExcept $ eval a v) (runExcept $ eval b v)
 }
@@ -77,7 +77,7 @@ mkGeExpr' :: (Ord a) => Expr a -> Expr a -> AnyExpr
 mkGeExpr' e f = mkBoolExpr $ geExpr e f
 
 geExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
-geExpr a b = trimBool $ Expr {
+geExpr a b = trimBool Expr {
     desc = mkDesc "ge" [desc a, desc b]
     , eval = \v -> ge (runExcept $ eval a v) (runExcept $ eval b v)
 }
@@ -101,7 +101,7 @@ mkGtExpr' :: (Ord a) => Expr a -> Expr a -> AnyExpr
 mkGtExpr' e f = mkBoolExpr $ gtExpr e f
 
 gtExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
-gtExpr a b = trimBool $ Expr {
+gtExpr a b = trimBool Expr {
     desc = mkDesc "gt" [desc a, desc b]
     , eval = \v -> gt (runExcept $ eval a v) (runExcept $ eval b v)
 }
@@ -125,7 +125,7 @@ mkLeExpr' :: (Ord a) => Expr a -> Expr a -> AnyExpr
 mkLeExpr' e f = mkBoolExpr $ leExpr e f
 
 leExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
-leExpr a b = trimBool $ Expr {
+leExpr a b = trimBool Expr {
     desc = mkDesc "le" [desc a, desc b]
     , eval = \v -> le (runExcept $ eval a v) (runExcept $ eval b v)
 }
@@ -149,7 +149,7 @@ mkLtExpr' :: (Ord a) => Expr a -> Expr a -> AnyExpr
 mkLtExpr' e f = mkBoolExpr $ ltExpr e f
 
 ltExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
-ltExpr a b = trimBool $ Expr {
+ltExpr a b = trimBool Expr {
     desc = mkDesc "lt" [desc a, desc b]
     , eval = \v -> lt (runExcept $ eval a v) (runExcept $ eval b v)
 }

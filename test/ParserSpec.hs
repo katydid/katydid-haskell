@@ -159,7 +159,7 @@ tests = T.testGroup "Parser" [
     ),
     -- (~=\"^([ \t\r\n\v\f])+$\")*
     success "Page195E0AddrE0NameE0" (pattern mkExpr) "Person:{Name:*;(Addr:*)?;(Email:*)*}" (
-        Node (eqExpr varStringExpr (stringExpr "Person")) (
+        Node (eqExpr varStringExpr (stringExpr "Person"))
             (Interleave
                 (Interleave
                     (Node (eqExpr varStringExpr (stringExpr "Name")) ZAny)
@@ -167,13 +167,12 @@ tests = T.testGroup "Parser" [
                 )
                 (ZeroOrMore (Node (eqExpr varStringExpr (stringExpr "Email")) ZAny))
             )
-        )
     ),
     success "whitespace regex" (pattern mkExpr) "(~=\"^([ \t\r\n\v\f])+$\")*" (
         ZeroOrMore $ Node (regexExpr (stringExpr "^([ \t\r\n\v\f])+$") varStringExpr) Empty
     ),
     success "Page195E0AddrE0NameE0 with whitespace" (pattern mkExpr) "Person:{Name:*;(Addr:*)?;(Email:*)*;(~=\"^([ \t\r\n\v\f])+$\")*}" (
-        Node (eqExpr varStringExpr (stringExpr "Person")) (
+        Node (eqExpr varStringExpr (stringExpr "Person"))
             (Interleave
                 (Interleave
                     (Interleave
@@ -184,7 +183,6 @@ tests = T.testGroup "Parser" [
                 )
                 (ZeroOrMore $ Node (regexExpr (stringExpr "^([ \t\r\n\v\f])+$") varStringExpr) Empty)
             )
-        )
     ),
 
     success "single pattern grammar" (grammar mkExpr) "*" $ newRef "main" ZAny,

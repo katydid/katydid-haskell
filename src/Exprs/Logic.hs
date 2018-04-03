@@ -32,10 +32,10 @@ notDesc d
         let child0 = head $ _params d
         in mkDesc (_name child0) (_params child0)
     | _name d == "and" =
-        let (left:right:[]) = _params d
+        let [left, right] = _params d
         in mkDesc "or" [mkDesc "not" [left], mkDesc "not" [right]]
     | _name d == "or" =
-        let (left:right:[]) = _params d
+        let [left, right] = _params d
         in mkDesc "and" [mkDesc "not" [left], mkDesc "not" [right]]
     | _name d == "ne" = mkDesc "eq" $  _params d
     | _name d == "eq" = mkDesc "ne" $ _params d
@@ -51,8 +51,8 @@ mkAndExpr es = do {
 
 andExpr :: Expr Bool -> Expr Bool -> Expr Bool
 andExpr a b = case (evalConst a, evalConst b) of
-    (Just False, _) -> (boolExpr False)
-    (_, Just False) -> (boolExpr False)
+    (Just False, _) -> boolExpr False
+    (_, Just False) -> boolExpr False
     (Just True, _) -> b
     (_, Just True) -> a
     _ -> andExpr' a b
@@ -61,8 +61,8 @@ andExpr a b = case (evalConst a, evalConst b) of
 andExpr' :: Expr Bool -> Expr Bool -> Expr Bool
 andExpr' a b
     | a == b = a
-    | name a == "not" && head (params a) == desc b = (boolExpr False)
-    | name b == "not" && head (params b) == desc a = (boolExpr False)
+    | name a == "not" && head (params a) == desc b = boolExpr False
+    | name b == "not" && head (params b) == desc a = boolExpr False
     | name a == "eq" && name b == "eq" = case (varAndConst a, varAndConst b) of
         (Just ca, Just cb) -> if ca == cb then a else boolExpr False
         _ -> defaultAnd a b
@@ -83,7 +83,7 @@ defaultAnd a b = Expr {
 varAndConst :: Expr Bool -> Maybe Desc
 varAndConst e = let ps = params e
     in if length ps /= 2 then Nothing
-    else let (a:b:[]) = ps in
+    else let [a,b] = ps in
         if isVar a && isConst b then Just b
         else if isVar b && isConst a then Just a
         else Nothing
@@ -98,8 +98,8 @@ mkOrExpr es = do {
 
 orExpr :: Expr Bool -> Expr Bool -> Expr Bool
 orExpr a b = case (evalConst a, evalConst b) of
-    (Just True, _) -> (boolExpr True)
-    (_, Just True) -> (boolExpr True)
+    (Just True, _) -> boolExpr True
+    (_, Just True) -> boolExpr True
     (Just False, _) -> b
     (_, Just False) -> a
     _ -> orExpr' a b
@@ -108,8 +108,8 @@ orExpr a b = case (evalConst a, evalConst b) of
 orExpr' :: Expr Bool -> Expr Bool -> Expr Bool
 orExpr' a b
     | a == b = a
-    | name a == "not" && head (params a) == desc b = (boolExpr True)
-    | name b == "not" && head (params b) == desc a = (boolExpr True)
+    | name a == "not" && head (params a) == desc b = boolExpr True
+    | name b == "not" && head (params b) == desc a = boolExpr True
     | otherwise = Expr {
         desc = mkDesc "or" [desc a, desc b]
         , eval = \v -> (||) <$> eval a v <*> eval b v

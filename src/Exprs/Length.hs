@@ -26,19 +26,19 @@ mkLengthExpr es = do {
 }
 
 lengthListExpr :: Expr [a] -> Expr Int
-lengthListExpr e = trimInt $ Expr {
+lengthListExpr e = trimInt Expr {
     desc = mkDesc "length" [desc e]
     , eval = \v -> length <$> eval e v
 }
 
 lengthStringExpr :: Expr Text.Text -> Expr Int
-lengthStringExpr e = trimInt $ Expr {
+lengthStringExpr e = trimInt Expr {
     desc = mkDesc "length" [desc e]
     , eval = \v -> Text.length <$> eval e v
 }
 
 lengthBytesExpr :: Expr ByteString.ByteString -> Expr Int
-lengthBytesExpr e = trimInt $ Expr {
+lengthBytesExpr e = trimInt Expr {
     desc = mkDesc "length" [desc e]
     , eval = \v -> ByteString.length <$> eval e v
 }
