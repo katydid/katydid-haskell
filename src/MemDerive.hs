@@ -57,7 +57,7 @@ returns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
 returns refs k = state $ \(Mem (n, c, r)) -> let (v', r') = mem (Derive.returns refs) k r;
     in (v', Mem (n, c, r'))
 
-mderive :: Tree t => Refs -> [Pattern] -> [t] -> ExceptT ValueErr (State Mem) [Pattern]
+mderive :: Tree t => Refs -> [Pattern] -> [t] -> ExceptT String (State Mem) [Pattern]
 mderive _ ps [] = return ps
 mderive refs ps (tree:ts) = do {
     ifs <- lift $ calls refs ps;

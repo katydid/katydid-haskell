@@ -8,9 +8,11 @@ module Simplify (
 ) where
 
 import qualified Data.Set as S
+import Control.Monad.Except (Except, runExcept, throwError)
 
 import Patterns
 import Expr
+import Exprs.Logic
 
 -- |
 -- simplify simplifies an input pattern to an equivalent simpler pattern.
@@ -20,7 +22,7 @@ simplify refs pattern =
     in case pattern of
     Empty -> Empty
     ZAny -> ZAny
-    (Node v p) -> simplifyNode (simplifyBoolExpr v) (simp p)
+    (Node v p) -> simplifyNode v (simp p)
     (Concat p1 p2) -> simplifyConcat (simp p1) (simp p2)
     (Or p1 p2) -> simplifyOr refs (simp p1) (simp p2)
     (And p1 p2) -> simplifyAnd refs (simp p1) (simp p2)
@@ -35,8 +37,9 @@ simplify' :: Refs -> Pattern -> Pattern
 simplify' refs p = checkRef refs $ simplify refs p
 
 simplifyNode :: Expr Bool -> Pattern -> Pattern
-simplifyNode (Const False) _ = Not ZAny
-simplifyNode v p = Node v p
+simplifyNode v p = case evalConst v of
+    (Just False) -> Not ZAny
+    _ -> Node v p
 
 simplifyConcat :: Pattern -> Pattern -> Pattern
 simplifyConcat (Not ZAny) _ = Not ZAny
@@ -53,7 +56,7 @@ simplifyOr _ (Not ZAny) p = p
 simplifyOr _ p (Not ZAny) = p
 simplifyOr _ ZAny _ = ZAny
 simplifyOr _ _ ZAny = ZAny
-simplifyOr _ (Node v1 Empty) (Node v2 Empty) = Node (OrFunc v1 v2) Empty
+simplifyOr _ (Node v1 Empty) (Node v2 Empty) = Node (orExpr v1 v2) Empty
 simplifyOr refs Empty p 
     | nullable refs p = p
     | otherwise = Or Empty p
@@ -84,7 +87,7 @@ simplifyAnd _ (Not ZAny) _ = Not ZAny
 simplifyAnd _ _ (Not ZAny) = Not ZAny
 simplifyAnd _ ZAny p = p
 simplifyAnd _ p ZAny = p
-simplifyAnd _ (Node v1 Empty) (Node v2 Empty) = Node (AndFunc v1 v2) Empty
+simplifyAnd _ (Node v1 Empty) (Node v2 Empty) = Node (andExpr v1 v2) Empty
 simplifyAnd refs Empty p
     | nullable refs p = Empty
     | otherwise = Not ZAny

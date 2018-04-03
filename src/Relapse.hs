@@ -14,7 +14,7 @@
 -- If your tree has a single root, simply provide a singleton list as input.
 
 module Relapse (
-    parseGrammar, validate, filter
+    parseGrammar, parseGrammarWithUDFs, validate, filter
 ) where
 
 import Prelude hiding (filter)
@@ -27,11 +27,20 @@ import Patterns (Refs)
 import qualified Patterns
 import qualified MemDerive
 import Parsers
+import qualified Exprs
 
 -- |
 -- parseGrammar parses the relapse grammar and returns either a parsed grammar (Refs, for the list of references) or an error string.
 parseGrammar :: String -> Except String Refs
 parseGrammar grammarString = case Parser.parseGrammar grammarString of
+    (Left l) -> throwError (show l)
+    (Right r) -> return r
+
+-- |
+-- parseGrammarWithUDFs parses the relapse grammar with extra user defined functions
+-- and returns either a parsed grammar (Refs, for the list of references) or an error string.
+parseGrammarWithUDFs :: Exprs.MkFunc -> String -> Except String Refs
+parseGrammarWithUDFs mkFunc grammarString = case Parser.parseGrammarWithUDFs mkFunc grammarString of
     (Left l) -> throwError (show l)
     (Right r) -> return r
 

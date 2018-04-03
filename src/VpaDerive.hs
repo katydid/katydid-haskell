@@ -48,7 +48,7 @@ calls :: [Pattern] -> State Vpa ZippedIfExprs
 calls key = state $ \(Vpa (n, c, r, refs)) -> let (v', c') = mem (zipIfExprs . Derive.calls refs) key c;
     in (v', Vpa (n, c', r, refs))
 
-vpacall :: VpaState -> Label -> ExceptT ValueErr (State Vpa) (StackElm, VpaState)
+vpacall :: VpaState -> Label -> ExceptT String (State Vpa) (StackElm, VpaState)
 vpacall vpastate label = do {
     zifexprs <- lift $ calls vpastate;
     (nextstate, zipper) <- case runExcept $ evalZippedIfExprs zifexprs label of
@@ -72,14 +72,14 @@ vpareturn (vpastate, zipper) current = do {
     returns (vpastate, zipper, zipnulls)
 }
 
-deriv :: Tree t => VpaState -> t -> ExceptT ValueErr (State Vpa) VpaState
+deriv :: Tree t => VpaState -> t -> ExceptT String (State Vpa) VpaState
 deriv current tree = do {
     (stackelm, nextstate) <- vpacall current (getLabel tree);
     resstate <- foldlM deriv nextstate (getChildren tree);
     lift $ vpareturn stackelm resstate
 }
 
-foldLT :: Tree t => Vpa -> VpaState -> [t] -> Except ValueErr [Pattern]
+foldLT :: Tree t => Vpa -> VpaState -> [t] -> Except String [Pattern]
 foldLT _ current [] = return current
 foldLT m current (t:ts) = 
     let (newstate, newm) = runState (runExceptT $ deriv current t) m

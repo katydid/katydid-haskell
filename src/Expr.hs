@@ -1,518 +1,511 @@
-{-#LANGUAGE GADTs, StandaloneDeriving #-}
-
--- |
--- This module contains all the Relapse expressions.
--- 
--- It also contains an eval function and a simplfication function for these expressions.
 module Expr (
-    -- * Expressions
-    Expr(..), Bytes, Uint,
-    -- * Functions
-    simplifyBoolExpr, eval,
-    -- * Errors
-    ValueErr
+    Desc(..), mkDesc
+    , AnyExpr(..), AnyFunc(..)
+    , Expr(..), Func, params, name, hasVar
+    , hashWithName
+    , evalConst, isConst
+    , assertArgs1, assertArgs2
+    , mkBoolExpr, mkIntExpr, mkStringExpr, mkDoubleExpr, mkBytesExpr, mkUintExpr
+    , assertBool, assertInt, assertString, assertDouble, assertBytes, assertUint
+    , boolExpr, intExpr, stringExpr, doubleExpr, bytesExpr, uintExpr
+    , trimBool, trimInt, trimString, trimDouble, trimBytes, trimUint
+    , mkBoolsExpr, mkIntsExpr, mkStringsExpr, mkDoublesExpr, mkListOfBytesExpr, mkUintsExpr
+    , assertBools, assertInts, assertStrings, assertDoubles, assertListOfBytes, assertUints
+    , boolsExpr, intsExpr, stringsExpr, doublesExpr, listOfBytesExpr, uintsExpr
 ) where
 
-import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
-import Data.Char (toLower, toUpper)
-import Text.Regex.TDFA ((=~))
+import Data.Char (ord)
 import Control.Monad.Except (Except, runExcept, throwError)
+import Data.List (intercalate)
+import Data.Text (Text, unpack, pack)
+import Data.ByteString (ByteString)
 
-import Parsers
-
-type Bytes = String
-type Uint = Int
-
-data Expr a where
-    -- Expr Bool
-
-    Const :: a -> Expr a
-    BoolVariable :: Expr Bool
-
-    OrFunc :: Expr Bool -> Expr Bool -> Expr Bool
-    AndFunc :: Expr Bool -> Expr Bool -> Expr Bool
-    NotFunc :: Expr Bool -> Expr Bool
-
-    BoolEqualFunc :: Expr Bool -> Expr Bool -> Expr Bool
-    DoubleEqualFunc :: Expr Double -> Expr Double -> Expr Bool
-    IntEqualFunc :: Expr Int -> Expr Int -> Expr Bool
-    UintEqualFunc :: Expr Uint -> Expr Uint -> Expr Bool
-    StringEqualFunc :: Expr String -> Expr String -> Expr Bool
-    BytesEqualFunc :: Expr Bytes -> Expr Bytes -> Expr Bool
-
-    IntListContainsFunc :: Expr Int -> [Expr Int] -> Expr Bool
-    StringListContainsFunc :: Expr String -> [Expr String] -> Expr Bool
-    UintListContainsFunc :: Expr Uint -> [Expr Uint] -> Expr Bool
-    StringContainsFunc :: Expr String -> Expr String -> Expr Bool
-
-    BoolListElemFunc :: [Expr Bool] -> Expr Int -> Expr Bool
-
-    BytesGreaterOrEqualFunc :: Expr Bytes -> Expr Bytes -> Expr Bool
-    DoubleGreaterOrEqualFunc :: Expr Double -> Expr Double -> Expr Bool
-    IntGreaterOrEqualFunc :: Expr Int -> Expr Int -> Expr Bool
-    UintGreaterOrEqualFunc :: Expr Uint -> Expr Uint -> Expr Bool
-
-    BytesGreaterThanFunc :: Expr Bytes -> Expr Bytes -> Expr Bool
-    DoubleGreaterThanFunc :: Expr Double -> Expr Double -> Expr Bool
-    IntGreaterThanFunc :: Expr Int -> Expr Int -> Expr Bool
-    UintGreaterThanFunc :: Expr Uint -> Expr Uint -> Expr Bool
-
-    StringHasPrefixFunc :: Expr String -> Expr String -> Expr Bool
-    StringHasSuffixFunc :: Expr String -> Expr String -> Expr Bool
-
-    BytesLessOrEqualFunc :: Expr Bytes -> Expr Bytes -> Expr Bool
-    DoubleLessOrEqualFunc :: Expr Double -> Expr Double -> Expr Bool
-    IntLessOrEqualFunc :: Expr Int -> Expr Int -> Expr Bool
-    UintLessOrEqualFunc :: Expr Uint -> Expr Uint -> Expr Bool
-
-    BytesLessThanFunc :: Expr Bytes -> Expr Bytes -> Expr Bool
-    DoubleLessThanFunc :: Expr Double -> Expr Double -> Expr Bool
-    IntLessThanFunc :: Expr Int -> Expr Int -> Expr Bool
-    UintLessThanFunc :: Expr Uint -> Expr Uint -> Expr Bool
-
-    BytesNotEqualFunc :: Expr Bytes -> Expr Bytes -> Expr Bool
-    BoolNotEqualFunc :: Expr Bool -> Expr Bool -> Expr Bool
-    DoubleNotEqualFunc :: Expr Double -> Expr Double -> Expr Bool
-    IntNotEqualFunc :: Expr Int -> Expr Int -> Expr Bool
-    StringNotEqualFunc :: Expr String -> Expr String -> Expr Bool
-    UintNotEqualFunc :: Expr Uint -> Expr Uint -> Expr Bool
-
-    BytesTypeFunc :: Expr Bytes -> Expr Bool
-    BoolTypeFunc :: Expr Bool -> Expr Bool
-    DoubleTypeFunc :: Expr Double -> Expr Bool
-    IntTypeFunc :: Expr Int -> Expr Bool
-    UintTypeFunc :: Expr Uint -> Expr Bool
-    StringTypeFunc :: Expr String -> Expr Bool
-
-    RegexFunc :: Expr String -> Expr String -> Expr Bool
-
-    -- Expr Double
-
-    DoubleVariable :: Expr Double
-
-    DoubleListElemFunc :: [Expr Double] -> Expr Int -> Expr Double
-
-    -- Expr Int
-
-    IntVariable :: Expr Int
-
-    IntListElemFunc :: [Expr Int] -> Expr Int -> Expr Int
-
-    BytesListLengthFunc :: [Expr Bytes] -> Expr Int
-    BoolListLengthFunc :: [Expr Bool] -> Expr Int
-    BytesLengthFunc :: Expr Bytes -> Expr Int
-    DoubleListLengthFunc :: [Expr Double] -> Expr Int
-    IntListLengthFunc :: [Expr Int] -> Expr Int
-    StringListLengthFunc :: [Expr String] -> Expr Int
-    UintListLengthFunc :: [Expr Uint] -> Expr Int
-    StringLengthFunc :: Expr String -> Expr Int
-
-    -- Expr Uint
-
-    UintVariable :: Expr Uint
-
-    UintListElemFunc :: [Expr Uint] -> Expr Int -> Expr Uint
-
-    -- Expr String
-
-    StringVariable :: Expr String
-    StringListElemFunc :: [Expr String] -> Expr Int -> Expr String
-    StringToLowerFunc :: Expr String -> Expr String
-    StringToUpperFunc :: Expr String -> Expr String
-
-    -- Expr Bytes
-
-    BytesVariable :: Expr Bytes
-    
-    BytesListElemFunc :: [Expr Bytes] -> Expr Int -> Expr Bytes
-
-deriving instance Eq a => Eq (Expr a)
-deriving instance Ord a => Ord (Expr a)
-deriving instance Show a => Show (Expr a)
-
-data ValueErr
-    = ErrNotABool String
-    | ErrNotAString String
-    | ErrNotAnInt String
-    | ErrNotADouble String
-    | ErrNotAnUint String
-    | ErrNotBytes String
-    deriving (Eq, Ord, Show)
+import qualified Parsers
 
 -- |
--- eval evaluates a boolean expression, given an input label.
-eval :: Expr Bool -> Label -> Except ValueErr Bool
-eval = ev
-
-ev :: Expr a -> Label -> Except ValueErr a
-
-ev (Const b) _ = return b
-ev BoolVariable (Bool b) = return b
-ev BoolVariable l = throwError $ ErrNotABool $ show l
-
-ev (OrFunc e1 e2) v = (||) <$> ev e1 v <*> ev e2 v
-
-ev (AndFunc e1 e2) v = (&&) <$> ev e1 v <*> ev e2 v
-
-ev (NotFunc e) v = case runExcept $ ev e v of
-    (Right True) -> return False
-    _ -> return True
-
-ev (BoolEqualFunc e1 e2) v = eq (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (DoubleEqualFunc e1 e2) v = eq (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (IntEqualFunc e1 e2) v = eq (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (UintEqualFunc e1 e2) v = eq (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (StringEqualFunc e1 e2) v = eq (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (BytesEqualFunc e1 e2) v = eq (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-
-ev (IntListContainsFunc e es) v = elem <$> ev e v <*> mapM (`ev` v) es
-
-ev (StringListContainsFunc e es) v = elem <$> ev e v <*> mapM (`ev` v) es
-
-ev (UintListContainsFunc e es) v = elem <$> ev e v <*> mapM (`ev` v) es
-
-ev (StringContainsFunc s sub) v = isInfixOf <$> ev sub v <*> ev s v
-
-ev (BoolListElemFunc es i) v =
-    (!!) <$>
-        mapM (`ev` v) es <*>
-        ev i v
-
-ev (DoubleGreaterOrEqualFunc e1 e2) v = ge (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (IntGreaterOrEqualFunc e1 e2) v = ge (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (UintGreaterOrEqualFunc e1 e2) v = ge (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (BytesGreaterOrEqualFunc e1 e2) v = ge (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-
-ev (DoubleGreaterThanFunc e1 e2) v = gt (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (IntGreaterThanFunc e1 e2) v = gt (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (UintGreaterThanFunc e1 e2) v = gt (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (BytesGreaterThanFunc e1 e2) v = gt (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-
-ev (StringHasPrefixFunc e1 e2) v = isPrefixOf <$> ev e2 v <*> ev e1 v
-
-ev (StringHasSuffixFunc e1 e2) v = isSuffixOf <$> ev e2 v <*> ev e1 v
-
-ev (DoubleLessOrEqualFunc e1 e2) v = le (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (IntLessOrEqualFunc e1 e2) v = le (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (UintLessOrEqualFunc e1 e2) v = le (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (BytesLessOrEqualFunc e1 e2) v = le (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-
-ev (DoubleLessThanFunc e1 e2) v = lt (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (IntLessThanFunc e1 e2) v = lt (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (UintLessThanFunc e1 e2) v = lt (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (BytesLessThanFunc e1 e2) v = lt (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-
-ev (BoolNotEqualFunc e1 e2) v = ne (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (DoubleNotEqualFunc e1 e2) v = ne (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (IntNotEqualFunc e1 e2) v = ne (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (UintNotEqualFunc e1 e2) v = ne (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (StringNotEqualFunc e1 e2) v = ne (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-ev (BytesNotEqualFunc e1 e2) v = ne (runExcept $ ev e1 v) (runExcept $ ev e2 v)
-
-ev (BytesTypeFunc e) v = case runExcept $ ev e v of
-    (Right _) -> return True
-    (Left _) -> return False
-ev (BoolTypeFunc e) v = case runExcept $ ev e v of
-    (Right _) -> return True
-    (Left _) -> return False
-ev (DoubleTypeFunc e) v = case runExcept $ ev e v of
-    (Right _) -> return True
-    (Left _) -> return False
-ev (IntTypeFunc e) v = case runExcept $ ev e v of
-    (Right _) -> return True
-    (Left _) -> return False
-ev (UintTypeFunc e) v = case runExcept $ ev e v of
-    (Right _) -> return True
-    (Left _) -> return False
-ev (StringTypeFunc e) v = case runExcept $ ev e v of
-    (Right _) -> return True
-    (Left _) -> return False
-
-ev (RegexFunc e s) v = (=~) <$> ev s v <*> ev e v
-
-ev DoubleVariable (Number r) = return $ fromRational r
-ev DoubleVariable l = throwError $ ErrNotADouble $ show l
-
-ev (DoubleListElemFunc es i) v = 
-    (!!) <$> 
-        mapM (`ev` v) es <*> 
-        ev i v
-
-ev IntVariable (Number r) = return (truncate r)
-ev IntVariable l = throwError $ ErrNotAnInt $ show l
-
-ev (IntListElemFunc es i) v =
-    (!!) <$>
-        mapM (`ev` v) es <*>
-        ev i v
-
-ev (BytesListLengthFunc es) v = length <$> mapM (`ev` v) es
-
-ev (BoolListLengthFunc es) v = length <$> mapM (`ev` v) es
-
-ev (BytesLengthFunc e) v = length <$> ev e v
-
-ev (DoubleListLengthFunc es) v = length <$> mapM (`ev` v) es
-
-ev (IntListLengthFunc es) v = length <$> mapM (`ev` v) es
-
-ev (StringListLengthFunc es) v = length <$> mapM (`ev` v) es
-
-ev (UintListLengthFunc es) v = length <$> mapM (`ev` v) es
-
-ev (StringLengthFunc e) v = length <$> ev e v
-
-ev UintVariable (Number r) = return $ truncate r
-ev UintVariable l = throwError $ ErrNotAnUint $ show l
-
-ev (UintListElemFunc es i) v =
-    (!!) <$>
-        mapM (`ev` v) es <*>
-        ev i v
-
-ev StringVariable (String s) = return s
-ev StringVariable l = throwError $ ErrNotAString $ show l
-
-ev (StringListElemFunc es i) v =
-    (!!) <$>
-        mapM (`ev` v) es <*>
-        ev i v
-
-ev (StringToLowerFunc s) v = map toLower <$> ev s v
-
-ev (StringToUpperFunc s) v = map toUpper <$> ev s v
-
-ev BytesVariable (String s) = return s
-ev BytesVariable l = throwError $ ErrNotBytes $ show l
-
-ev (BytesListElemFunc es i) v =
-    (!!) <$>
-        mapM (`ev` v) es <*>
-        ev i v
-
-eq :: (Eq a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
-eq (Right v1) (Right v2) = return $ v1 == v2
-eq (Left _) _ = return False
-eq _ (Left _) = return False
-
-ge :: (Ord a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
-ge (Right v1) (Right v2) = return $ v1 >= v2
-ge (Left _) _ = return False
-ge _ (Left _) = return False
-
-gt :: (Ord a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
-gt (Right v1) (Right v2) = return $ v1 > v2
-gt (Left _) _ = return False
-gt _ (Left _) = return False
-
-le :: (Ord a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
-le (Right v1) (Right v2) = return $ v1 <= v2
-le (Left _) _ = return False
-le _ (Left _) = return False
-
-lt :: (Ord a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
-lt (Right v1) (Right v2) = return $ v1 < v2
-lt (Left _) _ = return False
-lt _ (Left _) = return False
-
-ne :: (Eq a) => Either ValueErr a -> Either ValueErr a -> Except ValueErr Bool
-ne (Right v1) (Right v2) = return $ v1 /= v2
-ne (Left _) _ = return False
-ne _ (Left _) = return False
+-- assertArgs1 asserts that the list of arguments is only one argument and 
+-- returns the argument or an error message 
+-- containing the function name that was passed in as an argument to assertArgs1.
+assertArgs1 :: String -> [AnyExpr] -> Except String AnyExpr
+assertArgs1 name [e1] = return e1
+assertArgs1 name es = throwError $ name ++ ": expected one argument, but got " ++ show (length es) ++ ": " ++ show es
 
 -- |
--- simplifyBoolExpr returns an equivalent, but simpler version of the input boolean expression.
-simplifyBoolExpr :: Expr Bool -> Expr Bool
-simplifyBoolExpr = simplifyExpr
+-- assertArgs2 asserts that the list of arguments is only two arguments and 
+-- returns the two arguments or an error message 
+-- containing the function name that was passed in as an argument to assertArgs2.
+assertArgs2 :: String -> [AnyExpr] -> Except String (AnyExpr, AnyExpr)
+assertArgs2 name [e1, e2] = return (e1, e2)
+assertArgs2 name es = throwError $ name ++ ": expected two arguments, but got " ++ show (length es) ++ ": " ++ show es
 
-simplifyExpr :: Expr a -> Expr a
-simplifyExpr (BoolEqualFunc (Const b1) (Const b2)) = Const $ b1 == b2
-simplifyExpr v@(Const _) = v
-simplifyExpr v@BoolVariable = v
+-- |
+-- Desc is the description of a function, 
+-- especially built to make comparisons of user defined expressions possible.
+data Desc = Desc {
+    _name :: String
+    , _toStr :: String
+    , _hash :: Int
+    , _params :: [Desc]
+    , _hasVar :: Bool
+}
 
-simplifyExpr (OrFunc v1 v2) = simplifyOrFunc (simplifyExpr v1) (simplifyExpr v2)
-simplifyExpr (AndFunc v1 v2) = simplifyAndFunc (simplifyExpr v1) (simplifyExpr v2)
-simplifyExpr (NotFunc v) = simplifyNotFunc (simplifyExpr v)
+-- |
+-- mkDesc makes a description from a function name and a list of the argument's descriptions.
+mkDesc :: String -> [Desc] -> Desc
+mkDesc n ps = Desc {
+    _name = n
+    , _toStr = n ++ "(" ++ intercalate "," (map show ps) ++ ")"
+    , _hash = hashWithName n ps
+    , _params = ps
+    , _hasVar = any _hasVar ps
+}
 
-simplifyExpr (BoolEqualFunc e1 e2) = BoolEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (DoubleEqualFunc e1 e2) = DoubleEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (IntEqualFunc e1 e2) = IntEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (UintEqualFunc e1 e2) = UintEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (StringEqualFunc e1 e2) = StringEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (BytesEqualFunc e1 e2) = BytesEqualFunc (simplifyExpr e1) (simplifyExpr e2)
+instance Show Desc where
+    show = _toStr
 
-simplifyExpr (IntListContainsFunc e es) = IntListContainsFunc (simplifyExpr e) (map simplifyExpr es)
-simplifyExpr (StringListContainsFunc e es) = StringListContainsFunc (simplifyExpr e) (map simplifyExpr es)
-simplifyExpr (UintListContainsFunc e es) = UintListContainsFunc (simplifyExpr e) (map simplifyExpr es)
-simplifyExpr (StringContainsFunc e1 e2) = StringContainsFunc (simplifyExpr e1) (simplifyExpr e2)
+instance Ord Desc where
+    compare = cmp
 
-simplifyExpr (BoolListElemFunc es e) = BoolListElemFunc (map simplifyExpr es) (simplifyExpr e)
+instance Eq Desc where
+    (==) a b = cmp a b == EQ
 
-simplifyExpr (BytesGreaterOrEqualFunc e1 e2) = BytesGreaterOrEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (DoubleGreaterOrEqualFunc e1 e2) = DoubleGreaterOrEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (IntGreaterOrEqualFunc e1 e2) = IntGreaterOrEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (UintGreaterOrEqualFunc e1 e2) = UintGreaterOrEqualFunc (simplifyExpr e1) (simplifyExpr e2)
+-- |
+-- AnyExpr is used by the Relapse parser to represent an Expression that can return any type of value, 
+-- where any is a predefined list of possible types represented by AnyFunc.
+data AnyExpr = AnyExpr {
+    _desc :: Desc
+    , _eval :: AnyFunc
+}
 
-simplifyExpr (BytesGreaterThanFunc e1 e2) = BytesGreaterThanFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (DoubleGreaterThanFunc e1 e2) = DoubleGreaterThanFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (IntGreaterThanFunc e1 e2) = IntGreaterThanFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (UintGreaterThanFunc e1 e2) = UintGreaterThanFunc (simplifyExpr e1) (simplifyExpr e2)
+-- |
+-- Func represents the evaluation function part of a user defined expression.
+-- This function takes a label from a tree parser and returns a value or an error string.
+type Func a = (Parsers.Label -> Except String a)
 
-simplifyExpr (StringHasPrefixFunc e1 e2) = StringHasPrefixFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (StringHasSuffixFunc e1 e2) = StringHasSuffixFunc (simplifyExpr e1) (simplifyExpr e2)
+instance Show AnyExpr where
+    show a = show (_desc a)
 
-simplifyExpr (BytesLessOrEqualFunc e1 e2) = BytesLessOrEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (DoubleLessOrEqualFunc e1 e2) = DoubleLessOrEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (IntLessOrEqualFunc e1 e2) = IntLessOrEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (UintLessOrEqualFunc e1 e2) = UintLessOrEqualFunc (simplifyExpr e1) (simplifyExpr e2)
+instance Eq AnyExpr where
+    (==) a b = _desc a == _desc b
 
-simplifyExpr (BytesLessThanFunc e1 e2) = BytesLessThanFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (DoubleLessThanFunc e1 e2) = DoubleLessThanFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (IntLessThanFunc e1 e2) = IntLessThanFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (UintLessThanFunc e1 e2) = UintLessThanFunc (simplifyExpr e1) (simplifyExpr e2)
+instance Ord AnyExpr where
+    compare a b = cmp (_desc a) (_desc b)
 
-simplifyExpr (BoolNotEqualFunc e1 e2) = BoolNotEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (DoubleNotEqualFunc e1 e2) = DoubleNotEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (IntNotEqualFunc e1 e2) = IntNotEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (UintNotEqualFunc e1 e2) = UintNotEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (StringNotEqualFunc e1 e2) = StringNotEqualFunc (simplifyExpr e1) (simplifyExpr e2)
-simplifyExpr (BytesNotEqualFunc e1 e2) = BytesNotEqualFunc (simplifyExpr e1) (simplifyExpr e2)
+-- |
+-- AnyFunc is used by the Relapse parser and represents the list all supported types of functions.
+data AnyFunc = BoolFunc (Func Bool)
+    | IntFunc (Func Int)
+    | StringFunc (Func Text)
+    | DoubleFunc (Func Double)
+    | UintFunc (Func Word)
+    | BytesFunc (Func ByteString)
+    | BoolsFunc (Func [Bool])
+    | IntsFunc (Func [Int])
+    | StringsFunc (Func [Text])
+    | DoublesFunc (Func [Double])
+    | UintsFunc (Func [Word])
+    | ListOfBytesFunc (Func [ByteString])
 
-simplifyExpr (BytesTypeFunc e) = BytesTypeFunc (simplifyExpr e)
-simplifyExpr (BoolTypeFunc e) = BoolTypeFunc (simplifyExpr e)
-simplifyExpr (DoubleTypeFunc e) = DoubleTypeFunc (simplifyExpr e)
-simplifyExpr (IntTypeFunc e) = IntTypeFunc (simplifyExpr e)
-simplifyExpr (UintTypeFunc e) = UintTypeFunc (simplifyExpr e)
-simplifyExpr (StringTypeFunc e) = StringTypeFunc (simplifyExpr e)
+-- |
+-- Expr represents a user defined expression, 
+-- which consists of a description for comparisons and an evaluation function.
+data Expr a = Expr {
+    desc :: Desc
+    , eval :: Func a
+}
 
-simplifyExpr (RegexFunc e1 e2) = RegexFunc (simplifyExpr e1) (simplifyExpr e2)
+instance Show (Expr a) where
+    show e = show (desc e)
 
-simplifyExpr (DoubleListElemFunc es e) = DoubleListElemFunc (map simplifyExpr es) (simplifyExpr e)
+instance Eq (Expr a) where
+    (==) x y = desc x == desc y
 
-simplifyExpr (IntListElemFunc es e) = IntListElemFunc (map simplifyExpr es) (simplifyExpr e)
-simplifyExpr (BytesListLengthFunc es) = Const (length es)
-simplifyExpr (BoolListLengthFunc es) = Const (length es)
-simplifyExpr (BytesLengthFunc e) = case simplifyExpr e of
-        (Const b) -> Const (length b)
-        b -> BytesLengthFunc b
-simplifyExpr (DoubleListLengthFunc es) = Const (length es)
-simplifyExpr (IntListLengthFunc es) = Const (length es)
-simplifyExpr (StringListLengthFunc es) = Const (length es)
-simplifyExpr (UintListLengthFunc es) = Const (length es)
-simplifyExpr (StringLengthFunc e) = case simplifyExpr e of
-        (Const b) -> Const (length b)
-        b -> StringLengthFunc b
+instance Ord (Expr a) where
+    compare x y = cmp (desc x) (desc y)
 
-simplifyExpr (UintListElemFunc es e) = UintListElemFunc (map simplifyExpr es) (simplifyExpr e)
+-- |
+-- params returns the descriptions of the parameters of the user defined expression.
+params :: Expr a -> [Desc]
+params = _params . desc
 
-simplifyExpr (StringListElemFunc es e) = StringListElemFunc (map simplifyExpr es) (simplifyExpr e)
-simplifyExpr (StringToLowerFunc e) = case simplifyExpr e of
-        (Const s) -> Const $ map toLower s
-        s -> s
-simplifyExpr (StringToUpperFunc e) = case simplifyExpr e of
-        (Const s) -> Const $ map toUpper s
-        s -> s
+-- |
+-- name returns the name of the user defined expression.
+name :: Expr a -> String
+name = _name . desc
 
-simplifyExpr (BytesListElemFunc es e) = BytesListElemFunc (map simplifyExpr es) (simplifyExpr e)
+-- |
+-- hasVar returns whether the expression or any of its children contains a variable expression.
+hasVar :: Expr a -> Bool
+hasVar = _hasVar . desc
 
-simplifyExpr e = e
+-- |
+-- mkBoolExpr generalises a bool expression to any expression.
+mkBoolExpr :: Expr Bool -> AnyExpr
+mkBoolExpr (Expr desc eval) = AnyExpr desc (BoolFunc eval)
 
-simplifyOrFunc :: Expr Bool -> Expr Bool -> Expr Bool
-simplifyOrFunc true@(Const True) _ = true
-simplifyOrFunc _ true@(Const True) = true
-simplifyOrFunc (Const False) v = v
-simplifyOrFunc v (Const False) = v
-simplifyOrFunc v1 v2
-    | v1 == v2  = v1
-    | v1 == simplifyNotFunc v2 = Const True
-    | simplifyNotFunc v1 == v2 = Const True
-    | otherwise = OrFunc v1 v2
+-- |
+-- assertBool asserts that any expression is actually a bool expression.
+assertBool :: AnyExpr -> Except String (Expr Bool)
+assertBool (AnyExpr desc (BoolFunc eval)) = return $ Expr desc eval
+assertBool (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bool"
 
-simplifyAndFunc :: Expr Bool -> Expr Bool -> Expr Bool
-simplifyAndFunc (Const True) v = v
-simplifyAndFunc v (Const True) = v
-simplifyAndFunc false@(Const False) _ = false
-simplifyAndFunc _ false@(Const False) = false
+-- |
+-- mkIntExpr generalises an int expression to any expression.
+mkIntExpr :: Expr Int -> AnyExpr
+mkIntExpr (Expr desc eval) = AnyExpr desc (IntFunc eval)
 
-simplifyAndFunc v1@(StringEqualFunc s1 s2) (StringEqualFunc s1' s2') = 
-    case (s1, s2, s1', s2') of
-    (Const c1, StringVariable, Const c2, StringVariable) -> if c1 == c2 then v1 else Const False
-    (Const c1, StringVariable, StringVariable, Const c2) -> if c1 == c2 then v1 else Const False
-    (StringVariable, Const c1, Const c2, StringVariable) -> if c1 == c2 then v1 else Const False
-    (StringVariable, Const c1, StringVariable, Const c2) -> if c1 == c2 then v1 else Const False
-simplifyAndFunc v1@(StringEqualFunc s1 s2) (StringNotEqualFunc s1' s2') = 
-    case (s1, s2, s1', s2') of
-    (Const c1, StringVariable, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
-    (Const c1, StringVariable, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-    (StringVariable, Const c1, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
-    (StringVariable, Const c1, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-simplifyAndFunc v1@(StringNotEqualFunc s1 s2) (StringEqualFunc s1' s2') = 
-    case (s1, s2, s1', s2') of
-    (Const c1, StringVariable, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
-    (Const c1, StringVariable, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-    (StringVariable, Const c1, Const c2, StringVariable) -> if c1 /= c2 then v1 else Const False
-    (StringVariable, Const c1, StringVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+-- |
+-- assertInt asserts that any expression is actually an int expression.
+assertInt :: AnyExpr -> Except String (Expr Int)
+assertInt (AnyExpr desc (IntFunc eval)) = return $ Expr desc eval
+assertInt (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type int"
 
-simplifyAndFunc v1@(IntEqualFunc s1 s2) (IntEqualFunc s1' s2') = 
-    case (s1, s2, s1', s2') of
-    (Const c1, IntVariable, Const c2, IntVariable) -> if c1 == c2 then v1 else Const False
-    (Const c1, IntVariable, IntVariable, Const c2) -> if c1 == c2 then v1 else Const False
-    (IntVariable, Const c1, Const c2, IntVariable) -> if c1 == c2 then v1 else Const False
-    (IntVariable, Const c1, IntVariable, Const c2) -> if c1 == c2 then v1 else Const False
-simplifyAndFunc v1@(IntEqualFunc s1 s2) (IntNotEqualFunc s1' s2') = 
-    case (s1, s2, s1', s2') of
-    (Const c1, IntVariable, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
-    (Const c1, IntVariable, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-    (IntVariable, Const c1, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
-    (IntVariable, Const c1, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-simplifyAndFunc v1@(IntNotEqualFunc s1 s2) (IntEqualFunc s1' s2') = 
-    case (s1, s2, s1', s2') of
-    (Const c1, IntVariable, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
-    (Const c1, IntVariable, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-    (IntVariable, Const c1, Const c2, IntVariable) -> if c1 /= c2 then v1 else Const False
-    (IntVariable, Const c1, IntVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+-- |
+-- mkDoubleExpr generalises a double expression to any expression.
+mkDoubleExpr :: Expr Double -> AnyExpr
+mkDoubleExpr (Expr desc eval) = AnyExpr desc (DoubleFunc eval)
 
-simplifyAndFunc v1@(UintEqualFunc s1 s2) (UintEqualFunc s1' s2') = 
-    case (s1, s2, s1', s2') of
-    (Const c1, UintVariable, Const c2, UintVariable) -> if c1 == c2 then v1 else Const False
-    (Const c1, UintVariable, UintVariable, Const c2) -> if c1 == c2 then v1 else Const False
-    (UintVariable, Const c1, Const c2, UintVariable) -> if c1 == c2 then v1 else Const False
-    (UintVariable, Const c1, UintVariable, Const c2) -> if c1 == c2 then v1 else Const False
-simplifyAndFunc v1@(UintEqualFunc s1 s2) (UintNotEqualFunc s1' s2') = 
-    case (s1, s2, s1', s2') of
-    (Const c1, UintVariable, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
-    (Const c1, UintVariable, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-    (UintVariable, Const c1, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
-    (UintVariable, Const c1, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-simplifyAndFunc v1@(UintNotEqualFunc s1 s2) (UintEqualFunc s1' s2') = 
-    case (s1, s2, s1', s2') of
-    (Const c1, UintVariable, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
-    (Const c1, UintVariable, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
-    (UintVariable, Const c1, Const c2, UintVariable) -> if c1 /= c2 then v1 else Const False
-    (UintVariable, Const c1, UintVariable, Const c2) -> if c1 /= c2 then v1 else Const False
+-- |
+-- assertDouble asserts that any expression is actually a double expression.
+assertDouble :: AnyExpr -> Except String (Expr Double)
+assertDouble (AnyExpr desc (DoubleFunc eval)) = return $ Expr desc eval
+assertDouble (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type double"
 
-simplifyAndFunc v1 v2
-    | v1 == v2  = v1
-    | v1 == simplifyNotFunc v2 = Const False
-    | simplifyNotFunc v1 == v2 = Const False
-    | otherwise = AndFunc v1 v2
+-- |
+-- mkStringExpr generalises a string expression to any expression.
+mkStringExpr :: Expr Text -> AnyExpr
+mkStringExpr (Expr desc eval) = AnyExpr desc (StringFunc eval)
 
-simplifyNotFunc :: Expr Bool -> Expr Bool
-simplifyNotFunc (NotFunc v) = v
-simplifyNotFunc (Const True) = Const False
-simplifyNotFunc (Const False) = Const True
-simplifyNotFunc (AndFunc e1 e2) = simplifyOrFunc (simplifyNotFunc e1) (simplifyNotFunc e2)
-simplifyNotFunc (OrFunc e1 e2) = simplifyAndFunc (simplifyNotFunc e1) (simplifyNotFunc e2)
-simplifyNotFunc (BoolEqualFunc e1 e2) = BoolNotEqualFunc e1 e2
-simplifyNotFunc (DoubleEqualFunc e1 e2) = DoubleNotEqualFunc e1 e2
-simplifyNotFunc (IntEqualFunc e1 e2) = IntNotEqualFunc e1 e2
-simplifyNotFunc (UintEqualFunc e1 e2) = UintNotEqualFunc e1 e2
-simplifyNotFunc (StringEqualFunc e1 e2) = StringNotEqualFunc e1 e2
-simplifyNotFunc (BytesEqualFunc e1 e2) = BytesNotEqualFunc e1 e2
-simplifyNotFunc (BoolNotEqualFunc e1 e2) = BoolEqualFunc e1 e2
-simplifyNotFunc (DoubleNotEqualFunc e1 e2) = DoubleEqualFunc e1 e2
-simplifyNotFunc (IntNotEqualFunc e1 e2) = IntEqualFunc e1 e2
-simplifyNotFunc (UintNotEqualFunc e1 e2) = UintEqualFunc e1 e2
-simplifyNotFunc (StringNotEqualFunc e1 e2) = StringEqualFunc e1 e2
-simplifyNotFunc (BytesNotEqualFunc e1 e2) = BytesEqualFunc e1 e2
-simplifyNotFunc v = NotFunc v
+-- |
+-- assertString asserts that any expression is actually a string expression.
+assertString :: AnyExpr -> Except String (Expr Text)
+assertString (AnyExpr desc (StringFunc eval)) = return $ Expr desc eval
+assertString (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type string"
+
+-- |
+-- mkUintExpr generalises a uint expression to any expression.
+mkUintExpr :: Expr Word -> AnyExpr
+mkUintExpr (Expr desc eval) = AnyExpr desc (UintFunc eval)
+
+-- |
+-- assertUint asserts that any expression is actually a uint expression.
+assertUint :: AnyExpr -> Except String (Expr Word)
+assertUint (AnyExpr desc (UintFunc eval)) = return $ Expr desc eval
+assertUint (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type uint"
+
+-- |
+-- mkBytesExpr generalises a bytes expression to any expression.
+mkBytesExpr :: Expr ByteString -> AnyExpr
+mkBytesExpr (Expr desc eval) = AnyExpr desc (BytesFunc eval)
+
+-- |
+-- assertBytes asserts that any expression is actually a bytes expression.
+assertBytes :: AnyExpr -> Except String (Expr ByteString)
+assertBytes (AnyExpr desc (BytesFunc eval)) = return $ Expr desc eval
+assertBytes (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bytes"
+
+-- |
+-- mkBoolsExpr generalises a list of bools expression to any expression.
+mkBoolsExpr :: Expr [Bool] -> AnyExpr
+mkBoolsExpr (Expr desc eval) = AnyExpr desc (BoolsFunc eval)
+
+-- |
+-- assertBools asserts that any expression is actually a list of bools expression.
+assertBools :: AnyExpr -> Except String (Expr [Bool])
+assertBools (AnyExpr desc (BoolsFunc eval)) = return $ Expr desc eval
+assertBools (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bools"
+
+-- |
+-- mkIntsExpr generalises a list of ints expression to any expression.
+mkIntsExpr :: Expr [Int] -> AnyExpr
+mkIntsExpr (Expr desc eval) = AnyExpr desc (IntsFunc eval)
+
+-- |
+-- assertInts asserts that any expression is actually a list of ints expression.
+assertInts :: AnyExpr -> Except String (Expr [Int])
+assertInts (AnyExpr desc (IntsFunc eval)) = return $ Expr desc eval
+assertInts (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type ints"
+
+-- |
+-- mkUintsExpr generalises a list of uints expression to any expression.
+mkUintsExpr :: Expr [Word] -> AnyExpr
+mkUintsExpr (Expr desc eval) = AnyExpr desc (UintsFunc eval)
+
+-- |
+-- assertUints asserts that any expression is actually a list of uints expression.
+assertUints :: AnyExpr -> Except String (Expr [Word])
+assertUints (AnyExpr desc (UintsFunc eval)) = return $ Expr desc eval
+assertUints (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type uints"
+
+-- |
+-- mkDoublesExpr generalises a list of doubles expression to any expression.
+mkDoublesExpr :: Expr [Double] -> AnyExpr
+mkDoublesExpr (Expr desc eval) = AnyExpr desc (DoublesFunc eval)
+
+-- |
+-- assertDoubles asserts that any expression is actually a list of doubles expression.
+assertDoubles :: AnyExpr -> Except String (Expr [Double])
+assertDoubles (AnyExpr desc (DoublesFunc eval)) = return $ Expr desc eval
+assertDoubles (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type doubles"
+
+-- |
+-- mkStringsExpr generalises a list of strings expression to any expression.
+mkStringsExpr :: Expr [Text] -> AnyExpr
+mkStringsExpr (Expr desc eval) = AnyExpr desc (StringsFunc eval)
+
+-- |
+-- assertStrings asserts that any expression is actually a list of strings expression.
+assertStrings :: AnyExpr -> Except String (Expr [Text])
+assertStrings (AnyExpr desc (StringsFunc eval)) = return $ Expr desc eval
+assertStrings (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type strings"
+
+-- |
+-- mkListOfBytesExpr generalises a list of bytes expression to any expression.
+mkListOfBytesExpr :: Expr [ByteString] -> AnyExpr
+mkListOfBytesExpr (Expr desc eval) = AnyExpr desc (ListOfBytesFunc eval)
+
+-- |
+-- assertListOfBytes asserts that any expression is actually a list of bytes expression.
+assertListOfBytes :: AnyExpr -> Except String (Expr [ByteString])
+assertListOfBytes (AnyExpr desc (ListOfBytesFunc eval)) = return $ Expr desc eval
+assertListOfBytes (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bytes"
+
+(<>) :: Ordering -> Ordering -> Ordering
+(<>) EQ c = c
+(<>) c _ = c
+
+-- cmp is an efficient comparison function for expressions.
+-- It is very important that cmp is efficient, 
+-- because it is a bottleneck for simplification and smart construction of large queries.
+cmp :: Desc -> Desc -> Ordering
+cmp a b = compare (_hash a) (_hash b) <>
+    compare (_name a) (_name b) <>
+    compare (length (_params a)) (length (_params b)) <>
+    foldl (<>) EQ (zipWith cmp (_params a) (_params b)) <>
+    compare (_toStr a) (_toStr b)
+
+-- |
+-- hashWithName calculates a hash of the function name and its parameters.
+hashWithName :: String -> [Desc] -> Int
+hashWithName s ds = hashList (31*17 + hashString s) (map _hash ds)
+
+-- |
+-- hashString calcuates a hash of a string.
+hashString :: String -> Int
+hashString s = hashList 0 (map ord s)
+
+-- |
+-- hashList folds a list of hashes into one, given a seed and the list.
+hashList :: Int -> [Int] -> Int
+hashList = foldl (\acc h -> 31*acc + h)
+
+noLabel :: Parsers.Label
+noLabel = Parsers.String (pack "not a label, trying constant evaluation")
+
+-- |
+-- evalConst tries to evaluate a constant expression and 
+-- either returns the resulting constant value or nothing.
+evalConst :: Expr a -> Maybe a
+evalConst e = if hasVar e
+    then Nothing
+    else case runExcept $ eval e noLabel of
+        (Left _) -> Nothing
+        (Right v) -> Just v
+
+-- |
+-- isConst returns whether the input description is one of the six possible constant values.
+isConst :: Desc -> Bool
+isConst d = not (null (_params d)) && case _name d of
+    "bool" -> True
+    "int" -> True
+    "uint" -> True
+    "double" -> True
+    "string" -> True
+    "[]byte" -> True
+    _ -> False
+
+-- |
+-- boolExpr creates a constant bool expression from a input value.
+boolExpr :: Bool -> Expr Bool 
+boolExpr b = Expr {
+    desc = Desc {
+        _name = "bool"
+        , _toStr = if b then "true" else "false"
+        , _hash = if b then 3 else 5
+        , _params = []
+        , _hasVar = False
+    }
+    , eval = const $ return b
+}
+
+-- |
+-- intExpr creates a constant int expression from a input value.
+intExpr :: Int -> Expr Int
+intExpr i = Expr {
+    desc = Desc {
+        _name = "int"
+        , _toStr = show i
+        , _hash = i
+        , _params = []
+        , _hasVar = False
+    }
+    , eval = const $ return i
+}
+
+-- |
+-- doubleExpr creates a constant double expression from a input value.
+doubleExpr :: Double -> Expr Double
+doubleExpr d = Expr {
+    desc = Desc {
+        _name = "double"
+        , _toStr = show d
+        , _hash = truncate d
+        , _params = []
+        , _hasVar = False
+    }
+    , eval = const $ return d
+}
+
+-- |
+-- uintExpr creates a constant uint expression from a input value.
+uintExpr :: Word -> Expr Word
+uintExpr i = Expr {
+    desc = Desc {
+        _name = "uint"
+        , _toStr = show i
+        , _hash = hashString (show i)
+        , _params = []
+        , _hasVar = False
+    }
+    , eval = const $ return i
+}
+
+-- |
+-- stringExpr creates a constant string expression from a input value.
+stringExpr :: Text -> Expr Text
+stringExpr s = Expr {
+    desc = Desc {
+        _name = "string"
+        , _toStr = show s
+        , _hash = hashString (unpack s)
+        , _params = []
+        , _hasVar = False
+    }
+    , eval = const $ return s
+}
+
+-- |
+-- bytesExpr creates a constant bytes expression from a input value.
+bytesExpr :: ByteString -> Expr ByteString
+bytesExpr b = Expr {
+    desc = Desc {
+        _name = "bytes"
+        , _toStr = "[]byte{" ++ show b ++ "}"
+        , _hash = hashString (show b)
+        , _params = []
+        , _hasVar = False
+    }
+    , eval = const $ return b
+}
+
+-- |
+-- trimBool tries to reduce an expression to a single constant expression,
+-- if it does not contain a variable.
+trimBool :: Expr Bool -> Expr Bool
+trimBool e = if hasVar e 
+    then e
+    else case runExcept $ eval e noLabel of
+        (Left _) -> e
+        (Right v) -> boolExpr v
+
+-- |
+-- trimInt tries to reduce an expression to a single constant expression,
+-- if it does not contain a variable.
+trimInt :: Expr Int -> Expr Int
+trimInt e = if hasVar e 
+    then e
+    else case runExcept $ eval e noLabel of
+        (Left _) -> e
+        (Right v) -> intExpr v
+
+-- |
+-- trimUint tries to reduce an expression to a single constant expression,
+-- if it does not contain a variable.
+trimUint :: Expr Word -> Expr Word
+trimUint e = if hasVar e 
+    then e
+    else case runExcept $ eval e noLabel of
+        (Left _) -> e
+        (Right v) -> uintExpr v
+
+-- |
+-- trimString tries to reduce an expression to a single constant expression,
+-- if it does not contain a variable.
+trimString :: Expr Text -> Expr Text
+trimString e = if hasVar e 
+    then e
+    else case runExcept $ eval e noLabel of
+        (Left _) -> e
+        (Right v) -> stringExpr v
+
+-- |
+-- trimDouble tries to reduce an expression to a single constant expression,
+-- if it does not contain a variable.
+trimDouble :: Expr Double -> Expr Double
+trimDouble e = if hasVar e 
+    then e
+    else case runExcept $ eval e noLabel of
+        (Left _) -> e
+        (Right v) -> doubleExpr v
+
+-- |
+-- trimBytes tries to reduce an expression to a single constant expression,
+-- if it does not contain a variable.
+trimBytes :: Expr ByteString -> Expr ByteString
+trimBytes e = if hasVar e 
+    then e
+    else case runExcept $ eval e noLabel of
+        (Left _) -> e
+        (Right v) -> bytesExpr v
+
+-- |
+-- boolsExpr sequences a list of expressions that each return a bool, 
+-- to a single expression that returns a list of bools.
+boolsExpr :: [Expr Bool] -> Expr [Bool]
+boolsExpr = seqExprs "[]bool" 
+
+-- |
+-- intsExpr sequences a list of expressions that each return an int, 
+-- to a single expression that returns a list of ints.
+intsExpr :: [Expr Int] -> Expr [Int]
+intsExpr = seqExprs "[]int"
+
+-- |
+-- stringsExpr sequences a list of expressions that each return a string, 
+-- to a single expression that returns a list of strings.
+stringsExpr :: [Expr Text] -> Expr [Text]
+stringsExpr = seqExprs "[]string"
+
+-- |
+-- doublesExpr sequences a list of expressions that each return a double, 
+-- to a single expression that returns a list of doubles.
+doublesExpr :: [Expr Double] -> Expr [Double]
+doublesExpr = seqExprs "[]double"
+
+-- |
+-- listOfBytesExpr sequences a list of expressions that each return bytes, 
+-- to a single expression that returns a list of bytes.
+listOfBytesExpr :: [Expr ByteString] -> Expr [ByteString]
+listOfBytesExpr = seqExprs "[][]byte"
+
+-- |
+-- uintsExpr sequences a list of expressions that each return a uint, 
+-- to a single expression that returns a list of uints.
+uintsExpr :: [Expr Word] -> Expr [Word]
+uintsExpr = seqExprs "[]uint"
+
+seqExprs :: String -> [Expr a] -> Expr [a]
+seqExprs n es = Expr {
+    desc = mkDesc n (map desc es)
+    , eval = \v -> mapM (`eval` v) es
+}

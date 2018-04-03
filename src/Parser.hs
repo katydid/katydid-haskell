@@ -3,7 +3,7 @@
 
 module Parser (
     -- * Parse Grammar
-    parseGrammar
+    parseGrammar, parseGrammarWithUDFs
     -- * Internal functions
     -- | These functions are exposed for testing purposes.
     , grammar, pattern, nameExpr, expr, 
@@ -13,14 +13,26 @@ module Parser (
 import Text.ParserCombinators.Parsec
 import Numeric (readDec, readOct, readHex, readFloat)
 import Data.Char (chr)
+import Control.Monad.Except (Except, runExcept, throwError)
+import qualified Data.Text as Text
+import qualified Data.ByteString.Char8 as ByteString
 
 import Expr
+import Exprs
+import Exprs.Logic
+import Exprs.Var
 import Patterns
-import ParsePatterns
 
 -- | parseGrammar parses the Relapse Grammar.
 parseGrammar :: String -> Either ParseError Refs
-parseGrammar = parse (grammar <* eof) ""
+parseGrammar = parseGrammarWithUDFs stdOnly
+
+parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Refs
+parseGrammarWithUDFs extraMkFunc = 
+    let mkFunc n es = case runExcept $ mkExpr n es of
+            (Left _) -> extraMkFunc n es
+            (Right v) -> return v
+    in parse (grammar mkFunc <* eof) ""
 
 infixl 4 <++>
 (<++>) :: CharParser () String -> CharParser () String -> CharParser () String
@@ -29,6 +41,11 @@ f <++> g = (++) <$> f <*> g
 infixr 5 <::>
 (<::>) :: CharParser () Char -> CharParser () String -> CharParser () String
 f <::> g = (:) <$> f <*> g
+
+check :: Except String a -> CharParser () a
+check e = case runExcept e of
+    (Left err) -> fail err
+    (Right v) -> return v
 
 empty :: CharParser () String
 empty = return ""
@@ -88,8 +105,16 @@ intLit = string "int(" *> _signedIntLit <* char ')'
     <|> _signedIntLit
     <?> "int_lit"
 
-uintCastLit :: CharParser () Int
-uintCastLit = string "uint(" *> _intLit <* char ')'
+uintLit :: CharParser () Word
+uintLit = do {
+    i <- intLit;
+    if i < 0
+        then fail "negative uint" 
+        else return $ fromIntegral i;
+}
+
+uintCastLit :: CharParser () Word
+uintCastLit = string "uint(" *> uintLit <* char ')'
 
 _exponent :: CharParser () String
 _exponent = oneOf "eE" <::> (
@@ -151,8 +176,8 @@ _interpretedString = between (char '"') (char '"') (many _unicodeValue)
 _rawString :: CharParser () String
 _rawString = between (char '`') (char '`') (many $ noneOf "`")
 
-stringLit :: CharParser () String
-stringLit = _rawString <|> _interpretedString
+stringLit :: CharParser () Text.Text
+stringLit = Text.pack <$> (_rawString <|> _interpretedString)
 
 _hexByteUValue :: CharParser () Char
 _hexByteUValue = char 'x' *> do {
@@ -180,25 +205,25 @@ _byteLit = do {
 _byteElem :: CharParser () Char
 _byteElem = _byteLit <|> between (char '\'') (char '\'') (_unicodeValue <|> _octalByteUValue <|> _hexByteUValue)
 
-bytesCastLit :: CharParser () String
-bytesCastLit = string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}'
+bytesCastLit :: CharParser () ByteString.ByteString
+bytesCastLit = ByteString.pack <$> (string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}')
 
-_literal :: CharParser () ParsedExpr
-_literal = BoolExpr . Const <$> bool
-    <|> IntExpr . Const <$> intLit
-    <|> UintExpr . Const <$> uintCastLit
-    <|> DoubleExpr . Const <$> doubleCastLit
-    <|> StringExpr . Const <$> stringLit
-    <|> BytesExpr . Const <$> bytesCastLit
+_literal :: CharParser () AnyExpr
+_literal = mkBoolExpr . boolExpr <$> bool
+    <|> mkIntExpr . intExpr <$> intLit
+    <|> mkUintExpr . uintExpr <$> uintCastLit
+    <|> mkDoubleExpr . doubleExpr <$> doubleCastLit
+    <|> mkStringExpr . stringExpr <$> stringLit
+    <|> mkBytesExpr . bytesExpr <$> bytesCastLit
 
-_terminal :: CharParser () ParsedExpr
+_terminal :: CharParser () AnyExpr
 _terminal = (char '$' *> (
-    BoolExpr BoolVariable <$ string "bool"
-    <|> IntExpr IntVariable <$ string "int"
-    <|> UintExpr UintVariable <$ string "uint"
-    <|> DoubleExpr DoubleVariable <$ string "double"
-    <|> StringExpr StringVariable <$ string "string"
-    <|> BytesExpr BytesVariable <$ string "[]byte" ))
+    mkBoolExpr varBoolExpr <$ string "bool"
+    <|> mkIntExpr varIntExpr <$ string "int"
+    <|> mkUintExpr varUintExpr <$ string "uint"
+    <|> mkDoubleExpr varDoubleExpr <$ string "double"
+    <|> mkStringExpr varStringExpr <$ string "string"
+    <|> mkBytesExpr varBytesExpr <$ string "[]byte" ))
     <|> _literal
 
 _builtinSymbol :: CharParser () String
@@ -212,15 +237,11 @@ _builtinSymbol = string "=="
     <|> string "$="
     <|> string "::"
 
-check :: Either String ParsedExpr -> CharParser () ParsedExpr
-check (Right r) = return r
-check (Left l) = fail l
+_builtin :: MkFunc -> CharParser () AnyExpr
+_builtin mkFunc = mkBuiltIn <$> _builtinSymbol <*> (ws *> _expr mkFunc) >>= check
 
-_builtin :: CharParser () ParsedExpr
-_builtin = newBuiltIn <$> _builtinSymbol <*> (ws *> _expr) >>= check
-
-_function :: CharParser () ParsedExpr
-_function = newFunction <$> idLit <*> (char '(' *> sepBy (ws *> _expr <* ws) (char ',') <* char ')') >>= check
+_function :: MkFunc -> CharParser () AnyExpr
+_function mkFunc = mkFunc <$> idLit <*> (char '(' *> sepBy (ws *> _expr mkFunc <* ws) (char ',') <* char ')') >>= check
 
 _listType :: CharParser () String
 _listType = char '[' <::> char ']' <::> (
@@ -231,53 +252,35 @@ _listType = char '[' <::> char ']' <::> (
     <|> string "string"
     <|> string "[]byte" )
 
-_mustBool :: ParsedExpr -> CharParser () (Expr Bool)
-_mustBool (BoolExpr e) = return e
-_mustBool e = fail $ "want BoolExpr, got: " ++ show e
+_mustBool :: AnyExpr -> CharParser () (Expr Bool)
+_mustBool = check . assertBool
 
-_mustInt :: ParsedExpr -> CharParser () (Expr Int)
-_mustInt (IntExpr e) = return e
-_mustInt e = fail $ "want IntExpr, got: " ++ show e
+newList :: String -> [AnyExpr] -> CharParser () AnyExpr
+newList "[]bool" es = mkBoolsExpr . boolsExpr <$> mapM (check . assertBool) es
+newList "[]int" es = mkIntsExpr . intsExpr <$> mapM (check . assertInt) es
+newList "[]uint" es = mkUintsExpr . uintsExpr <$> mapM (check . assertUint) es
+newList "[]double" es = mkDoublesExpr . doublesExpr <$> mapM (check . assertDouble) es
+newList "[]string" es = mkStringsExpr . stringsExpr <$> mapM (check . assertString) es
+newList "[][]byte" es = mkListOfBytesExpr . listOfBytesExpr <$> mapM (check . assertBytes) es
 
-_mustUint :: ParsedExpr -> CharParser () (Expr Uint)
-_mustUint (UintExpr e) = return e
-_mustUint e = fail $ "want UintExpr, got: " ++ show e
-
-_mustDouble :: ParsedExpr -> CharParser () (Expr Double)
-_mustDouble (DoubleExpr e) = return e
-_mustDouble e = fail $ "want DoubleExpr, got: " ++ show e
-
-_mustString :: ParsedExpr -> CharParser () (Expr String)
-_mustString (StringExpr e) = return e
-_mustString e = fail $ "want StringExpr, got: " ++ show e
-
-_mustBytes :: ParsedExpr -> CharParser () (Expr Bytes)
-_mustBytes (BytesExpr e) = return e
-_mustBytes e = fail $ "want BytesExpr, got: " ++ show e
-
-newList :: String -> [ParsedExpr] -> CharParser () ParsedExpr
-newList "[]bool" es = BoolListExpr <$> mapM _mustBool es
-newList "[]int" es = IntListExpr <$> mapM _mustInt es
-newList "[]uint" es = UintListExpr <$> mapM _mustUint es
-newList "[]double" es = DoubleListExpr <$> mapM _mustDouble es
-newList "[]string" es = StringListExpr <$> mapM _mustString es
-newList "[][]byte" es = BytesListExpr <$> mapM _mustBytes es
-
-_list :: CharParser () ParsedExpr
-_list = do {
+_list :: MkFunc -> CharParser () AnyExpr
+_list mkFunc = do {
     ltype <- _listType;
-    es <- ws *> char '{' *> sepBy (ws *> _expr <* ws) (char ',') <* char '}';
+    es <- ws *> char '{' *> sepBy (ws *> _expr mkFunc <* ws) (char ',') <* char '}';
     newList ltype es
 }
 
-_expr :: CharParser () ParsedExpr
-_expr = try _terminal <|> _list <|> _function
+_expr :: MkFunc -> CharParser () AnyExpr
+_expr mkFunc = try _terminal <|> _list mkFunc <|> _function mkFunc
 
-expr :: CharParser () (Expr Bool)
-expr = (try _terminal <|> _builtin <|> _function) >>= _mustBool
+expr :: MkFunc -> CharParser () (Expr Bool)
+expr mkFunc = (try _terminal <|> _builtin mkFunc <|> _function mkFunc) >>= _mustBool
 
-_name :: CharParser () (Expr Bool)
-_name = (newBuiltIn "==" <$> (_literal <|> (StringExpr . Const <$> idLit))) >>= check >>= _mustBool
+_nameString :: CharParser () (Expr Bool)
+_nameString = (mkBuiltIn "==" <$> 
+    (_literal <|> 
+    (mkStringExpr . stringExpr . Text.pack <$> idLit))) 
+    >>= check >>= _mustBool
 
 sepBy2 :: CharParser () a -> String -> CharParser () [a]
 sepBy2 p sep = do {
@@ -289,25 +292,25 @@ sepBy2 p sep = do {
 }
 
 _nameChoice :: CharParser () (Expr Bool)
-_nameChoice = foldl1 OrFunc <$> sepBy2 (ws *> nameExpr <* ws) "|"
+_nameChoice = foldl1 orExpr <$> sepBy2 (ws *> nameExpr <* ws) "|"
 
 nameExpr :: CharParser () (Expr Bool)
-nameExpr =  (Const True <$ char '_')
-    <|> (NotFunc <$> (char '!' *> ws *> char '(' *> ws *> nameExpr <* ws <* char ')'))
+nameExpr =  (boolExpr True <$ char '_')
+    <|> (notExpr <$> (char '!' *> ws *> char '(' *> ws *> nameExpr <* ws <* char ')'))
     <|> (char '(' *> ws *> _nameChoice <* ws <* char ')')
-    <|> _name
+    <|> _nameString
 
-_concatPattern :: CharParser () Pattern
-_concatPattern = char '[' *> (foldl1 Concat <$> sepBy2 (ws *> pattern <* ws) ",") <* optional (char ',' <* ws) <* char ']'
+_concatPattern :: MkFunc -> CharParser () Pattern
+_concatPattern mkFunc = char '[' *> (foldl1 Concat <$> sepBy2 (ws *> pattern mkFunc <* ws) ",") <* optional (char ',' <* ws) <* char ']'
 
-_interleavePattern :: CharParser () Pattern
-_interleavePattern = char '{' *> (foldl1 Interleave <$> sepBy2 (ws *> pattern <* ws) ";") <* optional (char ';' <* ws) <* char '}'
+_interleavePattern :: MkFunc -> CharParser () Pattern
+_interleavePattern mkFunc = char '{' *> (foldl1 Interleave <$> sepBy2 (ws *> pattern mkFunc <* ws) ";") <* optional (char ';' <* ws) <* char '}'
 
-_parenPattern :: CharParser () Pattern
-_parenPattern = do {
+_parenPattern :: MkFunc -> CharParser () Pattern
+_parenPattern mkFunc = do {
     char '(';
     ws;
-    first <- pattern;
+    first <- pattern mkFunc;
     ws;
     ( char ')' *> ws *>
         (
@@ -316,23 +319,23 @@ _parenPattern = do {
         )
     ) <|> ( 
         (
-            (first <$ char '|' >>= _orList) <|> 
-            (first <$ char '&' >>= _andList)
+            (first <$ char '|' >>= _orList mkFunc) <|> 
+            (first <$ char '&' >>= _andList mkFunc)
         ) <* char ')'
     )
 }
 
-_orList :: Pattern -> CharParser () Pattern
-_orList p = Or p . foldl1 Or <$> sepBy1 (ws *> pattern <* ws) (char '|')
+_orList :: MkFunc -> Pattern -> CharParser () Pattern
+_orList mkFunc p = Or p . foldl1 Or <$> sepBy1 (ws *> pattern mkFunc <* ws) (char '|')
 
-_andList :: Pattern -> CharParser () Pattern
-_andList p = And p . foldl1 And <$> sepBy1 (ws *> pattern <* ws) (char '&')
+_andList :: MkFunc -> Pattern -> CharParser () Pattern
+_andList mkFunc p = And p . foldl1 And <$> sepBy1 (ws *> pattern mkFunc <* ws) (char '&')
 
 _refPattern :: CharParser () Pattern
 _refPattern = Reference <$> (char '@' *> ws *> idLit)
 
-_notPattern :: CharParser () Pattern
-_notPattern = Not <$> (char '!' *> ws *> char '(' *> ws *> pattern <* ws <* char ')')
+_notPattern :: MkFunc -> CharParser () Pattern
+_notPattern mkFunc = Not <$> (char '!' *> ws *> char '(' *> ws *> pattern mkFunc <* ws <* char ')')
 
 _emptyPattern :: CharParser () Pattern
 _emptyPattern = Empty <$ string "<empty>"
@@ -340,34 +343,34 @@ _emptyPattern = Empty <$ string "<empty>"
 _zanyPattern :: CharParser () Pattern
 _zanyPattern = ZAny <$ string "*"
 
-_containsPattern :: CharParser () Pattern
-_containsPattern = Contains <$> (char '.' *> pattern)
+_containsPattern :: MkFunc -> CharParser () Pattern
+_containsPattern mkFunc = Contains <$> (char '.' *> pattern mkFunc)
 
-_treenodePattern :: CharParser () Pattern
-_treenodePattern = Node <$> nameExpr <*> ( ws *> ( try (char ':' *> ws *> pattern) <|> _depthPattern ) )
+_treenodePattern :: MkFunc -> CharParser () Pattern
+_treenodePattern mkFunc = Node <$> nameExpr <*> ( ws *> ( try (char ':' *> ws *> pattern mkFunc) <|> _depthPattern mkFunc) )
 
-_depthPattern :: CharParser () Pattern
-_depthPattern = _concatPattern <|> _interleavePattern <|> _containsPattern 
-    <|> flip Node Empty <$> ( (string "->" *> expr ) <|> (_builtin >>= _mustBool) )
+_depthPattern :: MkFunc -> CharParser () Pattern
+_depthPattern mkFunc = _concatPattern mkFunc <|> _interleavePattern mkFunc<|> _containsPattern mkFunc
+    <|> flip Node Empty <$> ( (string "->" *> expr mkFunc) <|> (_builtin mkFunc>>= _mustBool) )
 
-newContains :: CharParser () ParsedExpr -> CharParser () Pattern
-newContains e = flip Node Empty <$> ((newBuiltIn "*=" <$> e) >>= check >>= _mustBool)
+newContains :: CharParser () AnyExpr -> CharParser () Pattern
+newContains e = flip Node Empty <$> ((mkBuiltIn "*=" <$> e) >>= check >>= _mustBool)
 
-pattern :: CharParser () Pattern
-pattern = char '*' *> (
-        (char '=' *> (newContains (ws *> _expr)))
+pattern :: MkFunc -> CharParser () Pattern
+pattern mkFunc = char '*' *> (
+        (char '=' *> newContains (ws *> _expr mkFunc))
         <|> return ZAny
-    ) <|> _parenPattern
+    ) <|> _parenPattern mkFunc
     <|> _refPattern
     <|> try _emptyPattern
-    <|> try _treenodePattern
-    <|> try _depthPattern
-    <|> _notPattern
+    <|> try (_treenodePattern mkFunc)
+    <|> try (_depthPattern mkFunc)
+    <|> _notPattern mkFunc
     
-_patternDecl :: CharParser () Refs
-_patternDecl = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *> pattern)
+_patternDecl :: MkFunc -> CharParser () Refs
+_patternDecl mkFunc = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *> pattern mkFunc)
 
-grammar :: CharParser () Refs
-grammar = ws *> (foldl1 union <$> many1 (_patternDecl <* ws))
-    <|> union <$> (newRef "main" <$> pattern) <*> (foldl union emptyRef <$> many (ws *> _patternDecl <* ws))
+grammar :: MkFunc -> CharParser () Refs
+grammar mkFunc = ws *> (foldl1 union <$> many1 (_patternDecl mkFunc <* ws))
+    <|> union <$> (newRef "main" <$> pattern mkFunc) <*> (foldl union emptyRef <$> many (ws *> _patternDecl mkFunc <* ws))
 
