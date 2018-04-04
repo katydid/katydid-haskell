@@ -1,15 +1,21 @@
+-- |
+-- This module contains the Relapse contains expressions.
 module Exprs.Contains (
     mkContainsExpr
     , containsStringExpr
     , containsExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept, throwError)
-import Data.List (isInfixOf)
+import Control.Monad.Except (Except)
 import qualified Data.Text as Text
 
 import Expr
 
+-- |
+-- mkContainsExpr dynamically creates a contains expression, if the two input types are:
+-- 
+--     * String and String where the second string is the possible substring.
+--     * A List of :Strings, Ints or Uints paired with a String, Int or Uint respectively.
 mkContainsExpr :: [AnyExpr] -> Except String AnyExpr
 mkContainsExpr es = do {
     (e1, e2) <- assertArgs2 "contains" es;
@@ -23,6 +29,8 @@ mkContainsExpr es = do {
 mkContainsStringExpr' :: Expr Text.Text -> Expr Text.Text -> AnyExpr
 mkContainsStringExpr' e f = mkBoolExpr $ containsStringExpr e f
 
+-- |
+-- containsStringExpr creates a contains expression that returns true if the second string is a substring of the first.
 containsStringExpr :: Expr Text.Text -> Expr Text.Text -> Expr Bool
 containsStringExpr s sub = trimBool Expr {
     desc = mkDesc "contains" [desc s, desc sub]
@@ -32,6 +40,8 @@ containsStringExpr s sub = trimBool Expr {
 mkContainsExpr' :: (Eq a) => Expr a -> Expr [a] -> AnyExpr
 mkContainsExpr' e f = mkBoolExpr $ containsExpr e f
 
+-- |
+-- containsExpr creates a contains expression that returns true if the first argument is an element in the second list argument.
 containsExpr :: (Eq a) => Expr a -> Expr [a] -> Expr Bool
 containsExpr e es = trimBool Expr {
     desc = mkDesc "contains" [desc e, desc es]

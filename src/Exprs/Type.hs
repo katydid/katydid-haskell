@@ -6,9 +6,8 @@ module Exprs.Type (
     , typeExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept, throwError)
+import Control.Monad.Except (Except, runExcept)
 
-import qualified Parsers
 import Expr
 
 -- |

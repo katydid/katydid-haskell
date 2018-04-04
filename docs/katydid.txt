@@ -390,41 +390,149 @@ mkToUpperExpr :: [AnyExpr] -> Except String AnyExpr
 --   string to an uppercase string.
 toUpperExpr :: Expr Text -> Expr Text
 
+
+-- | This module contains the Relapse logic expressions: not, and, or.
 module Exprs.Logic
+
+-- | mkNotExpr dynamically creates a not expression, if the single argument
+--   is a bool expression.
 mkNotExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | notExpr creates a not expression, that returns true is the argument
+--   expression returns an error or false.
 notExpr :: Expr Bool -> Expr Bool
+
+-- | mkAndExpr dynamically creates an and expression, if the two arguments
+--   are both bool expressions.
 mkAndExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | andExpr creates an and expression that returns true if both arguments
+--   are true.
 andExpr :: Expr Bool -> Expr Bool -> Expr Bool
+
+-- | mkOrExpr dynamically creates an or expression, if the two arguments
+--   are both bool expressions.
 mkOrExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | orExpr creates an or expression that returns true if either argument
+--   is true.
 orExpr :: Expr Bool -> Expr Bool -> Expr Bool
 
+
+-- | This module contains the Relapse length expressions.
 module Exprs.Length
+
+-- | mkLengthExpr dynamically creates a length expression, if the single
+--   argument is a list, string or bytes.
 mkLengthExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | lengthListExpr creates a length expression, that returns the length of
+--   a list.
 lengthListExpr :: Expr [a] -> Expr Int
+
+-- | lengthStringExpr creates a length expression, that returns the length
+--   of a string.
 lengthStringExpr :: Expr Text -> Expr Int
+
+-- | lengthBytesExpr creates a length expression, that returns the length
+--   of bytes.
 lengthBytesExpr :: Expr ByteString -> Expr Int
 
+
+-- | This module contains the Relapse elem expression.
 module Exprs.Elem
+
+-- | mkElemExpr dynamically creates an elem expression, if the first
+--   argument is a list and the second an int index.
 mkElemExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | elemExpr creates an expression that returns an element from the list
+--   at the specified index. Trimming this function would cause it to
+--   become non generic. It is not necessary to trim each function, since
+--   it is just an optimization.
 elemExpr :: Expr [a] -> Expr Int -> Expr a
 
+
+-- | This module contains the Relapse contains expressions.
 module Exprs.Contains
+
+-- | mkContainsExpr dynamically creates a contains expression, if the two
+--   input types are:
+--   
+--   <ul>
+--   <li>String and String where the second string is the possible
+--   substring.</li>
+--   <li>A List of :Strings, Ints or Uints paired with a String, Int or
+--   Uint respectively.</li>
+--   </ul>
 mkContainsExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | containsStringExpr creates a contains expression that returns true if
+--   the second string is a substring of the first.
 containsStringExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | containsExpr creates a contains expression that returns true if the
+--   first argument is an element in the second list argument.
 containsExpr :: (Eq a) => Expr a -> Expr [a] -> Expr Bool
 
+
+-- | This module contains the Relapse compare expressions: equal, not
+--   equal, greater than, greater than or equal, less than and less than or
+--   equal.
 module Exprs.Compare
+
+-- | mkEqExpr dynamically creates an eq (equal) expression, if the two
+--   input types are the same.
 mkEqExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | eqExpr creates an eq (equal) expression that returns true if the two
+--   evaluated input expressions are equal and both don't evaluate to an
+--   error.
 eqExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkNeExpr dynamically creates a ne (not equal) expression, if the two
+--   input types are the same.
 mkNeExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | neExpr creates a ne (not equal) expression that returns true if the
+--   two evaluated input expressions are not equal and both don't evaluate
+--   to an error.
 neExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkGeExpr dynamically creates a ge (greater than or equal) expression,
+--   if the two input types are the same.
 mkGeExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | geExpr creates a ge (greater than or equal) expression that returns
+--   true if the first evaluated expression is greater than or equal to the
+--   second and both don't evaluate to an error.
 geExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkLeExpr dynamically creates a le (less than or equal) expression, if
+--   the two input types are the same.
 mkLeExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | leExpr creates a le (less than or equal) expression that returns true
+--   if the first evaluated expression is less than or equal to the second
+--   and both don't evaluate to an error.
 leExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkGtExpr dynamically creates a gt (greater than) expression, if the
+--   two input types are the same.
 mkGtExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | gtExpr creates a gt (greater than) expression that returns true if the
+--   first evaluated expression is greater than the second and both don't
+--   evaluate to an error.
 gtExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkLtExpr dynamically creates a lt (less than) expression, if the two
+--   input types are the same.
 mkLtExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | ltExpr creates a lt (less than) expression that returns true if the
+--   first evaluated expression is less than the second and both don't
+--   evaluate to an error.
 ltExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 
 
@@ -595,13 +703,35 @@ instance GHC.Classes.Eq Zip.ZipEntry
 --   
 --   It contains multiple implementations of if expressions.
 module IfExprs
+
+-- | IfExprs is a tree of if expressions, which contains a list of
+--   resulting patterns on each of its leaves.
 data IfExprs
+
+-- | IfExpr contains a condition and a return pattern for each of the two
+--   cases.
 data IfExpr
+
+-- | newIfExpr creates an IfExpr.
 newIfExpr :: Expr Bool -> Pattern -> Pattern -> IfExpr
+
+-- | valIfExprs evaluates a tree of if expressions and returns the
+--   resulting patterns or an error.
 evalIfExprs :: IfExprs -> Label -> Except String [Pattern]
+
+-- | compileIfExprs compiles a list of if expressions in an IfExprs tree,
+--   for efficient evaluation.
 compileIfExprs :: Refs -> [IfExpr] -> IfExprs
+
+-- | ZippedIfExprs is a tree of if expressions, but with a zipped pattern
+--   list and a zipper on each of the leaves.
 data ZippedIfExprs
+
+-- | zipIfExprs compresses an if expression tree's leaves.
 zipIfExprs :: IfExprs -> ZippedIfExprs
+
+-- | evalZippedIfExprs evaulates a ZippedIfExprs tree and returns the
+--   zipped pattern list and zipper from the resulting leaf.
 evalZippedIfExprs :: ZippedIfExprs -> Label -> Except String ([Pattern], Zipper)
 
 

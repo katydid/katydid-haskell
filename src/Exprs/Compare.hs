@@ -1,3 +1,6 @@
+-- |
+-- This module contains the Relapse compare expressions: 
+-- equal, not equal, greater than, greater than or equal, less than and less than or equal.
 module Exprs.Compare (
     mkEqExpr, eqExpr
     , mkNeExpr, neExpr
@@ -7,10 +10,12 @@ module Exprs.Compare (
     , mkLtExpr, ltExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept, throwError)
+import Control.Monad.Except (Except, runExcept)
 
 import Expr
 
+-- |
+-- mkEqExpr dynamically creates an eq (equal) expression, if the two input types are the same.
 mkEqExpr :: [AnyExpr] -> Except String AnyExpr
 mkEqExpr es = do {
     (e1, e2) <- assertArgs2 "eq" es;
@@ -26,6 +31,9 @@ mkEqExpr es = do {
 mkEqExpr' :: (Eq a) => Expr a -> Expr a -> AnyExpr
 mkEqExpr' e f = mkBoolExpr $ eqExpr e f
 
+-- |
+-- eqExpr creates an eq (equal) expression that returns true if the two evaluated input expressions are equal
+-- and both don't evaluate to an error.
 eqExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
 eqExpr a b = trimBool Expr {
     desc = mkDesc "eq" [desc a, desc b]
@@ -37,6 +45,8 @@ eq (Right v1) (Right v2) = return $ v1 == v2
 eq (Left _) _ = return False
 eq _ (Left _) = return False
 
+-- |
+-- mkNeExpr dynamically creates a ne (not equal) expression, if the two input types are the same.
 mkNeExpr :: [AnyExpr] -> Except String AnyExpr
 mkNeExpr es = do {
     (e1, e2) <- assertArgs2 "ne" es;
@@ -52,6 +62,9 @@ mkNeExpr es = do {
 mkNeExpr' :: (Eq a) => Expr a -> Expr a -> AnyExpr
 mkNeExpr' e f = mkBoolExpr $ neExpr e f
 
+-- |
+-- neExpr creates a ne (not equal) expression that returns true if the two evaluated input expressions are not equal
+-- and both don't evaluate to an error.
 neExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
 neExpr a b = trimBool Expr {
     desc = mkDesc "ne" [desc a, desc b]
@@ -63,6 +76,8 @@ ne (Right v1) (Right v2) = return $ v1 /= v2
 ne (Left _) _ = return False
 ne _ (Left _) = return False
 
+-- |
+-- mkGeExpr dynamically creates a ge (greater than or equal) expression, if the two input types are the same.
 mkGeExpr :: [AnyExpr] -> Except String AnyExpr
 mkGeExpr es = do {
     (e1, e2) <- assertArgs2 "ge" es;
@@ -76,6 +91,9 @@ mkGeExpr es = do {
 mkGeExpr' :: (Ord a) => Expr a -> Expr a -> AnyExpr
 mkGeExpr' e f = mkBoolExpr $ geExpr e f
 
+-- |
+-- geExpr creates a ge (greater than or equal) expression that returns true if the first evaluated expression is greater than or equal to the second
+-- and both don't evaluate to an error.
 geExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 geExpr a b = trimBool Expr {
     desc = mkDesc "ge" [desc a, desc b]
@@ -87,6 +105,8 @@ ge (Right v1) (Right v2) = return $ v1 >= v2
 ge (Left _) _ = return False
 ge _ (Left _) = return False
 
+-- |
+-- mkGtExpr dynamically creates a gt (greater than) expression, if the two input types are the same.
 mkGtExpr :: [AnyExpr] -> Except String AnyExpr
 mkGtExpr es = do {
     (e1, e2) <- assertArgs2 "gt" es;
@@ -100,6 +120,9 @@ mkGtExpr es = do {
 mkGtExpr' :: (Ord a) => Expr a -> Expr a -> AnyExpr
 mkGtExpr' e f = mkBoolExpr $ gtExpr e f
 
+-- |
+-- gtExpr creates a gt (greater than) expression that returns true if the first evaluated expression is greater than the second
+-- and both don't evaluate to an error.
 gtExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 gtExpr a b = trimBool Expr {
     desc = mkDesc "gt" [desc a, desc b]
@@ -111,6 +134,8 @@ gt (Right v1) (Right v2) = return $ v1 > v2
 gt (Left _) _ = return False
 gt _ (Left _) = return False
 
+-- |
+-- mkLeExpr dynamically creates a le (less than or equal) expression, if the two input types are the same.
 mkLeExpr :: [AnyExpr] -> Except String AnyExpr
 mkLeExpr es = do {
     (e1, e2) <- assertArgs2 "le" es;
@@ -124,6 +149,9 @@ mkLeExpr es = do {
 mkLeExpr' :: (Ord a) => Expr a -> Expr a -> AnyExpr
 mkLeExpr' e f = mkBoolExpr $ leExpr e f
 
+-- |
+-- leExpr creates a le (less than or equal) expression that returns true if the first evaluated expression is less than or equal to the second
+-- and both don't evaluate to an error.
 leExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 leExpr a b = trimBool Expr {
     desc = mkDesc "le" [desc a, desc b]
@@ -135,6 +163,8 @@ le (Right v1) (Right v2) = return $ v1 <= v2
 le (Left _) _ = return False
 le _ (Left _) = return False
 
+-- |
+-- mkLtExpr dynamically creates a lt (less than) expression, if the two input types are the same.
 mkLtExpr :: [AnyExpr] -> Except String AnyExpr
 mkLtExpr es = do {
     (e1, e2) <- assertArgs2 "lt" es;
@@ -148,6 +178,9 @@ mkLtExpr es = do {
 mkLtExpr' :: (Ord a) => Expr a -> Expr a -> AnyExpr
 mkLtExpr' e f = mkBoolExpr $ ltExpr e f
 
+-- |
+-- ltExpr creates a lt (less than) expression that returns true if the first evaluated expression is less than the second
+-- and both don't evaluate to an error.
 ltExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 ltExpr a b = trimBool Expr {
     desc = mkDesc "lt" [desc a, desc b]

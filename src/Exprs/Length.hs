@@ -1,3 +1,5 @@
+-- |
+-- This module contains the Relapse length expressions.
 module Exprs.Length (
     mkLengthExpr
     , lengthListExpr
@@ -5,12 +7,14 @@ module Exprs.Length (
     , lengthBytesExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept, throwError)
+import Control.Monad.Except (Except)
 import qualified Data.Text as Text
 import qualified Data.ByteString as ByteString
 
 import Expr
 
+-- |
+-- mkLengthExpr dynamically creates a length expression, if the single argument is a list, string or bytes.
 mkLengthExpr :: [AnyExpr] -> Except String AnyExpr
 mkLengthExpr es = do {
     e <- assertArgs1 "length" es;
@@ -25,18 +29,24 @@ mkLengthExpr es = do {
     (AnyExpr _ (BytesFunc _)) -> mkIntExpr . lengthBytesExpr <$> assertBytes e;
 }
 
+-- |
+-- lengthListExpr creates a length expression, that returns the length of a list.
 lengthListExpr :: Expr [a] -> Expr Int
 lengthListExpr e = trimInt Expr {
     desc = mkDesc "length" [desc e]
     , eval = \v -> length <$> eval e v
 }
 
+-- |
+-- lengthStringExpr creates a length expression, that returns the length of a string.
 lengthStringExpr :: Expr Text.Text -> Expr Int
 lengthStringExpr e = trimInt Expr {
     desc = mkDesc "length" [desc e]
     , eval = \v -> Text.length <$> eval e v
 }
 
+-- |
+-- lengthBytesExpr creates a length expression, that returns the length of bytes.
 lengthBytesExpr :: Expr ByteString.ByteString -> Expr Int
 lengthBytesExpr e = trimInt Expr {
     desc = mkDesc "length" [desc e]

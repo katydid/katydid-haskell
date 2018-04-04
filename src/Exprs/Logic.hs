@@ -1,14 +1,18 @@
+-- |
+-- This module contains the Relapse logic expressions: not, and, or. 
 module Exprs.Logic (
     mkNotExpr, notExpr
     , mkAndExpr, andExpr
     , mkOrExpr, orExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept, throwError)
+import Control.Monad.Except (Except, runExcept)
 
 import Expr
 import Exprs.Var
 
+-- |
+-- mkNotExpr dynamically creates a not expression, if the single argument is a bool expression.
 mkNotExpr :: [AnyExpr] -> Except String AnyExpr
 mkNotExpr es = do {
     e <- assertArgs1 "not" es;
@@ -16,13 +20,15 @@ mkNotExpr es = do {
     return $ mkBoolExpr (notExpr b);
 }
 
+-- |
+-- notExpr creates a not expression, that returns true is the argument expression returns an error or false.
 notExpr :: Expr Bool -> Expr Bool
-notExpr e = if hasVar e 
-    then Expr {
-            desc = notDesc (desc e)
-            , eval = \v -> not <$> eval e v
-        }
-    else trimBool $ Expr (mkDesc "not" [desc e]) (\v -> not <$> eval e v) 
+notExpr e = trimBool Expr {
+    desc = notDesc (desc e)
+    , eval = \v -> case runExcept $ eval e v of
+        (Left _) -> return True
+        (Right b) -> return $ not b
+}
 
 -- notDesc superficially pushes not operators down to normalize functions.
 -- Normalizing functions increases the chances of finding equal expressions and being able to simplify patterns.
@@ -41,6 +47,8 @@ notDesc d
     | _name d == "eq" = mkDesc "ne" $ _params d
     | otherwise = mkDesc "not" [d]
 
+-- |
+-- mkAndExpr dynamically creates an and expression, if the two arguments are both bool expressions.
 mkAndExpr :: [AnyExpr] -> Except String AnyExpr
 mkAndExpr es = do {
     (e1, e2) <- assertArgs2 "and" es;
@@ -49,6 +57,8 @@ mkAndExpr es = do {
     return $ mkBoolExpr $ andExpr b1 b2;
 }
 
+-- |
+-- andExpr creates an and expression that returns true if both arguments are true.
 andExpr :: Expr Bool -> Expr Bool -> Expr Bool
 andExpr a b = case (evalConst a, evalConst b) of
     (Just False, _) -> boolExpr False
@@ -88,6 +98,8 @@ varAndConst e = let ps = params e
         else if isVar b && isConst a then Just a
         else Nothing
 
+-- |
+-- mkOrExpr dynamically creates an or expression, if the two arguments are both bool expressions.
 mkOrExpr :: [AnyExpr] -> Except String AnyExpr
 mkOrExpr es = do {
     (e1, e2) <- assertArgs2 "or" es;
@@ -96,6 +108,8 @@ mkOrExpr es = do {
     return $ mkBoolExpr $ orExpr b1 b2;
 }
 
+-- |
+-- orExpr creates an or expression that returns true if either argument is true.
 orExpr :: Expr Bool -> Expr Bool -> Expr Bool
 orExpr a b = case (evalConst a, evalConst b) of
     (Just True, _) -> boolExpr True

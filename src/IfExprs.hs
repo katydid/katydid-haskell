@@ -18,11 +18,16 @@ import Simplify
 import Zip
 import Parsers
 
+-- |
+-- IfExpr contains a condition and a return pattern for each of the two cases.
 newtype IfExpr = IfExpr (Expr Bool, Pattern, Pattern)
 
+-- |
+-- newIfExpr creates an IfExpr.
 newIfExpr :: Expr Bool -> Pattern -> Pattern -> IfExpr
 newIfExpr c t e = IfExpr (c, t, e)
 
+-- | IfExprs is a tree of if expressions, which contains a list of resulting patterns on each of its leaves.
 data IfExprs
     = Cond {
         cond :: Expr Bool
@@ -31,11 +36,13 @@ data IfExprs
     }
     | Ret [Pattern]
 
+-- | compileIfExprs compiles a list of if expressions in an IfExprs tree, for efficient evaluation.
 compileIfExprs :: Refs -> [IfExpr] -> IfExprs
 compileIfExprs _ [] = Ret []
 compileIfExprs refs (e:es) = let (IfExpr ifExpr) = simplifyIf refs e
     in addIfExpr ifExpr (compileIfExprs refs es)
 
+-- | valIfExprs evaluates a tree of if expressions and returns the resulting patterns or an error.
 evalIfExprs :: IfExprs -> Label -> Except String [Pattern]
 evalIfExprs (Ret ps) _ = return ps
 evalIfExprs (Cond c t e) l = do {
@@ -63,6 +70,8 @@ addRet :: Pattern -> IfExprs -> IfExprs
 addRet p (Ret ps) = Ret (p:ps)
 addRet p (Cond c t e) = Cond c (addRet p t) (addRet p e)
 
+-- |
+-- ZippedIfExprs is a tree of if expressions, but with a zipped pattern list and a zipper on each of the leaves.
 data ZippedIfExprs
     = ZippedCond {
         zcond :: Expr Bool
@@ -71,10 +80,12 @@ data ZippedIfExprs
     }
     | ZippedRet [Pattern] Zipper
 
+-- | zipIfExprs compresses an if expression tree's leaves.
 zipIfExprs :: IfExprs -> ZippedIfExprs
 zipIfExprs (Cond c t e) = ZippedCond c (zipIfExprs t) (zipIfExprs e)
 zipIfExprs (Ret ps) = let (zps, zs) = zippy ps in ZippedRet zps zs
 
+-- | evalZippedIfExprs evaulates a ZippedIfExprs tree and returns the zipped pattern list and zipper from the resulting leaf.
 evalZippedIfExprs :: ZippedIfExprs -> Label -> Except String ([Pattern], Zipper)
 evalZippedIfExprs (ZippedRet ps zs) _ = return (ps, zs)
 evalZippedIfExprs (ZippedCond c t e) v = do {

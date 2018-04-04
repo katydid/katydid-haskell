@@ -9,7 +9,7 @@ module Exprs.Strings (
     , mkToUpperExpr, toUpperExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept, throwError)
+import Control.Monad.Except (Except)
 import Text.Regex.TDFA ((=~))
 import Data.Text (Text, isPrefixOf, isSuffixOf, toLower, toUpper, unpack)
 
