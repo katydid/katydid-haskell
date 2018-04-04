@@ -1,13 +1,17 @@
+-- |
+-- This module contains the Relapse type expression.
+
 module Exprs.Type (
     mkTypeExpr
     , typeExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept, throwError)
+import Control.Monad.Except (Except, runExcept)
 
-import qualified Parsers
 import Expr
 
+-- |
+-- mkTypeExpr is used by the parser to create a type expression for the specific input type.
 mkTypeExpr :: [AnyExpr] -> Except String AnyExpr
 mkTypeExpr es = do {
     e <- assertArgs1 "type" es; 
@@ -20,6 +24,9 @@ mkTypeExpr es = do {
     (AnyExpr _ (BytesFunc _)) -> mkBoolExpr . typeExpr <$> assertBytes e;
 }
 
+-- |
+-- typeExpr creates an expression that returns true if the containing expression does not return an error.
+-- For example: `(typeExpr varBoolExpr)` will ony return true is the field value is a bool.
 typeExpr :: Expr a -> Expr Bool
 typeExpr e = Expr {
     desc = mkDesc "type" [desc e]

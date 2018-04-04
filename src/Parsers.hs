@@ -11,9 +11,12 @@ module Parsers (
 
 import Control.DeepSeq (NFData)
 import GHC.Generics (Generic)
-import Data.Text
-import Data.ByteString
+import Data.Text (Text)
+import Data.ByteString (ByteString)
 
+-- |
+-- Label is a tagged union of all possible value types that can returned by a katydid parser: 
+-- String, Int, Uint, Double, Bool and Bytes.
 data Label
     = String Text
     | Int Int
@@ -23,6 +26,9 @@ data Label
     | Bytes ByteString
     deriving (Show, Eq, Ord, Generic, NFData)
 
+-- |
+-- Tree is the type class that should be implemented by a katydid parser.
+-- This is implemented by the Json and XML parser.
 class Tree a where
     getLabel :: a -> Label
     getChildren :: a -> [a]

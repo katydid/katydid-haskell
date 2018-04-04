@@ -47,4 +47,4 @@ uObject :: [(String, JSValue)] -> [JsonTree]
 uObject = map uKeyValue
 
 uKeyValue :: (String, JSValue) -> JsonTree
-uKeyValue (name, value) = DataTree.Node (String $ pack $ name) (uValue value)
+uKeyValue (name, value) = DataTree.Node (String $ pack name) (uValue value)

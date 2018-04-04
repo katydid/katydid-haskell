@@ -1,3 +1,6 @@
+-- |
+-- This module contains all expressions for Relapse variables.
+
 module Exprs.Var (
     varBoolExpr
     , varIntExpr
@@ -15,8 +18,10 @@ import Data.ByteString (ByteString)
 import qualified Parsers
 import Expr
 
+-- |
+-- isVar returns whether an expression is one of the six variable expressions.
 isVar :: Desc -> Bool
-isVar d = length (_params d) == 0 && case _name d of
+isVar d = null (_params d) && case _name d of
     "$bool" -> True
     "$int" -> True
     "$uint" -> True
@@ -25,6 +30,8 @@ isVar d = length (_params d) == 0 && case _name d of
     "$[]byte" -> True
     _ -> False
 
+-- |
+-- varBoolExpr creates a bool variable expression.
 varBoolExpr :: Expr Bool
 varBoolExpr = Expr {
     desc = Desc {
@@ -39,6 +46,8 @@ varBoolExpr = Expr {
         _ -> throwError "not a bool"
 }
 
+-- |
+-- varIntExpr creates an int variable expression.
 varIntExpr :: Expr Int
 varIntExpr = Expr {
     desc = Desc {
@@ -53,6 +62,8 @@ varIntExpr = Expr {
         _ -> throwError "not an int"
 }
 
+-- |
+-- varUintExpr creates a uint variable expression.
 varUintExpr :: Expr Word
 varUintExpr = Expr {
     desc = Desc {
@@ -67,6 +78,8 @@ varUintExpr = Expr {
         _ -> throwError "not a uint"
 }
 
+-- |
+-- varDoubleExpr creates a double variable expression.
 varDoubleExpr :: Expr Double
 varDoubleExpr = Expr {
     desc = Desc {
@@ -81,6 +94,8 @@ varDoubleExpr = Expr {
         _ -> throwError "not a double"
 }
 
+-- |
+-- varStringExpr creates a string variable expression.
 varStringExpr :: Expr Text
 varStringExpr = Expr {
     desc = Desc {
@@ -95,6 +110,8 @@ varStringExpr = Expr {
         _ -> throwError "not a string"
 }
 
+-- |
+-- varBytesExpr creates a bytes variable expression.
 varBytesExpr :: Expr ByteString
 varBytesExpr = Expr {
     desc = Desc {

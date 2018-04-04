@@ -10,6 +10,7 @@ import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as HUnit
 
 import Text.ParserCombinators.Parsec (CharParser, parse, eof)
+import Control.Monad.Except (Except, runExcept)
 
 import Parser
 import Expr
@@ -23,6 +24,8 @@ import Exprs.Type
 import Exprs.Var
 import Exprs
 import Patterns
+
+import UserDefinedFuncs
 
 success :: (Eq a, Show a) => String -> CharParser () a -> String -> a -> T.TestTree
 success name p input want = HUnit.testCase name $ case parse (p <* eof) "" input of
@@ -159,7 +162,7 @@ tests = T.testGroup "Parser" [
     ),
     -- (~=\"^([ \t\r\n\v\f])+$\")*
     success "Page195E0AddrE0NameE0" (pattern mkExpr) "Person:{Name:*;(Addr:*)?;(Email:*)*}" (
-        Node (eqExpr varStringExpr (stringExpr "Person")) (
+        Node (eqExpr varStringExpr (stringExpr "Person"))
             (Interleave
                 (Interleave
                     (Node (eqExpr varStringExpr (stringExpr "Name")) ZAny)
@@ -167,13 +170,12 @@ tests = T.testGroup "Parser" [
                 )
                 (ZeroOrMore (Node (eqExpr varStringExpr (stringExpr "Email")) ZAny))
             )
-        )
     ),
     success "whitespace regex" (pattern mkExpr) "(~=\"^([ \t\r\n\v\f])+$\")*" (
         ZeroOrMore $ Node (regexExpr (stringExpr "^([ \t\r\n\v\f])+$") varStringExpr) Empty
     ),
     success "Page195E0AddrE0NameE0 with whitespace" (pattern mkExpr) "Person:{Name:*;(Addr:*)?;(Email:*)*;(~=\"^([ \t\r\n\v\f])+$\")*}" (
-        Node (eqExpr varStringExpr (stringExpr "Person")) (
+        Node (eqExpr varStringExpr (stringExpr "Person"))
             (Interleave
                 (Interleave
                     (Interleave
@@ -184,7 +186,6 @@ tests = T.testGroup "Parser" [
                 )
                 (ZeroOrMore $ Node (regexExpr (stringExpr "^([ \t\r\n\v\f])+$") varStringExpr) Empty)
             )
-        )
     ),
 
     success "single pattern grammar" (grammar mkExpr) "*" $ newRef "main" ZAny,
@@ -202,4 +203,12 @@ tests = T.testGroup "Parser" [
     success "treenode with child builtin type" (grammar mkExpr) "A :: $string" (newRef "main" (Node (eqExpr varStringExpr (stringExpr "A")) (Node (typeExpr varStringExpr) Empty))),
     success "extra semicolon" (grammar mkExpr) "{*;*;}" (newRef "main" (Interleave ZAny ZAny)),
 
+    success "user defined function" (grammar bothLibs) "->isPrime($int)" (newRef "main" (Node (isPrimeExpr varIntExpr) Empty)),
+    failure "user defined function" (grammar mkExpr) "->isPrime($int)",
+
    HUnit.testCase "" (return ())]
+
+bothLibs :: String -> [AnyExpr] -> Except String AnyExpr
+bothLibs name args = case runExcept $ mkExpr name args of
+    (Left err) -> userLib name args
+    (Right expr) -> return expr

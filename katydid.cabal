@@ -1,5 +1,5 @@
 name:                katydid
-version:             0.2.0.1
+version:             0.3.0.0
 synopsis:            A haskell implementation of Katydid
 description:         
   A haskell implementation of Katydid
@@ -89,7 +89,10 @@ test-suite katydid-test
                      , mtl
                      , tasty-hunit
                      , tasty
-  other-modules:       ParserSpec
+                     , text
+                     , primes
+  other-modules:     UserDefinedFuncs
+                     , ParserSpec
                      , RelapseSpec
                      , Suite
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N

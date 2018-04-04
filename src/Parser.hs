@@ -27,10 +27,11 @@ import Patterns
 parseGrammar :: String -> Either ParseError Refs
 parseGrammar = parseGrammarWithUDFs stdOnly
 
+-- | parseGrammarWithUDFs parses the Relapse Grammar with extra user defined functions.
 parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Refs
-parseGrammarWithUDFs extraMkFunc = 
-    let mkFunc = \n es -> case runExcept $ mkExpr n es of
-            (Left _) -> extraMkFunc n es
+parseGrammarWithUDFs extraUDFs = 
+    let mkFunc n es = case runExcept $ mkExpr n es of
+            (Left _) -> extraUDFs n es
             (Right v) -> return v
     in parse (grammar mkFunc <* eof) ""
 
@@ -65,6 +66,7 @@ _comment = char '/' *> (_lineComment <|> _blockComment)
 _ws :: CharParser () ()
 _ws = _comment <|> () <$ space
 
+-- | For internal testing
 ws :: CharParser () ()
 ws = () <$ many _ws
 
@@ -100,6 +102,7 @@ _intLit = _decimalLit
                     <|> return 0
     )
 
+-- | For internal testing
 intLit :: CharParser () Int
 intLit = string "int(" *> _signedIntLit <* char ')'
     <|> _signedIntLit
@@ -113,6 +116,7 @@ uintLit = do {
         else return $ fromIntegral i;
 }
 
+-- | For internal testing
 uintCastLit :: CharParser () Word
 uintCastLit = string "uint(" *> uintLit <* char ')'
 
@@ -135,9 +139,11 @@ _floatLit = do
         <|> empty
     _read readFloat (i ++ e)
 
+-- | For internal testing
 doubleCastLit :: CharParser () Double
 doubleCastLit = string "double(" *> ((*) <$> _optionalSign <*> _floatLit) <* char ')'
 
+-- | For internal testing
 idLit :: CharParser () String
 idLit = (letter <|> char '_') <::> many (alphaNum <|> char '_')
 
@@ -176,8 +182,9 @@ _interpretedString = between (char '"') (char '"') (many _unicodeValue)
 _rawString :: CharParser () String
 _rawString = between (char '`') (char '`') (many $ noneOf "`")
 
-stringLit :: CharParser () String
-stringLit = _rawString <|> _interpretedString
+-- | For internal testing
+stringLit :: CharParser () Text.Text
+stringLit = Text.pack <$> (_rawString <|> _interpretedString)
 
 _hexByteUValue :: CharParser () Char
 _hexByteUValue = char 'x' *> do {
@@ -205,16 +212,17 @@ _byteLit = do {
 _byteElem :: CharParser () Char
 _byteElem = _byteLit <|> between (char '\'') (char '\'') (_unicodeValue <|> _octalByteUValue <|> _hexByteUValue)
 
-bytesCastLit :: CharParser () String
-bytesCastLit = string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}'
+-- | For internal testing
+bytesCastLit :: CharParser () ByteString.ByteString
+bytesCastLit = ByteString.pack <$> (string "[]byte{" *> sepBy (ws *> _byteElem <* ws) (char ',') <* char '}')
 
 _literal :: CharParser () AnyExpr
 _literal = mkBoolExpr . boolExpr <$> bool
     <|> mkIntExpr . intExpr <$> intLit
     <|> mkUintExpr . uintExpr <$> uintCastLit
     <|> mkDoubleExpr . doubleExpr <$> doubleCastLit
-    <|> mkStringExpr . stringExpr . Text.pack <$> stringLit
-    <|> mkBytesExpr . bytesExpr . ByteString.pack <$> bytesCastLit
+    <|> mkStringExpr . stringExpr <$> stringLit
+    <|> mkBytesExpr . bytesExpr <$> bytesCastLit
 
 _terminal :: CharParser () AnyExpr
 _terminal = (char '$' *> (
@@ -273,6 +281,7 @@ _list mkFunc = do {
 _expr :: MkFunc -> CharParser () AnyExpr
 _expr mkFunc = try _terminal <|> _list mkFunc <|> _function mkFunc
 
+-- | For internal testing
 expr :: MkFunc -> CharParser () (Expr Bool)
 expr mkFunc = (try _terminal <|> _builtin mkFunc <|> _function mkFunc) >>= _mustBool
 
@@ -294,6 +303,7 @@ sepBy2 p sep = do {
 _nameChoice :: CharParser () (Expr Bool)
 _nameChoice = foldl1 orExpr <$> sepBy2 (ws *> nameExpr <* ws) "|"
 
+-- | For internal testing
 nameExpr :: CharParser () (Expr Bool)
 nameExpr =  (boolExpr True <$ char '_')
     <|> (notExpr <$> (char '!' *> ws *> char '(' *> ws *> nameExpr <* ws <* char ')'))
@@ -356,9 +366,10 @@ _depthPattern mkFunc = _concatPattern mkFunc <|> _interleavePattern mkFunc<|> _c
 newContains :: CharParser () AnyExpr -> CharParser () Pattern
 newContains e = flip Node Empty <$> ((mkBuiltIn "*=" <$> e) >>= check >>= _mustBool)
 
+-- | For internal testing
 pattern :: MkFunc -> CharParser () Pattern
 pattern mkFunc = char '*' *> (
-        (char '=' *> (newContains (ws *> _expr mkFunc)))
+        (char '=' *> newContains (ws *> _expr mkFunc))
         <|> return ZAny
     ) <|> _parenPattern mkFunc
     <|> _refPattern
@@ -370,6 +381,7 @@ pattern mkFunc = char '*' *> (
 _patternDecl :: MkFunc -> CharParser () Refs
 _patternDecl mkFunc = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *> pattern mkFunc)
 
+-- | For internal testing
 grammar :: MkFunc -> CharParser () Refs
 grammar mkFunc = ws *> (foldl1 union <$> many1 (_patternDecl mkFunc <* ws))
     <|> union <$> (newRef "main" <$> pattern mkFunc) <*> (foldl union emptyRef <$> many (ws *> _patternDecl mkFunc <* ws))

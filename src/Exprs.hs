@@ -1,3 +1,6 @@
+-- |
+-- This module contains the standard library of expressions, used by the Relapse parser.
+
 module Exprs (
     mkBuiltIn
     , mkExpr
@@ -17,8 +20,12 @@ import Exprs.Strings
 import Exprs.Type
 import Exprs.Var
 
+-- |
+-- MkFunc is used by the parser to create a function from a name and arguments.
 type MkFunc = String -> [AnyExpr] -> Except String AnyExpr
 
+-- |
+-- mkExpr is a grouping of all the standard library functions as one MkFunc.
 mkExpr :: String -> [AnyExpr] -> Except String AnyExpr
 mkExpr "eq" es = mkEqExpr es
 mkExpr "ne" es = mkNeExpr es
@@ -40,6 +47,9 @@ mkExpr "toUpper" es = mkToUpperExpr es
 mkExpr "type" es = mkTypeExpr es
 mkExpr n _ = throwError $ "unknown function: " ++ n
 
+-- |
+-- stdOnly contains no functions, which means that when it is combined 
+-- (in Relapse parser) with mkExpr the parser will have access to only the standard library.
 stdOnly :: String -> [AnyExpr] -> Except String AnyExpr
 stdOnly n _ = throwError $ "unknown function: " ++ n
 

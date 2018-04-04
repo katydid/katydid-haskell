@@ -24,7 +24,7 @@
 --   If you want to implement your own parser then you can look at the
 --   Parsers module
 @package katydid
-@version 0.1.0.0
+@version 0.3.0.0
 
 
 -- | This module describes the abstract tree that can be validated by
@@ -32,13 +32,24 @@
 --   
 --   The JSON and XML parsers both are both versions of this type class.
 module Parsers
+
+-- | Tree is the type class that should be implemented by a katydid parser.
+--   This is implemented by the Json and XML parser.
 class Tree a
 getLabel :: Tree a => a -> Label
 getChildren :: Tree a => a -> [a]
+
+-- | Label is a tagged union of all possible value types that can returned
+--   by a katydid parser: String, Int, Uint, Double, Bool and Bytes.
 data Label
-String :: String -> Label
-Number :: Rational -> Label
+String :: Text -> Label
+Int :: Int -> Label
+Uint :: Word -> Label
+Double :: Double -> Label
 Bool :: Bool -> Label
+Bytes :: ByteString -> Label
+instance Control.DeepSeq.NFData Parsers.Label
+instance GHC.Generics.Generic Parsers.Label
 instance GHC.Classes.Ord Parsers.Label
 instance GHC.Classes.Eq Parsers.Label
 instance GHC.Show.Show Parsers.Label
@@ -55,126 +66,495 @@ type JsonTree = Tree Label
 instance Parsers.Tree Json.JsonTree
 
 
--- | This module contains the XML Parser.
-module Xml
-
--- | decodeXML returns a XmlTree, given an input string.
-decodeXML :: String -> [XmlTree]
-instance Parsers.Tree Text.XML.HXT.DOM.TypeDefs.XmlTree
-
-
--- | This module contains all the Relapse expressions.
---   
---   It also contains an eval function and a simplfication function for
---   these expressions.
+-- | This module contains all the functions you need to implement a Relapse
+--   expression.
 module Expr
-data BoolExpr
-BoolConst :: Bool -> BoolExpr
-BoolVariable :: BoolExpr
-OrFunc :: BoolExpr -> BoolExpr -> BoolExpr
-AndFunc :: BoolExpr -> BoolExpr -> BoolExpr
-NotFunc :: BoolExpr -> BoolExpr
-BoolEqualFunc :: BoolExpr -> BoolExpr -> BoolExpr
-DoubleEqualFunc :: DoubleExpr -> DoubleExpr -> BoolExpr
-IntEqualFunc :: IntExpr -> IntExpr -> BoolExpr
-UintEqualFunc :: UintExpr -> UintExpr -> BoolExpr
-StringEqualFunc :: StringExpr -> StringExpr -> BoolExpr
-BytesEqualFunc :: BytesExpr -> BytesExpr -> BoolExpr
-IntListContainsFunc :: IntExpr -> [IntExpr] -> BoolExpr
-StringListContainsFunc :: StringExpr -> [StringExpr] -> BoolExpr
-UintListContainsFunc :: UintExpr -> [UintExpr] -> BoolExpr
-StringContainsFunc :: StringExpr -> StringExpr -> BoolExpr
-BoolListElemFunc :: [BoolExpr] -> IntExpr -> BoolExpr
-BytesGreaterOrEqualFunc :: BytesExpr -> BytesExpr -> BoolExpr
-DoubleGreaterOrEqualFunc :: DoubleExpr -> DoubleExpr -> BoolExpr
-IntGreaterOrEqualFunc :: IntExpr -> IntExpr -> BoolExpr
-UintGreaterOrEqualFunc :: UintExpr -> UintExpr -> BoolExpr
-BytesGreaterThanFunc :: BytesExpr -> BytesExpr -> BoolExpr
-DoubleGreaterThanFunc :: DoubleExpr -> DoubleExpr -> BoolExpr
-IntGreaterThanFunc :: IntExpr -> IntExpr -> BoolExpr
-UintGreaterThanFunc :: UintExpr -> UintExpr -> BoolExpr
-StringHasPrefixFunc :: StringExpr -> StringExpr -> BoolExpr
-StringHasSuffixFunc :: StringExpr -> StringExpr -> BoolExpr
-BytesLessOrEqualFunc :: BytesExpr -> BytesExpr -> BoolExpr
-DoubleLessOrEqualFunc :: DoubleExpr -> DoubleExpr -> BoolExpr
-IntLessOrEqualFunc :: IntExpr -> IntExpr -> BoolExpr
-UintLessOrEqualFunc :: UintExpr -> UintExpr -> BoolExpr
-BytesLessThanFunc :: BytesExpr -> BytesExpr -> BoolExpr
-DoubleLessThanFunc :: DoubleExpr -> DoubleExpr -> BoolExpr
-IntLessThanFunc :: IntExpr -> IntExpr -> BoolExpr
-UintLessThanFunc :: UintExpr -> UintExpr -> BoolExpr
-BytesNotEqualFunc :: BytesExpr -> BytesExpr -> BoolExpr
-BoolNotEqualFunc :: BoolExpr -> BoolExpr -> BoolExpr
-DoubleNotEqualFunc :: DoubleExpr -> DoubleExpr -> BoolExpr
-IntNotEqualFunc :: IntExpr -> IntExpr -> BoolExpr
-StringNotEqualFunc :: StringExpr -> StringExpr -> BoolExpr
-UintNotEqualFunc :: UintExpr -> UintExpr -> BoolExpr
-BytesTypeFunc :: BytesExpr -> BoolExpr
-BoolTypeFunc :: BoolExpr -> BoolExpr
-DoubleTypeFunc :: DoubleExpr -> BoolExpr
-IntTypeFunc :: IntExpr -> BoolExpr
-UintTypeFunc :: UintExpr -> BoolExpr
-StringTypeFunc :: StringExpr -> BoolExpr
-RegexFunc :: StringExpr -> StringExpr -> BoolExpr
-data DoubleExpr
-DoubleConst :: Double -> DoubleExpr
-DoubleVariable :: DoubleExpr
-DoubleListElemFunc :: [DoubleExpr] -> IntExpr -> DoubleExpr
-data IntExpr
-IntConst :: Int -> IntExpr
-IntVariable :: IntExpr
-IntListElemFunc :: [IntExpr] -> IntExpr -> IntExpr
-BytesListLengthFunc :: [BytesExpr] -> IntExpr
-BoolListLengthFunc :: [BoolExpr] -> IntExpr
-BytesLengthFunc :: BytesExpr -> IntExpr
-DoubleListLengthFunc :: [DoubleExpr] -> IntExpr
-IntListLengthFunc :: [IntExpr] -> IntExpr
-StringListLengthFunc :: [StringExpr] -> IntExpr
-UintListLengthFunc :: [UintExpr] -> IntExpr
-StringLengthFunc :: StringExpr -> IntExpr
-data StringExpr
-StringConst :: String -> StringExpr
-StringVariable :: StringExpr
-StringListElemFunc :: [StringExpr] -> IntExpr -> StringExpr
-StringToLowerFunc :: StringExpr -> StringExpr
-StringToUpperFunc :: StringExpr -> StringExpr
-data UintExpr
-UintConst :: Int -> UintExpr
-UintVariable :: UintExpr
-UintListElemFunc :: [UintExpr] -> IntExpr -> UintExpr
-data BytesExpr
-BytesConst :: String -> BytesExpr
-BytesVariable :: BytesExpr
-BytesListElemFunc :: [BytesExpr] -> IntExpr -> BytesExpr
 
--- | simplifyBoolExpr returns an equivalent, but simpler version of the
---   input boolean expression.
-simplifyBoolExpr :: BoolExpr -> BoolExpr
+-- | Desc is the description of a function, especially built to make
+--   comparisons of user defined expressions possible.
+data Desc
+Desc :: String -> String -> Int -> [Desc] -> Bool -> Desc
+[_name] :: Desc -> String
+[_toStr] :: Desc -> String
+[_hash] :: Desc -> Int
+[_params] :: Desc -> [Desc]
+[_hasVar] :: Desc -> Bool
 
--- | eval evaluates a boolean expression, given an input label.
-eval :: BoolExpr -> Label -> Except ValueErr Bool
-data ValueErr
-instance GHC.Show.Show Expr.ValueErr
-instance GHC.Classes.Ord Expr.ValueErr
-instance GHC.Classes.Eq Expr.ValueErr
-instance GHC.Show.Show Expr.BoolExpr
-instance GHC.Classes.Ord Expr.BoolExpr
-instance GHC.Classes.Eq Expr.BoolExpr
-instance GHC.Show.Show Expr.DoubleExpr
-instance GHC.Classes.Ord Expr.DoubleExpr
-instance GHC.Classes.Eq Expr.DoubleExpr
-instance GHC.Show.Show Expr.UintExpr
-instance GHC.Classes.Ord Expr.UintExpr
-instance GHC.Classes.Eq Expr.UintExpr
-instance GHC.Show.Show Expr.StringExpr
-instance GHC.Classes.Ord Expr.StringExpr
-instance GHC.Classes.Eq Expr.StringExpr
-instance GHC.Show.Show Expr.IntExpr
-instance GHC.Classes.Ord Expr.IntExpr
-instance GHC.Classes.Eq Expr.IntExpr
-instance GHC.Show.Show Expr.BytesExpr
-instance GHC.Classes.Ord Expr.BytesExpr
-instance GHC.Classes.Eq Expr.BytesExpr
+-- | mkDesc makes a description from a function name and a list of the
+--   argument's descriptions.
+mkDesc :: String -> [Desc] -> Desc
+
+-- | AnyExpr is used by the Relapse parser to represent an Expression that
+--   can return any type of value, where any is a predefined list of
+--   possible types represented by AnyFunc.
+data AnyExpr
+AnyExpr :: Desc -> AnyFunc -> AnyExpr
+[_desc] :: AnyExpr -> Desc
+[_eval] :: AnyExpr -> AnyFunc
+
+-- | AnyFunc is used by the Relapse parser and represents the list all
+--   supported types of functions.
+data AnyFunc
+BoolFunc :: (Func Bool) -> AnyFunc
+IntFunc :: (Func Int) -> AnyFunc
+StringFunc :: (Func Text) -> AnyFunc
+DoubleFunc :: (Func Double) -> AnyFunc
+UintFunc :: (Func Word) -> AnyFunc
+BytesFunc :: (Func ByteString) -> AnyFunc
+BoolsFunc :: (Func [Bool]) -> AnyFunc
+IntsFunc :: (Func [Int]) -> AnyFunc
+StringsFunc :: (Func [Text]) -> AnyFunc
+DoublesFunc :: (Func [Double]) -> AnyFunc
+UintsFunc :: (Func [Word]) -> AnyFunc
+ListOfBytesFunc :: (Func [ByteString]) -> AnyFunc
+
+-- | Expr represents a user defined expression, which consists of a
+--   description for comparisons and an evaluation function.
+data Expr a
+Expr :: Desc -> Func a -> Expr a
+[desc] :: Expr a -> Desc
+[eval] :: Expr a -> Func a
+
+-- | Func represents the evaluation function part of a user defined
+--   expression. This function takes a label from a tree parser and returns
+--   a value or an error string.
+type Func a = (Label -> Except String a)
+
+-- | params returns the descriptions of the parameters of the user defined
+--   expression.
+params :: Expr a -> [Desc]
+
+-- | name returns the name of the user defined expression.
+name :: Expr a -> String
+
+-- | hasVar returns whether the expression or any of its children contains
+--   a variable expression.
+hasVar :: Expr a -> Bool
+
+-- | hashWithName calculates a hash of the function name and its
+--   parameters.
+hashWithName :: String -> [Desc] -> Int
+
+-- | evalConst tries to evaluate a constant expression and either returns
+--   the resulting constant value or nothing.
+evalConst :: Expr a -> Maybe a
+
+-- | isConst returns whether the input description is one of the six
+--   possible constant values.
+isConst :: Desc -> Bool
+
+-- | assertArgs1 asserts that the list of arguments is only one argument
+--   and returns the argument or an error message containing the function
+--   name that was passed in as an argument to assertArgs1.
+assertArgs1 :: String -> [AnyExpr] -> Except String AnyExpr
+
+-- | assertArgs2 asserts that the list of arguments is only two arguments
+--   and returns the two arguments or an error message containing the
+--   function name that was passed in as an argument to assertArgs2.
+assertArgs2 :: String -> [AnyExpr] -> Except String (AnyExpr, AnyExpr)
+
+-- | mkBoolExpr generalises a bool expression to any expression.
+mkBoolExpr :: Expr Bool -> AnyExpr
+
+-- | mkIntExpr generalises an int expression to any expression.
+mkIntExpr :: Expr Int -> AnyExpr
+
+-- | mkStringExpr generalises a string expression to any expression.
+mkStringExpr :: Expr Text -> AnyExpr
+
+-- | mkDoubleExpr generalises a double expression to any expression.
+mkDoubleExpr :: Expr Double -> AnyExpr
+
+-- | mkBytesExpr generalises a bytes expression to any expression.
+mkBytesExpr :: Expr ByteString -> AnyExpr
+
+-- | mkUintExpr generalises a uint expression to any expression.
+mkUintExpr :: Expr Word -> AnyExpr
+
+-- | assertBool asserts that any expression is actually a bool expression.
+assertBool :: AnyExpr -> Except String (Expr Bool)
+
+-- | assertInt asserts that any expression is actually an int expression.
+assertInt :: AnyExpr -> Except String (Expr Int)
+
+-- | assertString asserts that any expression is actually a string
+--   expression.
+assertString :: AnyExpr -> Except String (Expr Text)
+
+-- | assertDouble asserts that any expression is actually a double
+--   expression.
+assertDouble :: AnyExpr -> Except String (Expr Double)
+
+-- | assertBytes asserts that any expression is actually a bytes
+--   expression.
+assertBytes :: AnyExpr -> Except String (Expr ByteString)
+
+-- | assertUint asserts that any expression is actually a uint expression.
+assertUint :: AnyExpr -> Except String (Expr Word)
+
+-- | boolExpr creates a constant bool expression from a input value.
+boolExpr :: Bool -> Expr Bool
+
+-- | intExpr creates a constant int expression from a input value.
+intExpr :: Int -> Expr Int
+
+-- | stringExpr creates a constant string expression from a input value.
+stringExpr :: Text -> Expr Text
+
+-- | doubleExpr creates a constant double expression from a input value.
+doubleExpr :: Double -> Expr Double
+
+-- | bytesExpr creates a constant bytes expression from a input value.
+bytesExpr :: ByteString -> Expr ByteString
+
+-- | uintExpr creates a constant uint expression from a input value.
+uintExpr :: Word -> Expr Word
+
+-- | trimBool tries to reduce an expression to a single constant
+--   expression, if it does not contain a variable.
+trimBool :: Expr Bool -> Expr Bool
+
+-- | trimInt tries to reduce an expression to a single constant expression,
+--   if it does not contain a variable.
+trimInt :: Expr Int -> Expr Int
+
+-- | trimString tries to reduce an expression to a single constant
+--   expression, if it does not contain a variable.
+trimString :: Expr Text -> Expr Text
+
+-- | trimDouble tries to reduce an expression to a single constant
+--   expression, if it does not contain a variable.
+trimDouble :: Expr Double -> Expr Double
+
+-- | trimBytes tries to reduce an expression to a single constant
+--   expression, if it does not contain a variable.
+trimBytes :: Expr ByteString -> Expr ByteString
+
+-- | trimUint tries to reduce an expression to a single constant
+--   expression, if it does not contain a variable.
+trimUint :: Expr Word -> Expr Word
+
+-- | mkBoolsExpr generalises a list of bools expression to any expression.
+mkBoolsExpr :: Expr [Bool] -> AnyExpr
+
+-- | mkIntsExpr generalises a list of ints expression to any expression.
+mkIntsExpr :: Expr [Int] -> AnyExpr
+
+-- | mkStringsExpr generalises a list of strings expression to any
+--   expression.
+mkStringsExpr :: Expr [Text] -> AnyExpr
+
+-- | mkDoublesExpr generalises a list of doubles expression to any
+--   expression.
+mkDoublesExpr :: Expr [Double] -> AnyExpr
+
+-- | mkListOfBytesExpr generalises a list of bytes expression to any
+--   expression.
+mkListOfBytesExpr :: Expr [ByteString] -> AnyExpr
+
+-- | mkUintsExpr generalises a list of uints expression to any expression.
+mkUintsExpr :: Expr [Word] -> AnyExpr
+
+-- | assertBools asserts that any expression is actually a list of bools
+--   expression.
+assertBools :: AnyExpr -> Except String (Expr [Bool])
+
+-- | assertInts asserts that any expression is actually a list of ints
+--   expression.
+assertInts :: AnyExpr -> Except String (Expr [Int])
+
+-- | assertStrings asserts that any expression is actually a list of
+--   strings expression.
+assertStrings :: AnyExpr -> Except String (Expr [Text])
+
+-- | assertDoubles asserts that any expression is actually a list of
+--   doubles expression.
+assertDoubles :: AnyExpr -> Except String (Expr [Double])
+
+-- | assertListOfBytes asserts that any expression is actually a list of
+--   bytes expression.
+assertListOfBytes :: AnyExpr -> Except String (Expr [ByteString])
+
+-- | assertUints asserts that any expression is actually a list of uints
+--   expression.
+assertUints :: AnyExpr -> Except String (Expr [Word])
+
+-- | boolsExpr sequences a list of expressions that each return a bool, to
+--   a single expression that returns a list of bools.
+boolsExpr :: [Expr Bool] -> Expr [Bool]
+
+-- | intsExpr sequences a list of expressions that each return an int, to a
+--   single expression that returns a list of ints.
+intsExpr :: [Expr Int] -> Expr [Int]
+
+-- | stringsExpr sequences a list of expressions that each return a string,
+--   to a single expression that returns a list of strings.
+stringsExpr :: [Expr Text] -> Expr [Text]
+
+-- | doublesExpr sequences a list of expressions that each return a double,
+--   to a single expression that returns a list of doubles.
+doublesExpr :: [Expr Double] -> Expr [Double]
+
+-- | listOfBytesExpr sequences a list of expressions that each return
+--   bytes, to a single expression that returns a list of bytes.
+listOfBytesExpr :: [Expr ByteString] -> Expr [ByteString]
+
+-- | uintsExpr sequences a list of expressions that each return a uint, to
+--   a single expression that returns a list of uints.
+uintsExpr :: [Expr Word] -> Expr [Word]
+instance GHC.Show.Show (Expr.Expr a)
+instance GHC.Classes.Eq (Expr.Expr a)
+instance GHC.Classes.Ord (Expr.Expr a)
+instance GHC.Show.Show Expr.AnyExpr
+instance GHC.Classes.Eq Expr.AnyExpr
+instance GHC.Classes.Ord Expr.AnyExpr
+instance GHC.Show.Show Expr.Desc
+instance GHC.Classes.Ord Expr.Desc
+instance GHC.Classes.Eq Expr.Desc
+
+
+-- | This module contains all expressions for Relapse variables.
+module Exprs.Var
+
+-- | varBoolExpr creates a bool variable expression.
+varBoolExpr :: Expr Bool
+
+-- | varIntExpr creates an int variable expression.
+varIntExpr :: Expr Int
+
+-- | varUintExpr creates a uint variable expression.
+varUintExpr :: Expr Word
+
+-- | varDoubleExpr creates a double variable expression.
+varDoubleExpr :: Expr Double
+
+-- | varStringExpr creates a string variable expression.
+varStringExpr :: Expr Text
+
+-- | varBytesExpr creates a bytes variable expression.
+varBytesExpr :: Expr ByteString
+
+-- | isVar returns whether an expression is one of the six variable
+--   expressions.
+isVar :: Desc -> Bool
+
+
+-- | This module contains the Relapse type expression.
+module Exprs.Type
+
+-- | mkTypeExpr is used by the parser to create a type expression for the
+--   specific input type.
+mkTypeExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | typeExpr creates an expression that returns true if the containing
+--   expression does not return an error. For example: `(typeExpr
+--   varBoolExpr)` will ony return true is the field value is a bool.
+typeExpr :: Expr a -> Expr Bool
+
+
+-- | This module contains the Relapse string expressions.
+module Exprs.Strings
+
+-- | mkHasPrefixExpr dynamically creates a hasPrefix expression.
+mkHasPrefixExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | hasPrefixExpr creates a hasPrefix expression that returns true if the
+--   second is a prefix of the first.
+hasPrefixExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | mkHasSuffixExpr dynamically creates a hasSuffix expression.
+mkHasSuffixExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | hasSuffixExpr creates a hasSuffix expression that returns true if the
+--   second is a suffix of the first.
+hasSuffixExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | mkRegexExpr dynamically creates a regex expression.
+mkRegexExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | regexExpr creates a regex expression that returns true if the first
+--   expression matches the second string.
+regexExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | mkToLowerExpr dynamically creates a toLower expression.
+mkToLowerExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | toLowerExpr creates a toLower expression that converts the input
+--   string to a lowercase string.
+toLowerExpr :: Expr Text -> Expr Text
+
+-- | mkToUpperExpr dynamically creates a toUpper expression.
+mkToUpperExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | toUpperExpr creates a toUpper expression that converts the input
+--   string to an uppercase string.
+toUpperExpr :: Expr Text -> Expr Text
+
+
+-- | This module contains the Relapse logic expressions: not, and, or.
+module Exprs.Logic
+
+-- | mkNotExpr dynamically creates a not expression, if the single argument
+--   is a bool expression.
+mkNotExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | notExpr creates a not expression, that returns true is the argument
+--   expression returns an error or false.
+notExpr :: Expr Bool -> Expr Bool
+
+-- | mkAndExpr dynamically creates an and expression, if the two arguments
+--   are both bool expressions.
+mkAndExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | andExpr creates an and expression that returns true if both arguments
+--   are true.
+andExpr :: Expr Bool -> Expr Bool -> Expr Bool
+
+-- | mkOrExpr dynamically creates an or expression, if the two arguments
+--   are both bool expressions.
+mkOrExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | orExpr creates an or expression that returns true if either argument
+--   is true.
+orExpr :: Expr Bool -> Expr Bool -> Expr Bool
+
+
+-- | This module contains the Relapse length expressions.
+module Exprs.Length
+
+-- | mkLengthExpr dynamically creates a length expression, if the single
+--   argument is a list, string or bytes.
+mkLengthExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | lengthListExpr creates a length expression, that returns the length of
+--   a list.
+lengthListExpr :: Expr [a] -> Expr Int
+
+-- | lengthStringExpr creates a length expression, that returns the length
+--   of a string.
+lengthStringExpr :: Expr Text -> Expr Int
+
+-- | lengthBytesExpr creates a length expression, that returns the length
+--   of bytes.
+lengthBytesExpr :: Expr ByteString -> Expr Int
+
+
+-- | This module contains the Relapse elem expression.
+module Exprs.Elem
+
+-- | mkElemExpr dynamically creates an elem expression, if the first
+--   argument is a list and the second an int index.
+mkElemExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | elemExpr creates an expression that returns an element from the list
+--   at the specified index. Trimming this function would cause it to
+--   become non generic. It is not necessary to trim each function, since
+--   it is just an optimization.
+elemExpr :: Expr [a] -> Expr Int -> Expr a
+
+
+-- | This module contains the Relapse contains expressions.
+module Exprs.Contains
+
+-- | mkContainsExpr dynamically creates a contains expression, if the two
+--   input types are:
+--   
+--   <ul>
+--   <li>String and String where the second string is the possible
+--   substring.</li>
+--   <li>A List of :Strings, Ints or Uints paired with a String, Int or
+--   Uint respectively.</li>
+--   </ul>
+mkContainsExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | containsStringExpr creates a contains expression that returns true if
+--   the second string is a substring of the first.
+containsStringExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | containsExpr creates a contains expression that returns true if the
+--   first argument is an element in the second list argument.
+containsExpr :: (Eq a) => Expr a -> Expr [a] -> Expr Bool
+
+
+-- | This module contains the Relapse compare expressions: equal, not
+--   equal, greater than, greater than or equal, less than and less than or
+--   equal.
+module Exprs.Compare
+
+-- | mkEqExpr dynamically creates an eq (equal) expression, if the two
+--   input types are the same.
+mkEqExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | eqExpr creates an eq (equal) expression that returns true if the two
+--   evaluated input expressions are equal and both don't evaluate to an
+--   error.
+eqExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkNeExpr dynamically creates a ne (not equal) expression, if the two
+--   input types are the same.
+mkNeExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | neExpr creates a ne (not equal) expression that returns true if the
+--   two evaluated input expressions are not equal and both don't evaluate
+--   to an error.
+neExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkGeExpr dynamically creates a ge (greater than or equal) expression,
+--   if the two input types are the same.
+mkGeExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | geExpr creates a ge (greater than or equal) expression that returns
+--   true if the first evaluated expression is greater than or equal to the
+--   second and both don't evaluate to an error.
+geExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkLeExpr dynamically creates a le (less than or equal) expression, if
+--   the two input types are the same.
+mkLeExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | leExpr creates a le (less than or equal) expression that returns true
+--   if the first evaluated expression is less than or equal to the second
+--   and both don't evaluate to an error.
+leExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkGtExpr dynamically creates a gt (greater than) expression, if the
+--   two input types are the same.
+mkGtExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | gtExpr creates a gt (greater than) expression that returns true if the
+--   first evaluated expression is greater than the second and both don't
+--   evaluate to an error.
+gtExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
+
+-- | mkLtExpr dynamically creates a lt (less than) expression, if the two
+--   input types are the same.
+mkLtExpr :: [AnyExpr] -> Except String AnyExpr
+
+-- | ltExpr creates a lt (less than) expression that returns true if the
+--   first evaluated expression is less than the second and both don't
+--   evaluate to an error.
+ltExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
+
+
+-- | This module contains the standard library of expressions, used by the
+--   Relapse parser.
+module Exprs
+
+-- | mkBuiltIn parsers a builtin function to a relapse expression.
+mkBuiltIn :: String -> AnyExpr -> Except String AnyExpr
+
+-- | mkExpr is a grouping of all the standard library functions as one
+--   MkFunc.
+mkExpr :: String -> [AnyExpr] -> Except String AnyExpr
+
+-- | MkFunc is used by the parser to create a function from a name and
+--   arguments.
+type MkFunc = String -> [AnyExpr] -> Except String AnyExpr
+
+-- | stdOnly contains no functions, which means that when it is combined
+--   (in Relapse parser) with mkExpr the parser will have access to only
+--   the standard library.
+stdOnly :: String -> [AnyExpr] -> Except String AnyExpr
 
 
 -- | This module describes the patterns supported by Relapse.
@@ -189,7 +569,7 @@ module Patterns
 data Pattern
 Empty :: Pattern
 ZAny :: Pattern
-Node :: BoolExpr -> Pattern -> Pattern
+Node :: (Expr Bool) -> Pattern -> Pattern
 Or :: Pattern -> Pattern -> Pattern
 And :: Pattern -> Pattern -> Pattern
 Not :: Pattern -> Pattern
@@ -239,44 +619,48 @@ instance GHC.Classes.Ord Patterns.Pattern
 instance GHC.Classes.Eq Patterns.Pattern
 
 
--- | This is an internal relapse module.
---   
---   It contains relapse grammar parsing helper functions and
---   
---   it also contains a parser for the JSON serialized relapse AST.
-module ParsePatterns
-data Expr
-BoolExpr :: BoolExpr -> Expr
-DoubleExpr :: DoubleExpr -> Expr
-IntExpr :: IntExpr -> Expr
-UintExpr :: UintExpr -> Expr
-StringExpr :: StringExpr -> Expr
-BytesExpr :: BytesExpr -> Expr
-BoolListExpr :: [BoolExpr] -> Expr
-DoubleListExpr :: [DoubleExpr] -> Expr
-IntListExpr :: [IntExpr] -> Expr
-UintListExpr :: [UintExpr] -> Expr
-StringListExpr :: [StringExpr] -> Expr
-BytesListExpr :: [BytesExpr] -> Expr
+-- | This module parses the Relapse Grammar using the Parsec Library.
+module Parser
 
--- | newBuiltIn parsers a builtin function to a relapse expression.
-newBuiltIn :: String -> Expr -> Either String Expr
+-- | parseGrammar parses the Relapse Grammar.
+parseGrammar :: String -> Either ParseError Refs
 
--- | newFunction parsers a relapse function to a relapse expression.
-newFunction :: String -> [Expr] -> Either String Expr
+-- | parseGrammarWithUDFs parses the Relapse Grammar with extra user
+--   defined functions.
+parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Refs
 
--- | fromJson parses the relapse AST that has been serialized to JSON.
-fromJson :: String -> Either String Refs
-instance GHC.Show.Show ParsePatterns.Expr
+-- | For internal testing
+grammar :: MkFunc -> CharParser () Refs
 
+-- | For internal testing
+pattern :: MkFunc -> CharParser () Pattern
 
--- | This is an internal relapse module.
---   
---   It zips patterns to reduce the state space.
-module Zip
-type Zipper = [Int]
-zippy :: [Pattern] -> ([Pattern], Zipper)
-unzipby :: Zipper -> [Bool] -> [Bool]
+-- | For internal testing
+nameExpr :: CharParser () (Expr Bool)
+
+-- | For internal testing
+expr :: MkFunc -> CharParser () (Expr Bool)
+
+-- | For internal testing
+idLit :: CharParser () String
+
+-- | For internal testing
+bytesCastLit :: CharParser () ByteString
+
+-- | For internal testing
+stringLit :: CharParser () Text
+
+-- | For internal testing
+doubleCastLit :: CharParser () Double
+
+-- | For internal testing
+uintCastLit :: CharParser () Word
+
+-- | For internal testing
+intLit :: CharParser () Int
+
+-- | For internal testing
+ws :: CharParser () ()
 
 
 -- | This module simplifies Relapse patterns.
@@ -286,17 +670,69 @@ module Simplify
 simplify :: Refs -> Pattern -> Pattern
 
 
+-- | This module contains the XML Parser.
+module Xml
+
+-- | decodeXML returns a XmlTree, given an input string.
+decodeXML :: String -> [XmlTree]
+instance Parsers.Tree Text.XML.HXT.DOM.TypeDefs.XmlTree
+
+
+-- | This is an internal relapse module.
+--   
+--   It zips patterns to reduce the state space.
+module Zip
+
+-- | Zipper represents compressed indexes that resulted from compressing a
+--   list of patterns. This can be used to uncompress a list of bools
+--   (nullability of patterns).
+data Zipper
+
+-- | zippy compresses a list of patterns.
+zippy :: [Pattern] -> ([Pattern], Zipper)
+
+-- | unzipby uncompresses a list of bools (nullability of patterns).
+unzipby :: Zipper -> [Bool] -> [Bool]
+instance GHC.Classes.Ord Zip.Zipper
+instance GHC.Classes.Eq Zip.Zipper
+instance GHC.Classes.Ord Zip.ZipEntry
+instance GHC.Classes.Eq Zip.ZipEntry
+
+
 -- | This is an internal relapse module.
 --   
 --   It contains multiple implementations of if expressions.
 module IfExprs
+
+-- | IfExprs is a tree of if expressions, which contains a list of
+--   resulting patterns on each of its leaves.
 data IfExprs
-type IfExpr = (BoolExpr, Pattern, Pattern)
-evalIfExprs :: IfExprs -> Label -> Except ValueErr [Pattern]
+
+-- | IfExpr contains a condition and a return pattern for each of the two
+--   cases.
+data IfExpr
+
+-- | newIfExpr creates an IfExpr.
+newIfExpr :: Expr Bool -> Pattern -> Pattern -> IfExpr
+
+-- | valIfExprs evaluates a tree of if expressions and returns the
+--   resulting patterns or an error.
+evalIfExprs :: IfExprs -> Label -> Except String [Pattern]
+
+-- | compileIfExprs compiles a list of if expressions in an IfExprs tree,
+--   for efficient evaluation.
 compileIfExprs :: Refs -> [IfExpr] -> IfExprs
+
+-- | ZippedIfExprs is a tree of if expressions, but with a zipped pattern
+--   list and a zipper on each of the leaves.
 data ZippedIfExprs
+
+-- | zipIfExprs compresses an if expression tree's leaves.
 zipIfExprs :: IfExprs -> ZippedIfExprs
-evalZippedIfExprs :: ZippedIfExprs -> Label -> Except ValueErr ([Pattern], Zipper)
+
+-- | evalZippedIfExprs evaulates a ZippedIfExprs tree and returns the
+--   zipped pattern list and zipper from the resulting leaf.
+evalZippedIfExprs :: ZippedIfExprs -> Label -> Except String ([Pattern], Zipper)
 
 
 -- | This module is a simple implementation of the internal derivative
@@ -336,6 +772,20 @@ returns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 zipderive :: Tree t => Refs -> [t] -> Except String Pattern
 
 
+-- | This module contains a VPA (Visual Pushdown Automaton) implementation
+--   of the internal derivative algorithm.
+--   
+--   It is intended to be used for explanation purposes.
+--   
+--   It shows how out algorithm is effective equivalent to a visual
+--   pushdown automaton.
+module VpaDerive
+
+-- | derive is the derivative implementation for trees. This implementation
+--   makes use of visual pushdown automata.
+derive :: Tree t => Refs -> [t] -> Except String Pattern
+
+
 -- | This module is an efficient implementation of the derivative algorithm
 --   for trees.
 --   
@@ -352,7 +802,7 @@ derive :: Tree t => Refs -> [t] -> Except String Pattern
 
 -- | Mem is the object used to store memoized results of the nullable,
 --   calls and returns functions.
-type Mem = (Nullable, Calls, Returns)
+data Mem
 
 -- | newMem creates a object used for memoization by the validate function.
 --   Each grammar should create its own memoize object.
@@ -366,35 +816,6 @@ nullable :: Refs -> Pattern -> State Mem Bool
 --   return whether tree is valid, given the input grammar and start
 --   pattern.
 validate :: Tree t => Refs -> Pattern -> [t] -> (State Mem) Bool
-
-
--- | This module contains a VPA (Visual Pushdown Automaton) implementation
---   of the internal derivative algorithm.
---   
---   It is intended to be used for explanation purposes.
---   
---   It shows how out algorithm is effective equivalent to a visual
---   pushdown automaton.
-module VpaDerive
-derive :: Tree t => Refs -> [t] -> Except String Pattern
-
-
--- | This module parses the Relapse Grammar using the Parsec Library.
-module Parser
-
--- | parseGrammar parses the Relapse Grammar.
-parseGrammar :: String -> Either ParseError Refs
-grammar :: CharParser () Refs
-pattern :: CharParser () Pattern
-nameExpr :: CharParser () BoolExpr
-expr :: CharParser () BoolExpr
-idLit :: CharParser () String
-bytesCastLit :: CharParser () String
-stringLit :: CharParser () String
-doubleCastLit :: CharParser () Double
-uintCastLit :: CharParser () Int
-intLit :: CharParser () Int
-ws :: CharParser () ()
 
 
 -- | This module provides an implementation of the relapse validation
@@ -417,6 +838,11 @@ module Relapse
 -- | parseGrammar parses the relapse grammar and returns either a parsed
 --   grammar (Refs, for the list of references) or an error string.
 parseGrammar :: String -> Except String Refs
+
+-- | parseGrammarWithUDFs parses the relapse grammar with extra user
+--   defined functions and returns either a parsed grammar (Refs, for the
+--   list of references) or an error string.
+parseGrammarWithUDFs :: MkFunc -> String -> Except String Refs
 
 -- | validate returns whether a tree is valid, given the grammar (Refs).
 validate :: Tree t => Refs -> [t] -> Bool
