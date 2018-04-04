@@ -91,7 +91,7 @@ zanyPat = Pattern {
 
 notPat :: Pattern -> Pattern
 notPat p
-    | typ p == Not = patterns p !! 0
+    | typ p == Not = head $ patterns p
     | otherwise = Pattern {
         typ = Not
         , func = Nothing
@@ -123,8 +123,8 @@ concatPat a b
     | isNotZAny b = notPat zanyPat
     | typ a == Empty = b
     | typ b == Empty = a
-    | typ a == Concat = concatPat (patterns a !! 0) $ concatPat (patterns a !! 1) b
-    | typ a == ZAny && typ b == Concat && typ (patterns b !! 1) == ZAny = containsPat (patterns b !! 0)
+    | typ a == Concat = concatPat (head $ patterns a) $ concatPat (patterns a !! 1) b
+    | typ a == ZAny && typ b == Concat && typ (patterns b !! 1) == ZAny = containsPat (head $ patterns b)
     | otherwise = Pattern {
         typ = Concat
         , func = Nothing
