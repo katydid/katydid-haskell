@@ -10,7 +10,6 @@ import qualified Test.Tasty.HUnit as HUnit
 import System.Directory (getCurrentDirectory, listDirectory, doesDirectoryExist)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
-import Control.Monad.Except (Except(..), runExcept)
 
 import Parsers (Tree)
 import Patterns (Refs, Pattern, nullable, hasRecursion)
@@ -72,11 +71,6 @@ newTestCase algo c@(TestSuiteCase name g (JsonData t) want) =
 testName :: Algo -> TestSuiteCase -> String
 testName algo (TestSuiteCase name g t want) = name ++ "_" ++ show algo
 
-must :: Except String Pattern -> Pattern
-must e = case runExcept e of
-    (Left l) -> error l
-    (Right r) -> r
-
 testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
 testDeriv AlgoDeriv name g ts want = 
     let p = either error id $ Derive.derive g ts
@@ -87,11 +81,11 @@ testDeriv AlgoZip name g ts want =
         got = nullable g p
     in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
 testDeriv AlgoMap name g ts want  = 
-    let p = must $ MemDerive.derive g ts 
+    let p = either error id $ MemDerive.derive g ts 
         got = nullable g p
     in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
 testDeriv AlgoVpa name g ts want  = 
-    let p = must $ VpaDerive.derive g ts 
+    let p = either error id $ VpaDerive.derive g ts 
         got = nullable g p
     in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
 
