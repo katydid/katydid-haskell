@@ -5,7 +5,6 @@ module UserDefinedFuncs (
     , isPrimeExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept, throwError)
 import qualified Data.Text
 
 import Data.Numbers.Primes (isPrime)
@@ -14,16 +13,16 @@ import Expr
 
 -- |
 -- userLib is a library of user defined functions that can be passed to the parser.
-userLib :: String -> [AnyExpr] -> Except String AnyExpr
+userLib :: String -> [AnyExpr] -> Either String AnyExpr
 userLib "inc" args = mkIncExpr args
 userLib "concat" args = mkConcatExpr args
 userLib "isPrime" args = mkIsPrime args
-userLib n _ = throwError $ "undefined function: " ++ n
+userLib n _ = Left $ "undefined function: " ++ n
 
 -- |
 -- mkIncExpr tries to create an incExpr from a variable number and dynamically types arguments.
 -- This function is used by the Relapse parser to insert your user defined expression into the expression tree.
-mkIncExpr :: [AnyExpr] -> Except String AnyExpr
+mkIncExpr :: [AnyExpr] -> Either String AnyExpr
 mkIncExpr args = do {
     arg <- assertArgs1 "inc" args;
     mkIntExpr . incExpr <$> assertInt arg;
@@ -41,7 +40,7 @@ incExpr intArg = trimInt Expr {
 
 -- |
 -- mkConcatExpr tries to create an concatExpr from a variable number and dynamically types arguments.
-mkConcatExpr :: [AnyExpr] -> Except String AnyExpr
+mkConcatExpr :: [AnyExpr] -> Either String AnyExpr
 mkConcatExpr args = do {
     (arg1, arg2) <- assertArgs2 "inc" args;
     strArg1 <- assertString arg1;
@@ -63,7 +62,7 @@ concatExpr strExpr1 strExpr2 = trimString Expr {
 
 -- |
 -- mkIsPrimeExpr tries to create an isPrimeExpr from a variable number and dynamically types arguments.
-mkIsPrime :: [AnyExpr] -> Except String AnyExpr
+mkIsPrime :: [AnyExpr] -> Either String AnyExpr
 mkIsPrime args = do {
     arg <- assertArgs1 "isPrime" args;
     case arg of

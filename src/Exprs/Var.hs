@@ -11,7 +11,6 @@ module Exprs.Var (
     , isVar
 ) where
 
-import Control.Monad.Except (throwError)
 import Data.Text (Text)
 import Data.ByteString (ByteString)
 
@@ -42,8 +41,8 @@ varBoolExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Bool b) -> return b
-        _ -> throwError "not a bool"
+        (Parsers.Bool b) -> Right b
+        _ -> Left "not a bool"
 }
 
 -- |
@@ -58,8 +57,8 @@ varIntExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Int i) -> return i
-        _ -> throwError "not an int"
+        (Parsers.Int i) -> Right i
+        _ -> Left "not an int"
 }
 
 -- |
@@ -74,8 +73,8 @@ varUintExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Uint u) -> return u
-        _ -> throwError "not a uint"
+        (Parsers.Uint u) -> Right u
+        _ -> Left "not a uint"
 }
 
 -- |
@@ -90,8 +89,8 @@ varDoubleExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Double d) -> return d
-        _ -> throwError "not a double"
+        (Parsers.Double d) -> Right d
+        _ -> Left "not a double"
 }
 
 -- |
@@ -106,8 +105,8 @@ varStringExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.String s) -> return s
-        _ -> throwError "not a string"
+        (Parsers.String s) -> Right s
+        _ -> Left "not a string"
 }
 
 -- |
@@ -122,6 +121,6 @@ varBytesExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Bytes b) -> return b
-        _ -> throwError "not bytes"
+        (Parsers.Bytes b) -> Right b
+        _ -> Left "not bytes"
 }

@@ -8,8 +8,6 @@ module Exprs (
     , stdOnly
 ) where
 
-import Control.Monad.Except (Except, throwError)
-
 import Expr
 import Exprs.Compare
 import Exprs.Contains
@@ -22,11 +20,11 @@ import Exprs.Var
 
 -- |
 -- MkFunc is used by the parser to create a function from a name and arguments.
-type MkFunc = String -> [AnyExpr] -> Except String AnyExpr
+type MkFunc = String -> [AnyExpr] -> Either String AnyExpr
 
 -- |
 -- mkExpr is a grouping of all the standard library functions as one MkFunc.
-mkExpr :: String -> [AnyExpr] -> Except String AnyExpr
+mkExpr :: String -> [AnyExpr] -> Either String AnyExpr
 mkExpr "eq" es = mkEqExpr es
 mkExpr "ne" es = mkNeExpr es
 mkExpr "ge" es = mkGeExpr es
@@ -45,17 +43,17 @@ mkExpr "regex" es = mkRegexExpr es
 mkExpr "toLower" es = mkToLowerExpr es
 mkExpr "toUpper" es = mkToUpperExpr es
 mkExpr "type" es = mkTypeExpr es
-mkExpr n _ = throwError $ "unknown function: " ++ n
+mkExpr n _ = Left $ "unknown function: " ++ n
 
 -- |
 -- stdOnly contains no functions, which means that when it is combined 
 -- (in Relapse parser) with mkExpr the parser will have access to only the standard library.
-stdOnly :: String -> [AnyExpr] -> Except String AnyExpr
-stdOnly n _ = throwError $ "unknown function: " ++ n
+stdOnly :: String -> [AnyExpr] -> Either String AnyExpr
+stdOnly n _ = Left $ "unknown function: " ++ n
 
 -- |
 -- mkBuiltIn parsers a builtin function to a relapse expression.
-mkBuiltIn :: String -> AnyExpr -> Except String AnyExpr
+mkBuiltIn :: String -> AnyExpr -> Either String AnyExpr
 mkBuiltIn symbol constExpr = funcName symbol >>= (\n ->
         if n == "type" then
             mkExpr n [constExpr]
@@ -65,7 +63,7 @@ mkBuiltIn symbol constExpr = funcName symbol >>= (\n ->
             mkExpr n [constToVar constExpr, constExpr]
     )
 
-funcName :: String -> Except String String
+funcName :: String -> Either String String
 funcName "==" = return "eq"
 funcName "!=" = return "ne"
 funcName "<" = return "lt"

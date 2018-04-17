@@ -10,7 +10,6 @@ import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as HUnit
 
 import Text.ParserCombinators.Parsec (CharParser, parse, eof)
-import Control.Monad.Except (Except, runExcept)
 
 import Parser
 import Expr
@@ -208,7 +207,7 @@ tests = T.testGroup "Parser" [
 
    HUnit.testCase "" (return ())]
 
-bothLibs :: String -> [AnyExpr] -> Except String AnyExpr
-bothLibs name args = case runExcept $ mkExpr name args of
+bothLibs :: String -> [AnyExpr] -> Either String AnyExpr
+bothLibs name args = case mkExpr name args of
     (Left err) -> userLib name args
     (Right expr) -> return expr

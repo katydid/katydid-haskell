@@ -44,7 +44,7 @@ main = either
         else putStrLn "dragons are fictional"
     ) $
     Relapse.validate <$> 
-        runExcept (Relapse.parseGrammar ".DragonsExist == true") <*> 
+        Relapse.parseGrammar ".DragonsExist == true" <*> 
         Json.decodeJSON "{\"DragonsExist\": false}"
 ```
 
@@ -69,7 +69,7 @@ main = either
         else putStrLn "JOMO"
     ) $
     Relapse.validate <$>
-        runExcept (Relapse.parseGrammarWithUDFs userLib ".Survived->isPrime($int)") <*>
+        Relapse.parseGrammarWithUDFs userLib ".Survived->isPrime($int)" <*>
         Json.decodeJSON "{\"Survived\": 104743}"
 ```
 
@@ -80,11 +80,11 @@ The `Expr` library provides many useful helper functions:
 import Data.Numbers.Primes (isPrime)
 import Expr
 
-userLib :: String -> [AnyExpr] -> Except String AnyExpr
+userLib :: String -> [AnyExpr] -> Either String AnyExpr
 userLib "isPrime" args = mkIsPrime args
 userLib n _ = throwError $ "undefined function: " ++ n
 
-mkIsPrime :: [AnyExpr] -> Except String AnyExpr
+mkIsPrime :: [AnyExpr] -> Either String AnyExpr
 mkIsPrime args = do {
     arg <- assertArgs1 "isPrime" args;
     mkBoolExpr . isPrimeExpr <$> assertInt arg;

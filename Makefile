@@ -1,4 +1,4 @@
-.PHONY: run test setup bench
+.PHONY: run test setup bench doc pkg
 
 test: 
 	stack test
@@ -29,6 +29,6 @@ lint:
 	# -XNoPatternSynonyms is a temporary workaround for https://github.com/ndmitchell/hlint/issues/216
 	hlint -XNoPatternSynonyms .
 
-pkg:
+pkg: doc
 	stack sdist
 	echo "Now upload the created file to: https://hackage.haskell.org/upload"

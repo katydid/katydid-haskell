@@ -118,7 +118,7 @@ Expr :: Desc -> Func a -> Expr a
 -- | Func represents the evaluation function part of a user defined
 --   expression. This function takes a label from a tree parser and returns
 --   a value or an error string.
-type Func a = (Label -> Except String a)
+type Func a = (Label -> Either String a)
 
 -- | params returns the descriptions of the parameters of the user defined
 --   expression.
@@ -146,12 +146,12 @@ isConst :: Desc -> Bool
 -- | assertArgs1 asserts that the list of arguments is only one argument
 --   and returns the argument or an error message containing the function
 --   name that was passed in as an argument to assertArgs1.
-assertArgs1 :: String -> [AnyExpr] -> Except String AnyExpr
+assertArgs1 :: String -> [AnyExpr] -> Either String AnyExpr
 
 -- | assertArgs2 asserts that the list of arguments is only two arguments
 --   and returns the two arguments or an error message containing the
 --   function name that was passed in as an argument to assertArgs2.
-assertArgs2 :: String -> [AnyExpr] -> Except String (AnyExpr, AnyExpr)
+assertArgs2 :: String -> [AnyExpr] -> Either String (AnyExpr, AnyExpr)
 
 -- | mkBoolExpr generalises a bool expression to any expression.
 mkBoolExpr :: Expr Bool -> AnyExpr
@@ -172,25 +172,25 @@ mkBytesExpr :: Expr ByteString -> AnyExpr
 mkUintExpr :: Expr Word -> AnyExpr
 
 -- | assertBool asserts that any expression is actually a bool expression.
-assertBool :: AnyExpr -> Except String (Expr Bool)
+assertBool :: AnyExpr -> Either String (Expr Bool)
 
 -- | assertInt asserts that any expression is actually an int expression.
-assertInt :: AnyExpr -> Except String (Expr Int)
+assertInt :: AnyExpr -> Either String (Expr Int)
 
 -- | assertString asserts that any expression is actually a string
 --   expression.
-assertString :: AnyExpr -> Except String (Expr Text)
+assertString :: AnyExpr -> Either String (Expr Text)
 
 -- | assertDouble asserts that any expression is actually a double
 --   expression.
-assertDouble :: AnyExpr -> Except String (Expr Double)
+assertDouble :: AnyExpr -> Either String (Expr Double)
 
 -- | assertBytes asserts that any expression is actually a bytes
 --   expression.
-assertBytes :: AnyExpr -> Except String (Expr ByteString)
+assertBytes :: AnyExpr -> Either String (Expr ByteString)
 
 -- | assertUint asserts that any expression is actually a uint expression.
-assertUint :: AnyExpr -> Except String (Expr Word)
+assertUint :: AnyExpr -> Either String (Expr Word)
 
 -- | boolExpr creates a constant bool expression from a input value.
 boolExpr :: Bool -> Expr Bool
@@ -257,27 +257,27 @@ mkUintsExpr :: Expr [Word] -> AnyExpr
 
 -- | assertBools asserts that any expression is actually a list of bools
 --   expression.
-assertBools :: AnyExpr -> Except String (Expr [Bool])
+assertBools :: AnyExpr -> Either String (Expr [Bool])
 
 -- | assertInts asserts that any expression is actually a list of ints
 --   expression.
-assertInts :: AnyExpr -> Except String (Expr [Int])
+assertInts :: AnyExpr -> Either String (Expr [Int])
 
 -- | assertStrings asserts that any expression is actually a list of
 --   strings expression.
-assertStrings :: AnyExpr -> Except String (Expr [Text])
+assertStrings :: AnyExpr -> Either String (Expr [Text])
 
 -- | assertDoubles asserts that any expression is actually a list of
 --   doubles expression.
-assertDoubles :: AnyExpr -> Except String (Expr [Double])
+assertDoubles :: AnyExpr -> Either String (Expr [Double])
 
 -- | assertListOfBytes asserts that any expression is actually a list of
 --   bytes expression.
-assertListOfBytes :: AnyExpr -> Except String (Expr [ByteString])
+assertListOfBytes :: AnyExpr -> Either String (Expr [ByteString])
 
 -- | assertUints asserts that any expression is actually a list of uints
 --   expression.
-assertUints :: AnyExpr -> Except String (Expr [Word])
+assertUints :: AnyExpr -> Either String (Expr [Word])
 
 -- | boolsExpr sequences a list of expressions that each return a bool, to
 --   a single expression that returns a list of bools.
@@ -344,7 +344,7 @@ module Exprs.Type
 
 -- | mkTypeExpr is used by the parser to create a type expression for the
 --   specific input type.
-mkTypeExpr :: [AnyExpr] -> Except String AnyExpr
+mkTypeExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | typeExpr creates an expression that returns true if the containing
 --   expression does not return an error. For example: `(typeExpr
@@ -356,35 +356,35 @@ typeExpr :: Expr a -> Expr Bool
 module Exprs.Strings
 
 -- | mkHasPrefixExpr dynamically creates a hasPrefix expression.
-mkHasPrefixExpr :: [AnyExpr] -> Except String AnyExpr
+mkHasPrefixExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | hasPrefixExpr creates a hasPrefix expression that returns true if the
 --   second is a prefix of the first.
 hasPrefixExpr :: Expr Text -> Expr Text -> Expr Bool
 
 -- | mkHasSuffixExpr dynamically creates a hasSuffix expression.
-mkHasSuffixExpr :: [AnyExpr] -> Except String AnyExpr
+mkHasSuffixExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | hasSuffixExpr creates a hasSuffix expression that returns true if the
 --   second is a suffix of the first.
 hasSuffixExpr :: Expr Text -> Expr Text -> Expr Bool
 
 -- | mkRegexExpr dynamically creates a regex expression.
-mkRegexExpr :: [AnyExpr] -> Except String AnyExpr
+mkRegexExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | regexExpr creates a regex expression that returns true if the first
 --   expression matches the second string.
 regexExpr :: Expr Text -> Expr Text -> Expr Bool
 
 -- | mkToLowerExpr dynamically creates a toLower expression.
-mkToLowerExpr :: [AnyExpr] -> Except String AnyExpr
+mkToLowerExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | toLowerExpr creates a toLower expression that converts the input
 --   string to a lowercase string.
 toLowerExpr :: Expr Text -> Expr Text
 
 -- | mkToUpperExpr dynamically creates a toUpper expression.
-mkToUpperExpr :: [AnyExpr] -> Except String AnyExpr
+mkToUpperExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | toUpperExpr creates a toUpper expression that converts the input
 --   string to an uppercase string.
@@ -396,7 +396,7 @@ module Exprs.Logic
 
 -- | mkNotExpr dynamically creates a not expression, if the single argument
 --   is a bool expression.
-mkNotExpr :: [AnyExpr] -> Except String AnyExpr
+mkNotExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | notExpr creates a not expression, that returns true is the argument
 --   expression returns an error or false.
@@ -404,7 +404,7 @@ notExpr :: Expr Bool -> Expr Bool
 
 -- | mkAndExpr dynamically creates an and expression, if the two arguments
 --   are both bool expressions.
-mkAndExpr :: [AnyExpr] -> Except String AnyExpr
+mkAndExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | andExpr creates an and expression that returns true if both arguments
 --   are true.
@@ -412,7 +412,7 @@ andExpr :: Expr Bool -> Expr Bool -> Expr Bool
 
 -- | mkOrExpr dynamically creates an or expression, if the two arguments
 --   are both bool expressions.
-mkOrExpr :: [AnyExpr] -> Except String AnyExpr
+mkOrExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | orExpr creates an or expression that returns true if either argument
 --   is true.
@@ -424,7 +424,7 @@ module Exprs.Length
 
 -- | mkLengthExpr dynamically creates a length expression, if the single
 --   argument is a list, string or bytes.
-mkLengthExpr :: [AnyExpr] -> Except String AnyExpr
+mkLengthExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | lengthListExpr creates a length expression, that returns the length of
 --   a list.
@@ -444,7 +444,7 @@ module Exprs.Elem
 
 -- | mkElemExpr dynamically creates an elem expression, if the first
 --   argument is a list and the second an int index.
-mkElemExpr :: [AnyExpr] -> Except String AnyExpr
+mkElemExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | elemExpr creates an expression that returns an element from the list
 --   at the specified index. Trimming this function would cause it to
@@ -465,7 +465,7 @@ module Exprs.Contains
 --   <li>A List of :Strings, Ints or Uints paired with a String, Int or
 --   Uint respectively.</li>
 --   </ul>
-mkContainsExpr :: [AnyExpr] -> Except String AnyExpr
+mkContainsExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | containsStringExpr creates a contains expression that returns true if
 --   the second string is a substring of the first.
@@ -483,7 +483,7 @@ module Exprs.Compare
 
 -- | mkEqExpr dynamically creates an eq (equal) expression, if the two
 --   input types are the same.
-mkEqExpr :: [AnyExpr] -> Except String AnyExpr
+mkEqExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | eqExpr creates an eq (equal) expression that returns true if the two
 --   evaluated input expressions are equal and both don't evaluate to an
@@ -492,7 +492,7 @@ eqExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
 
 -- | mkNeExpr dynamically creates a ne (not equal) expression, if the two
 --   input types are the same.
-mkNeExpr :: [AnyExpr] -> Except String AnyExpr
+mkNeExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | neExpr creates a ne (not equal) expression that returns true if the
 --   two evaluated input expressions are not equal and both don't evaluate
@@ -501,7 +501,7 @@ neExpr :: (Eq a) => Expr a -> Expr a -> Expr Bool
 
 -- | mkGeExpr dynamically creates a ge (greater than or equal) expression,
 --   if the two input types are the same.
-mkGeExpr :: [AnyExpr] -> Except String AnyExpr
+mkGeExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | geExpr creates a ge (greater than or equal) expression that returns
 --   true if the first evaluated expression is greater than or equal to the
@@ -510,7 +510,7 @@ geExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 
 -- | mkLeExpr dynamically creates a le (less than or equal) expression, if
 --   the two input types are the same.
-mkLeExpr :: [AnyExpr] -> Except String AnyExpr
+mkLeExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | leExpr creates a le (less than or equal) expression that returns true
 --   if the first evaluated expression is less than or equal to the second
@@ -519,7 +519,7 @@ leExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 
 -- | mkGtExpr dynamically creates a gt (greater than) expression, if the
 --   two input types are the same.
-mkGtExpr :: [AnyExpr] -> Except String AnyExpr
+mkGtExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | gtExpr creates a gt (greater than) expression that returns true if the
 --   first evaluated expression is greater than the second and both don't
@@ -528,7 +528,7 @@ gtExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 
 -- | mkLtExpr dynamically creates a lt (less than) expression, if the two
 --   input types are the same.
-mkLtExpr :: [AnyExpr] -> Except String AnyExpr
+mkLtExpr :: [AnyExpr] -> Either String AnyExpr
 
 -- | ltExpr creates a lt (less than) expression that returns true if the
 --   first evaluated expression is less than the second and both don't
@@ -541,20 +541,20 @@ ltExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 module Exprs
 
 -- | mkBuiltIn parsers a builtin function to a relapse expression.
-mkBuiltIn :: String -> AnyExpr -> Except String AnyExpr
+mkBuiltIn :: String -> AnyExpr -> Either String AnyExpr
 
 -- | mkExpr is a grouping of all the standard library functions as one
 --   MkFunc.
-mkExpr :: String -> [AnyExpr] -> Except String AnyExpr
+mkExpr :: String -> [AnyExpr] -> Either String AnyExpr
 
 -- | MkFunc is used by the parser to create a function from a name and
 --   arguments.
-type MkFunc = String -> [AnyExpr] -> Except String AnyExpr
+type MkFunc = String -> [AnyExpr] -> Either String AnyExpr
 
 -- | stdOnly contains no functions, which means that when it is combined
 --   (in Relapse parser) with mkExpr the parser will have access to only
 --   the standard library.
-stdOnly :: String -> [AnyExpr] -> Except String AnyExpr
+stdOnly :: String -> [AnyExpr] -> Either String AnyExpr
 
 
 -- | This module describes the patterns supported by Relapse.
@@ -717,7 +717,7 @@ newIfExpr :: Expr Bool -> Pattern -> Pattern -> IfExpr
 
 -- | valIfExprs evaluates a tree of if expressions and returns the
 --   resulting patterns or an error.
-evalIfExprs :: IfExprs -> Label -> Except String [Pattern]
+evalIfExprs :: IfExprs -> Label -> Either String [Pattern]
 
 -- | compileIfExprs compiles a list of if expressions in an IfExprs tree,
 --   for efficient evaluation.
@@ -732,7 +732,7 @@ zipIfExprs :: IfExprs -> ZippedIfExprs
 
 -- | evalZippedIfExprs evaulates a ZippedIfExprs tree and returns the
 --   zipped pattern list and zipper from the resulting leaf.
-evalZippedIfExprs :: ZippedIfExprs -> Label -> Except String ([Pattern], Zipper)
+evalZippedIfExprs :: ZippedIfExprs -> Label -> Either String ([Pattern], Zipper)
 
 
 -- | This module is a simple implementation of the internal derivative
@@ -746,7 +746,7 @@ evalZippedIfExprs :: ZippedIfExprs -> Label -> Except String ([Pattern], Zipper)
 module Derive
 
 -- | derive is the classic derivative implementation for trees.
-derive :: Tree t => Refs -> [t] -> Except String Pattern
+derive :: Tree t => Refs -> [t] -> Either String Pattern
 
 -- | calls returns a compiled if expression tree. Each if expression
 --   returns a child pattern, given the input value. In other words calls
@@ -769,7 +769,7 @@ returns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
 
 -- | zipderive is a slighty optimized version of derivs. It zips its
 --   intermediate pattern lists to reduce the state space.
-zipderive :: Tree t => Refs -> [t] -> Except String Pattern
+zipderive :: Tree t => Refs -> [t] -> Either String Pattern
 
 
 -- | This module contains a VPA (Visual Pushdown Automaton) implementation
@@ -783,7 +783,7 @@ module VpaDerive
 
 -- | derive is the derivative implementation for trees. This implementation
 --   makes use of visual pushdown automata.
-derive :: Tree t => Refs -> [t] -> Except String Pattern
+derive :: Tree t => Refs -> [t] -> Either String Pattern
 
 
 -- | This module is an efficient implementation of the derivative algorithm
@@ -798,7 +798,7 @@ derive :: Tree t => Refs -> [t] -> Except String Pattern
 module MemDerive
 
 -- | derive is the classic derivative implementation for trees.
-derive :: Tree t => Refs -> [t] -> Except String Pattern
+derive :: Tree t => Refs -> [t] -> Either String Pattern
 
 -- | Mem is the object used to store memoized results of the nullable,
 --   calls and returns functions.
@@ -837,12 +837,12 @@ module Relapse
 
 -- | parseGrammar parses the relapse grammar and returns either a parsed
 --   grammar (Refs, for the list of references) or an error string.
-parseGrammar :: String -> Except String Refs
+parseGrammar :: String -> Either String Refs
 
 -- | parseGrammarWithUDFs parses the relapse grammar with extra user
 --   defined functions and returns either a parsed grammar (Refs, for the
 --   list of references) or an error string.
-parseGrammarWithUDFs :: MkFunc -> String -> Except String Refs
+parseGrammarWithUDFs :: MkFunc -> String -> Either String Refs
 
 -- | validate returns whether a tree is valid, given the grammar (Refs).
 validate :: Tree t => Refs -> [t] -> Bool

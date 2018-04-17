@@ -18,9 +18,9 @@ module Relapse (
 ) where
 
 import Prelude hiding (filter)
-import Control.Monad.Except (Except, throwError, return)
 import Control.Monad.State (runState)
 import Control.Monad (filterM)
+import Control.Arrow (left)
 
 import qualified Parser
 import Patterns (Refs)
@@ -31,18 +31,14 @@ import qualified Exprs
 
 -- |
 -- parseGrammar parses the relapse grammar and returns either a parsed grammar (Refs, for the list of references) or an error string.
-parseGrammar :: String -> Except String Refs
-parseGrammar grammarString = case Parser.parseGrammar grammarString of
-    (Left l) -> throwError (show l)
-    (Right r) -> return r
+parseGrammar :: String -> Either String Refs
+parseGrammar = left show . Parser.parseGrammar
 
 -- |
 -- parseGrammarWithUDFs parses the relapse grammar with extra user defined functions
 -- and returns either a parsed grammar (Refs, for the list of references) or an error string.
-parseGrammarWithUDFs :: Exprs.MkFunc -> String -> Except String Refs
-parseGrammarWithUDFs mkFunc grammarString = case Parser.parseGrammarWithUDFs mkFunc grammarString of
-    (Left l) -> throwError (show l)
-    (Right r) -> return r
+parseGrammarWithUDFs :: Exprs.MkFunc -> String -> Either String Refs
+parseGrammarWithUDFs userLib grammarString = left show $ Parser.parseGrammarWithUDFs userLib grammarString
 
 -- |
 -- validate returns whether a tree is valid, given the grammar (Refs).

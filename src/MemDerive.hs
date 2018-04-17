@@ -13,7 +13,7 @@ module MemDerive (
 
 import qualified Data.Map.Strict as M
 import Control.Monad.State (State, runState, lift, state)
-import Control.Monad.Except (ExceptT, runExceptT, Except, throwError, runExcept)
+import Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
 
 import qualified Derive
 import qualified Patterns
@@ -57,18 +57,16 @@ returns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
 returns refs k = state $ \(Mem (n, c, r)) -> let (v', r') = mem (Derive.returns refs) k r;
     in (v', Mem (n, c, r'))
 
-mderive :: Tree t => Refs -> [Pattern] -> [t] -> ExceptT String (State Mem) [Pattern]
+mderive :: Tree t => Refs -> [Pattern] -> [t] -> EitherT String (State Mem) [Pattern]
 mderive _ ps [] = return ps
 mderive refs ps (tree:ts) = do {
     ifs <- lift $ calls refs ps;
-    childps <- case runExcept $ evalIfExprs ifs (getLabel tree) of
-        (Left l) -> throwError l
-        (Right r) -> return r
-    ;
+    childps <- hoistEither $ evalIfExprs ifs (getLabel tree);
     (zchildps, zipper) <- return $ zippy childps;
     childres <- mderive refs zchildps (getChildren tree);
     nulls <- lift $ mapM (nullable refs) childres;
-    let unzipns = unzipby zipper nulls
+    let 
+        unzipns = unzipby zipper nulls
     ;
     rs <- lift $ returns refs (ps, unzipns);
     mderive refs rs ts
@@ -76,21 +74,21 @@ mderive refs ps (tree:ts) = do {
 
 -- |
 -- derive is the classic derivative implementation for trees.
-derive :: Tree t => Refs -> [t] -> Except String Pattern
+derive :: Tree t => Refs -> [t] -> Either String Pattern
 derive refs ts =
     let start = [Patterns.lookupRef refs "main"]
-        (res, _) = runState (runExceptT $ mderive refs start ts) newMem
+        (res, _) = runState (runEitherT $ mderive refs start ts) newMem
     in case res of
-        (Left l) -> throwError $ show l
+        (Left l) -> Left $ show l
         (Right [r]) -> return r
-        (Right rs) -> throwError $ "not a single pattern: " ++ show rs
+        (Right rs) -> Left $ "not a single pattern: " ++ show rs
 
 -- |
 -- validate is the uses the derivative implementation for trees and
 -- return whether tree is valid, given the input grammar and start pattern.
 validate :: Tree t => Refs -> Pattern -> [t] -> (State Mem) Bool
 validate refs start tree = do {
-        rs <- runExceptT (mderive refs [start] tree);
+        rs <- runEitherT (mderive refs [start] tree);
         case rs of
         (Right [r]) -> nullable refs r
         _ -> return False

@@ -8,7 +8,6 @@ module Simplify (
 ) where
 
 import qualified Data.Set as S
-import Control.Monad.Except (Except, runExcept, throwError)
 
 import Patterns
 import Expr

@@ -12,7 +12,7 @@ module VpaDerive (
 import qualified Data.Map.Strict as M
 import Control.Monad.State (State, runState, state, lift)
 import Data.Foldable (foldlM)
-import Control.Monad.Except (Except, ExceptT, throwError, runExcept, runExceptT)
+import Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
 
 import qualified Derive
 import Patterns (Refs, Pattern)
@@ -48,14 +48,12 @@ calls :: [Pattern] -> State Vpa ZippedIfExprs
 calls key = state $ \(Vpa (n, c, r, refs)) -> let (v', c') = mem (zipIfExprs . Derive.calls refs) key c;
     in (v', Vpa (n, c', r, refs))
 
-vpacall :: VpaState -> Label -> ExceptT String (State Vpa) (StackElm, VpaState)
+vpacall :: VpaState -> Label -> EitherT String (State Vpa) (StackElm, VpaState)
 vpacall vpastate label = do {
     zifexprs <- lift $ calls vpastate;
-    (nextstate, zipper) <- case runExcept $ evalZippedIfExprs zifexprs label of
-        (Left l) -> throwError l
-        (Right r) -> return r
-    ;
-    let stackelm = (vpastate, zipper)
+    (nextstate, zipper) <- hoistEither $ evalZippedIfExprs zifexprs label;
+    let 
+        stackelm = (vpastate, zipper)
     ; 
     return (stackelm, nextstate)
 }
@@ -72,28 +70,28 @@ vpareturn (vpastate, zipper) current = do {
     returns (vpastate, zipper, zipnulls)
 }
 
-deriv :: Tree t => VpaState -> t -> ExceptT String (State Vpa) VpaState
+deriv :: Tree t => VpaState -> t -> EitherT String (State Vpa) VpaState
 deriv current tree = do {
     (stackelm, nextstate) <- vpacall current (getLabel tree);
     resstate <- foldlM deriv nextstate (getChildren tree);
     lift $ vpareturn stackelm resstate
 }
 
-foldLT :: Tree t => Vpa -> VpaState -> [t] -> Except String [Pattern]
+foldLT :: Tree t => Vpa -> VpaState -> [t] -> Either String [Pattern]
 foldLT _ current [] = return current
 foldLT m current (t:ts) = 
-    let (newstate, newm) = runState (runExceptT $ deriv current t) m
+    let (newstate, newm) = runState (runEitherT $ deriv current t) m
     in case newstate of
-        (Left l) -> throwError l
+        (Left l) -> Left l
         (Right r) -> foldLT newm r ts
 
 -- |
 -- derive is the derivative implementation for trees.
 -- This implementation makes use of visual pushdown automata.
-derive :: Tree t => Refs -> [t] -> Except String Pattern
+derive :: Tree t => Refs -> [t] -> Either String Pattern
 derive refs ts = 
     let start = [Patterns.lookupRef refs "main"]
-    in case runExcept $ foldLT (newVpa refs) start ts of
-        (Left l) -> throwError $ show l
+    in case foldLT (newVpa refs) start ts of
+        (Left l) -> Left $ show l
         (Right [r]) -> return r
-        (Right rs) -> throwError $ "Number of patterns is not one, but " ++ show rs
+        (Right rs) -> Left $ "Number of patterns is not one, but " ++ show rs

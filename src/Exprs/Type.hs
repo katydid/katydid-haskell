@@ -6,13 +6,11 @@ module Exprs.Type (
     , typeExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept)
-
 import Expr
 
 -- |
 -- mkTypeExpr is used by the parser to create a type expression for the specific input type.
-mkTypeExpr :: [AnyExpr] -> Except String AnyExpr
+mkTypeExpr :: [AnyExpr] -> Either String AnyExpr
 mkTypeExpr es = do {
     e <- assertArgs1 "type" es; 
     case e of
@@ -30,7 +28,7 @@ mkTypeExpr es = do {
 typeExpr :: Expr a -> Expr Bool
 typeExpr e = Expr {
     desc = mkDesc "type" [desc e]
-    , eval = \v -> case runExcept $ eval e v of
+    , eval = \v -> case eval e v of
         (Left _) -> return False
         (Right _) -> return True
 }

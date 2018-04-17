@@ -12,7 +12,6 @@ module Derive (
 ) where
 
 import Data.Foldable (foldlM)
-import Control.Monad.Except (Except, mapExcept, throwError)
 
 import Patterns
 import Expr
@@ -99,17 +98,17 @@ deriveReturn refs (Not p) ns =
 deriveReturn refs (Contains p) ns = deriveReturn refs (Concat ZAny (Concat p ZAny)) ns
 deriveReturn refs (Optional p) ns = deriveReturn refs (Or p Empty) ns
 
-onePattern :: Either String [Pattern] -> Either String Pattern
-onePattern (Right [r]) = return r
-onePattern (Left e) = throwError $ show e
-onePattern (Right rs) = throwError $ "Number of patterns is not one, but " ++ show rs
-
 -- |
 -- derive is the classic derivative implementation for trees.
-derive :: Tree t => Refs -> [t] -> Except String Pattern
-derive g ts = mapExcept onePattern $ foldlM (deriv g) [lookupRef g "main"] ts
+derive :: Tree t => Refs -> [t] -> Either String Pattern
+derive g ts = do {
+    ps <- foldlM (deriv g) [lookupRef g "main"] ts;
+    if length ps == 1 
+        then return $ head ps
+        else Left $ "Number of patterns is not one, but " ++ show ps
+}
 
-deriv :: Tree t => Refs -> [Pattern] -> t -> Except String [Pattern]
+deriv :: Tree t => Refs -> [Pattern] -> t -> Either String [Pattern]
 deriv refs ps tree =
     if all unescapable ps then return ps else
     let ifs = calls refs ps
@@ -124,10 +123,15 @@ deriv refs ps tree =
 -- |
 -- zipderive is a slighty optimized version of derivs.
 -- It zips its intermediate pattern lists to reduce the state space.
-zipderive :: Tree t => Refs -> [t] -> Except String Pattern
-zipderive g ts = mapExcept onePattern $ foldlM (zipderiv g) [lookupRef g "main"] ts
+zipderive :: Tree t => Refs -> [t] -> Either String Pattern
+zipderive g ts = do {
+    ps <- foldlM (zipderiv g) [lookupRef g "main"] ts;
+    if length ps == 1 
+        then return $ head ps
+        else Left $ "Number of patterns is not one, but " ++ show ps
+}
 
-zipderiv :: Tree t => Refs -> [Pattern] -> t -> Except String [Pattern]
+zipderiv :: Tree t => Refs -> [Pattern] -> t -> Either String [Pattern]
 zipderiv refs ps tree =
     if all unescapable ps then return ps else
     let ifs = calls refs ps
