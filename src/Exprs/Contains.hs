@@ -6,7 +6,6 @@ module Exprs.Contains (
     , containsExpr
 ) where
 
-import Control.Monad.Except (Except)
 import qualified Data.Text as Text
 
 import Expr
@@ -16,7 +15,7 @@ import Expr
 -- 
 --     * String and String where the second string is the possible substring.
 --     * A List of :Strings, Ints or Uints paired with a String, Int or Uint respectively.
-mkContainsExpr :: [AnyExpr] -> Except String AnyExpr
+mkContainsExpr :: [AnyExpr] -> Either String AnyExpr
 mkContainsExpr es = do {
     (e1, e2) <- assertArgs2 "contains" es;
     case e2 of

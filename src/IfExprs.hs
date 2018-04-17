@@ -9,8 +9,6 @@ module IfExprs (
     ZippedIfExprs, zipIfExprs, evalZippedIfExprs
 ) where
 
-import Control.Monad.Except (Except)
-
 import Patterns
 import Expr
 import Exprs.Logic
@@ -43,7 +41,7 @@ compileIfExprs refs (e:es) = let (IfExpr ifExpr) = simplifyIf refs e
     in addIfExpr ifExpr (compileIfExprs refs es)
 
 -- | valIfExprs evaluates a tree of if expressions and returns the resulting patterns or an error.
-evalIfExprs :: IfExprs -> Label -> Except String [Pattern]
+evalIfExprs :: IfExprs -> Label -> Either String [Pattern]
 evalIfExprs (Ret ps) _ = return ps
 evalIfExprs (Cond c t e) l = do {
     b <- eval c l;
@@ -86,7 +84,7 @@ zipIfExprs (Cond c t e) = ZippedCond c (zipIfExprs t) (zipIfExprs e)
 zipIfExprs (Ret ps) = let (zps, zs) = zippy ps in ZippedRet zps zs
 
 -- | evalZippedIfExprs evaulates a ZippedIfExprs tree and returns the zipped pattern list and zipper from the resulting leaf.
-evalZippedIfExprs :: ZippedIfExprs -> Label -> Except String ([Pattern], Zipper)
+evalZippedIfExprs :: ZippedIfExprs -> Label -> Either String ([Pattern], Zipper)
 evalZippedIfExprs (ZippedRet ps zs) _ = return (ps, zs)
 evalZippedIfExprs (ZippedCond c t e) v = do {
     b <- eval c v;

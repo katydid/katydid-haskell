@@ -9,7 +9,6 @@ module Exprs.Strings (
     , mkToUpperExpr, toUpperExpr
 ) where
 
-import Control.Monad.Except (Except)
 import Text.Regex.TDFA ((=~))
 import Data.Text (Text, isPrefixOf, isSuffixOf, toLower, toUpper, unpack)
 
@@ -17,7 +16,7 @@ import Expr
 
 -- |
 -- mkHasPrefixExpr dynamically creates a hasPrefix expression.
-mkHasPrefixExpr :: [AnyExpr] -> Except String AnyExpr
+mkHasPrefixExpr :: [AnyExpr] -> Either String AnyExpr
 mkHasPrefixExpr es = do {
     (e1, e2) <- assertArgs2 "hasPrefix" es;
     s1 <- assertString e1;
@@ -35,7 +34,7 @@ hasPrefixExpr e1 e2 = trimBool Expr {
 
 -- |
 -- mkHasSuffixExpr dynamically creates a hasSuffix expression.
-mkHasSuffixExpr :: [AnyExpr] -> Except String AnyExpr
+mkHasSuffixExpr :: [AnyExpr] -> Either String AnyExpr
 mkHasSuffixExpr es = do {
     (e1, e2) <- assertArgs2 "hasSuffix" es;
     s1 <- assertString e1;
@@ -53,7 +52,7 @@ hasSuffixExpr e1 e2 = trimBool Expr {
 
 -- |
 -- mkRegexExpr dynamically creates a regex expression.
-mkRegexExpr :: [AnyExpr] -> Except String AnyExpr
+mkRegexExpr :: [AnyExpr] -> Either String AnyExpr
 mkRegexExpr es = do {
     (e1, e2) <- assertArgs2 "regex" es;
     e <- assertString e1;
@@ -75,7 +74,7 @@ regexExpr e s = trimBool Expr {
 
 -- |
 -- mkToLowerExpr dynamically creates a toLower expression.
-mkToLowerExpr :: [AnyExpr] -> Except String AnyExpr
+mkToLowerExpr :: [AnyExpr] -> Either String AnyExpr
 mkToLowerExpr es = do {
     e <- assertArgs1 "toLower" es;
     s <- assertString e;
@@ -92,7 +91,7 @@ toLowerExpr e = trimString Expr {
 
 -- |
 -- mkToUpperExpr dynamically creates a toUpper expression.
-mkToUpperExpr :: [AnyExpr] -> Except String AnyExpr
+mkToUpperExpr :: [AnyExpr] -> Either String AnyExpr
 mkToUpperExpr es = do {
     e <- assertArgs1 "toUpper" es;
     s <- assertString e;

@@ -5,13 +5,11 @@ module Exprs.Elem (
     , elemExpr
 ) where
 
-import Control.Monad.Except (Except)
-
 import Expr
 
 -- |
 -- mkElemExpr dynamically creates an elem expression, if the first argument is a list and the second an int index.
-mkElemExpr :: [AnyExpr] -> Except String AnyExpr
+mkElemExpr :: [AnyExpr] -> Either String AnyExpr
 mkElemExpr es = do {
     (e1, e2) <- assertArgs2 "elem" es;
     case e1 of

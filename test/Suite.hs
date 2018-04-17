@@ -79,11 +79,11 @@ must e = case runExcept e of
 
 testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
 testDeriv AlgoDeriv name g ts want = 
-    let p = must $ Derive.derive g ts 
+    let p = either error id $ Derive.derive g ts
         got = nullable g p
     in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got
 testDeriv AlgoZip name g ts want = 
-    let p = must $ Derive.zipderive g ts 
+    let p = either error id $ Derive.zipderive g ts 
         got = nullable g p
     in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
 testDeriv AlgoMap name g ts want  = 

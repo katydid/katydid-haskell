@@ -51,7 +51,7 @@ calls key = state $ \(Vpa (n, c, r, refs)) -> let (v', c') = mem (zipIfExprs . D
 vpacall :: VpaState -> Label -> ExceptT String (State Vpa) (StackElm, VpaState)
 vpacall vpastate label = do {
     zifexprs <- lift $ calls vpastate;
-    (nextstate, zipper) <- case runExcept $ evalZippedIfExprs zifexprs label of
+    (nextstate, zipper) <- case evalZippedIfExprs zifexprs label of
         (Left l) -> throwError l
         (Right r) -> return r
     ;

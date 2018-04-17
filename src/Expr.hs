@@ -18,7 +18,6 @@ module Expr (
 ) where
 
 import Data.Char (ord)
-import Control.Monad.Except (Except, runExcept, throwError)
 import Data.List (intercalate)
 import Data.Text (Text, unpack, pack)
 import Data.ByteString (ByteString)
@@ -29,17 +28,17 @@ import qualified Parsers
 -- assertArgs1 asserts that the list of arguments is only one argument and 
 -- returns the argument or an error message 
 -- containing the function name that was passed in as an argument to assertArgs1.
-assertArgs1 :: String -> [AnyExpr] -> Except String AnyExpr
-assertArgs1 name [e1] = return e1
-assertArgs1 name es = throwError $ name ++ ": expected one argument, but got " ++ show (length es) ++ ": " ++ show es
+assertArgs1 :: String -> [AnyExpr] -> Either String AnyExpr
+assertArgs1 name [e1] = Right e1
+assertArgs1 name es = Left $ name ++ ": expected one argument, but got " ++ show (length es) ++ ": " ++ show es
 
 -- |
 -- assertArgs2 asserts that the list of arguments is only two arguments and 
 -- returns the two arguments or an error message 
 -- containing the function name that was passed in as an argument to assertArgs2.
-assertArgs2 :: String -> [AnyExpr] -> Except String (AnyExpr, AnyExpr)
-assertArgs2 name [e1, e2] = return (e1, e2)
-assertArgs2 name es = throwError $ name ++ ": expected two arguments, but got " ++ show (length es) ++ ": " ++ show es
+assertArgs2 :: String -> [AnyExpr] -> Either String (AnyExpr, AnyExpr)
+assertArgs2 name [e1, e2] = Right (e1, e2)
+assertArgs2 name es = Left $ name ++ ": expected two arguments, but got " ++ show (length es) ++ ": " ++ show es
 
 -- |
 -- Desc is the description of a function, 
@@ -83,7 +82,7 @@ data AnyExpr = AnyExpr {
 -- |
 -- Func represents the evaluation function part of a user defined expression.
 -- This function takes a label from a tree parser and returns a value or an error string.
-type Func a = (Parsers.Label -> Except String a)
+type Func a = (Parsers.Label -> Either String a)
 
 instance Show AnyExpr where
     show a = show (_desc a)
@@ -148,9 +147,9 @@ mkBoolExpr (Expr desc eval) = AnyExpr desc (BoolFunc eval)
 
 -- |
 -- assertBool asserts that any expression is actually a bool expression.
-assertBool :: AnyExpr -> Except String (Expr Bool)
-assertBool (AnyExpr desc (BoolFunc eval)) = return $ Expr desc eval
-assertBool (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bool"
+assertBool :: AnyExpr -> Either String (Expr Bool)
+assertBool (AnyExpr desc (BoolFunc eval)) = Right $ Expr desc eval
+assertBool (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type bool"
 
 -- |
 -- mkIntExpr generalises an int expression to any expression.
@@ -159,9 +158,9 @@ mkIntExpr (Expr desc eval) = AnyExpr desc (IntFunc eval)
 
 -- |
 -- assertInt asserts that any expression is actually an int expression.
-assertInt :: AnyExpr -> Except String (Expr Int)
-assertInt (AnyExpr desc (IntFunc eval)) = return $ Expr desc eval
-assertInt (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type int"
+assertInt :: AnyExpr -> Either String (Expr Int)
+assertInt (AnyExpr desc (IntFunc eval)) = Right $ Expr desc eval
+assertInt (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type int"
 
 -- |
 -- mkDoubleExpr generalises a double expression to any expression.
@@ -170,9 +169,9 @@ mkDoubleExpr (Expr desc eval) = AnyExpr desc (DoubleFunc eval)
 
 -- |
 -- assertDouble asserts that any expression is actually a double expression.
-assertDouble :: AnyExpr -> Except String (Expr Double)
-assertDouble (AnyExpr desc (DoubleFunc eval)) = return $ Expr desc eval
-assertDouble (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type double"
+assertDouble :: AnyExpr -> Either String (Expr Double)
+assertDouble (AnyExpr desc (DoubleFunc eval)) = Right $ Expr desc eval
+assertDouble (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type double"
 
 -- |
 -- mkStringExpr generalises a string expression to any expression.
@@ -181,9 +180,9 @@ mkStringExpr (Expr desc eval) = AnyExpr desc (StringFunc eval)
 
 -- |
 -- assertString asserts that any expression is actually a string expression.
-assertString :: AnyExpr -> Except String (Expr Text)
-assertString (AnyExpr desc (StringFunc eval)) = return $ Expr desc eval
-assertString (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type string"
+assertString :: AnyExpr -> Either String (Expr Text)
+assertString (AnyExpr desc (StringFunc eval)) = Right $ Expr desc eval
+assertString (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type string"
 
 -- |
 -- mkUintExpr generalises a uint expression to any expression.
@@ -192,9 +191,9 @@ mkUintExpr (Expr desc eval) = AnyExpr desc (UintFunc eval)
 
 -- |
 -- assertUint asserts that any expression is actually a uint expression.
-assertUint :: AnyExpr -> Except String (Expr Word)
-assertUint (AnyExpr desc (UintFunc eval)) = return $ Expr desc eval
-assertUint (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type uint"
+assertUint :: AnyExpr -> Either String (Expr Word)
+assertUint (AnyExpr desc (UintFunc eval)) = Right $ Expr desc eval
+assertUint (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type uint"
 
 -- |
 -- mkBytesExpr generalises a bytes expression to any expression.
@@ -203,9 +202,9 @@ mkBytesExpr (Expr desc eval) = AnyExpr desc (BytesFunc eval)
 
 -- |
 -- assertBytes asserts that any expression is actually a bytes expression.
-assertBytes :: AnyExpr -> Except String (Expr ByteString)
-assertBytes (AnyExpr desc (BytesFunc eval)) = return $ Expr desc eval
-assertBytes (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bytes"
+assertBytes :: AnyExpr -> Either String (Expr ByteString)
+assertBytes (AnyExpr desc (BytesFunc eval)) = Right $ Expr desc eval
+assertBytes (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type bytes"
 
 -- |
 -- mkBoolsExpr generalises a list of bools expression to any expression.
@@ -214,9 +213,9 @@ mkBoolsExpr (Expr desc eval) = AnyExpr desc (BoolsFunc eval)
 
 -- |
 -- assertBools asserts that any expression is actually a list of bools expression.
-assertBools :: AnyExpr -> Except String (Expr [Bool])
-assertBools (AnyExpr desc (BoolsFunc eval)) = return $ Expr desc eval
-assertBools (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bools"
+assertBools :: AnyExpr -> Either String (Expr [Bool])
+assertBools (AnyExpr desc (BoolsFunc eval)) = Right $ Expr desc eval
+assertBools (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type bools"
 
 -- |
 -- mkIntsExpr generalises a list of ints expression to any expression.
@@ -225,9 +224,9 @@ mkIntsExpr (Expr desc eval) = AnyExpr desc (IntsFunc eval)
 
 -- |
 -- assertInts asserts that any expression is actually a list of ints expression.
-assertInts :: AnyExpr -> Except String (Expr [Int])
-assertInts (AnyExpr desc (IntsFunc eval)) = return $ Expr desc eval
-assertInts (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type ints"
+assertInts :: AnyExpr -> Either String (Expr [Int])
+assertInts (AnyExpr desc (IntsFunc eval)) = Right $ Expr desc eval
+assertInts (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type ints"
 
 -- |
 -- mkUintsExpr generalises a list of uints expression to any expression.
@@ -236,9 +235,9 @@ mkUintsExpr (Expr desc eval) = AnyExpr desc (UintsFunc eval)
 
 -- |
 -- assertUints asserts that any expression is actually a list of uints expression.
-assertUints :: AnyExpr -> Except String (Expr [Word])
-assertUints (AnyExpr desc (UintsFunc eval)) = return $ Expr desc eval
-assertUints (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type uints"
+assertUints :: AnyExpr -> Either String (Expr [Word])
+assertUints (AnyExpr desc (UintsFunc eval)) = Right $ Expr desc eval
+assertUints (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type uints"
 
 -- |
 -- mkDoublesExpr generalises a list of doubles expression to any expression.
@@ -247,9 +246,9 @@ mkDoublesExpr (Expr desc eval) = AnyExpr desc (DoublesFunc eval)
 
 -- |
 -- assertDoubles asserts that any expression is actually a list of doubles expression.
-assertDoubles :: AnyExpr -> Except String (Expr [Double])
-assertDoubles (AnyExpr desc (DoublesFunc eval)) = return $ Expr desc eval
-assertDoubles (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type doubles"
+assertDoubles :: AnyExpr -> Either String (Expr [Double])
+assertDoubles (AnyExpr desc (DoublesFunc eval)) = Right $ Expr desc eval
+assertDoubles (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type doubles"
 
 -- |
 -- mkStringsExpr generalises a list of strings expression to any expression.
@@ -258,9 +257,9 @@ mkStringsExpr (Expr desc eval) = AnyExpr desc (StringsFunc eval)
 
 -- |
 -- assertStrings asserts that any expression is actually a list of strings expression.
-assertStrings :: AnyExpr -> Except String (Expr [Text])
-assertStrings (AnyExpr desc (StringsFunc eval)) = return $ Expr desc eval
-assertStrings (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type strings"
+assertStrings :: AnyExpr -> Either String (Expr [Text])
+assertStrings (AnyExpr desc (StringsFunc eval)) = Right $ Expr desc eval
+assertStrings (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type strings"
 
 -- |
 -- mkListOfBytesExpr generalises a list of bytes expression to any expression.
@@ -269,9 +268,9 @@ mkListOfBytesExpr (Expr desc eval) = AnyExpr desc (ListOfBytesFunc eval)
 
 -- |
 -- assertListOfBytes asserts that any expression is actually a list of bytes expression.
-assertListOfBytes :: AnyExpr -> Except String (Expr [ByteString])
-assertListOfBytes (AnyExpr desc (ListOfBytesFunc eval)) = return $ Expr desc eval
-assertListOfBytes (AnyExpr desc _) = throwError $ "expected <" ++ show desc ++ "> to be of type bytes"
+assertListOfBytes :: AnyExpr -> Either String (Expr [ByteString])
+assertListOfBytes (AnyExpr desc (ListOfBytesFunc eval)) = Right $ Expr desc eval
+assertListOfBytes (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type bytes"
 
 (<>) :: Ordering -> Ordering -> Ordering
 (<>) EQ c = c
@@ -311,7 +310,7 @@ noLabel = Parsers.String (pack "not a label, trying constant evaluation")
 evalConst :: Expr a -> Maybe a
 evalConst e = if hasVar e
     then Nothing
-    else case runExcept $ eval e noLabel of
+    else case eval e noLabel of
         (Left _) -> Nothing
         (Right v) -> Just v
 
@@ -417,7 +416,7 @@ bytesExpr b = Expr {
 trimBool :: Expr Bool -> Expr Bool
 trimBool e = if hasVar e 
     then e
-    else case runExcept $ eval e noLabel of
+    else case eval e noLabel of
         (Left _) -> e
         (Right v) -> boolExpr v
 
@@ -427,7 +426,7 @@ trimBool e = if hasVar e
 trimInt :: Expr Int -> Expr Int
 trimInt e = if hasVar e 
     then e
-    else case runExcept $ eval e noLabel of
+    else case eval e noLabel of
         (Left _) -> e
         (Right v) -> intExpr v
 
@@ -437,7 +436,7 @@ trimInt e = if hasVar e
 trimUint :: Expr Word -> Expr Word
 trimUint e = if hasVar e 
     then e
-    else case runExcept $ eval e noLabel of
+    else case eval e noLabel of
         (Left _) -> e
         (Right v) -> uintExpr v
 
@@ -447,7 +446,7 @@ trimUint e = if hasVar e
 trimString :: Expr Text -> Expr Text
 trimString e = if hasVar e 
     then e
-    else case runExcept $ eval e noLabel of
+    else case eval e noLabel of
         (Left _) -> e
         (Right v) -> stringExpr v
 
@@ -457,7 +456,7 @@ trimString e = if hasVar e
 trimDouble :: Expr Double -> Expr Double
 trimDouble e = if hasVar e 
     then e
-    else case runExcept $ eval e noLabel of
+    else case eval e noLabel of
         (Left _) -> e
         (Right v) -> doubleExpr v
 
@@ -467,7 +466,7 @@ trimDouble e = if hasVar e
 trimBytes :: Expr ByteString -> Expr ByteString
 trimBytes e = if hasVar e 
     then e
-    else case runExcept $ eval e noLabel of
+    else case eval e noLabel of
         (Left _) -> e
         (Right v) -> bytesExpr v
 

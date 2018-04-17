@@ -13,7 +13,6 @@ module Parser (
 import Text.ParserCombinators.Parsec
 import Numeric (readDec, readOct, readHex, readFloat)
 import Data.Char (chr)
-import Control.Monad.Except (Except, runExcept, throwError)
 import qualified Data.Text as Text
 import qualified Data.ByteString.Char8 as ByteString
 
@@ -30,7 +29,7 @@ parseGrammar = parseGrammarWithUDFs stdOnly
 -- | parseGrammarWithUDFs parses the Relapse Grammar with extra user defined functions.
 parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Refs
 parseGrammarWithUDFs extraUDFs = 
-    let mkFunc n es = case runExcept $ mkExpr n es of
+    let mkFunc n es = case mkExpr n es of
             (Left _) -> extraUDFs n es
             (Right v) -> return v
     in parse (grammar mkFunc <* eof) ""
@@ -43,8 +42,8 @@ infixr 5 <::>
 (<::>) :: CharParser () Char -> CharParser () String -> CharParser () String
 f <::> g = (:) <$> f <*> g
 
-check :: Except String a -> CharParser () a
-check e = case runExcept e of
+check :: Either String a -> CharParser () a
+check e = case e of
     (Left err) -> fail err
     (Right v) -> return v
 

@@ -7,7 +7,6 @@ module Exprs.Length (
     , lengthBytesExpr
 ) where
 
-import Control.Monad.Except (Except)
 import qualified Data.Text as Text
 import qualified Data.ByteString as ByteString
 
@@ -15,7 +14,7 @@ import Expr
 
 -- |
 -- mkLengthExpr dynamically creates a length expression, if the single argument is a list, string or bytes.
-mkLengthExpr :: [AnyExpr] -> Except String AnyExpr
+mkLengthExpr :: [AnyExpr] -> Either String AnyExpr
 mkLengthExpr es = do {
     e <- assertArgs1 "length" es;
     case e of

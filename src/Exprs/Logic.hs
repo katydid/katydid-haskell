@@ -6,14 +6,12 @@ module Exprs.Logic (
     , mkOrExpr, orExpr
 ) where
 
-import Control.Monad.Except (Except, runExcept)
-
 import Expr
 import Exprs.Var
 
 -- |
 -- mkNotExpr dynamically creates a not expression, if the single argument is a bool expression.
-mkNotExpr :: [AnyExpr] -> Except String AnyExpr
+mkNotExpr :: [AnyExpr] -> Either String AnyExpr
 mkNotExpr es = do {
     e <- assertArgs1 "not" es;
     b <- assertBool e;
@@ -25,7 +23,7 @@ mkNotExpr es = do {
 notExpr :: Expr Bool -> Expr Bool
 notExpr e = trimBool Expr {
     desc = notDesc (desc e)
-    , eval = \v -> case runExcept $ eval e v of
+    , eval = \v -> case eval e v of
         (Left _) -> return True
         (Right b) -> return $ not b
 }
@@ -49,7 +47,7 @@ notDesc d
 
 -- |
 -- mkAndExpr dynamically creates an and expression, if the two arguments are both bool expressions.
-mkAndExpr :: [AnyExpr] -> Except String AnyExpr
+mkAndExpr :: [AnyExpr] -> Either String AnyExpr
 mkAndExpr es = do {
     (e1, e2) <- assertArgs2 "and" es;
     b1 <- assertBool e1;
@@ -100,7 +98,7 @@ varAndConst e = let ps = params e
 
 -- |
 -- mkOrExpr dynamically creates an or expression, if the two arguments are both bool expressions.
-mkOrExpr :: [AnyExpr] -> Except String AnyExpr
+mkOrExpr :: [AnyExpr] -> Either String AnyExpr
 mkOrExpr es = do {
     (e1, e2) <- assertArgs2 "or" es;
     b1 <- assertBool e1;

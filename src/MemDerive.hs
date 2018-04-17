@@ -61,7 +61,7 @@ mderive :: Tree t => Refs -> [Pattern] -> [t] -> ExceptT String (State Mem) [Pat
 mderive _ ps [] = return ps
 mderive refs ps (tree:ts) = do {
     ifs <- lift $ calls refs ps;
-    childps <- case runExcept $ evalIfExprs ifs (getLabel tree) of
+    childps <- case evalIfExprs ifs (getLabel tree) of
         (Left l) -> throwError l
         (Right r) -> return r
     ;
