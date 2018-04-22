@@ -5,7 +5,7 @@
 --
 -- Finally it also contains some very simple pattern functions.
 module Patterns (
-    Pattern(..), PatternType(..)
+    Pattern(..)
     , emptyPat, zanyPat, nodePat
     , orPat, andPat, notPat 
     , concatPat, interleavePat
@@ -21,186 +21,193 @@ import qualified Data.Set as S
 import Data.List (sort, sortBy)
 import Data.Maybe (mapMaybe, fromJust)
 import Control.Monad.State (State, runState, lift, state)
-import Control.Monad.Except (Except, throwError, runExcept, mapExcept)
+import Control.Monad.Extra (anyM, (||^), (&&^))
 
-import Expr
+import qualified Expr
 import Exprs.Logic (orExpr, andExpr)
-
-data PatternType = Empty
-    | Node
-    | Concat
-    | Or
-    | And
-    | ZeroOrMore
-    | Reference
-    | Not
-    | ZAny
-    | Contains
-    | Optional
-    | Interleave
-    deriving (Show, Ord, Eq)
 
 -- |
 -- Pattern recursively describes a Relapse Pattern.
-data Pattern = Pattern {
-    typ :: PatternType
-    , func :: Maybe (Expr Bool)
-    , patterns :: [Pattern]
-    , ref :: Maybe String
-    , hash :: Int
-    , nullable :: Bool 
-}
-
-instance Show Pattern where
-    show p = show (typ p) ++ "{" ++ show (patterns p) ++ "}"
-
-instance Ord Pattern where
-    compare = cmp
-
-instance Eq Pattern where
-    (==) a b = cmp a b == EQ
-
-(<>) :: Ordering -> Ordering -> Ordering
-(<>) EQ c = c
-(<>) c _ = c
+data Pattern = Empty
+    | Node {
+        func :: Expr.Expr Bool
+        , pat :: Pattern
+        , _hash :: Int
+    }
+    | Concat {
+        left :: Pattern
+        , right :: Pattern
+        , _nullable :: Bool
+        , _hash :: Int
+    }
+    | Or {
+        pats :: [Pattern]
+        , _nullable :: Bool
+        , _hash :: Int
+    }
+    | And {
+        pats :: [Pattern]
+        , _nullable :: Bool
+        , _hash :: Int
+    }
+    | ZeroOrMore {
+        pat :: Pattern
+        , _hash :: Int
+    }
+    | Reference {
+        name :: String
+        , _nullable :: Bool
+        , _hash :: Int
+    }
+    | Not {
+        pat :: Pattern
+        , _nullable :: Bool
+        , _hash :: Int
+    }
+    | ZAny
+    | Contains {
+        pat :: Pattern
+        , _nullable :: Bool
+        , _hash :: Int
+    }
+    | Optional {
+        pat :: Pattern
+        , _hash :: Int
+    }
+    | Interleave {
+        pats :: [Pattern]
+        , _nullable :: Bool
+        , _hash :: Int
+    }
+    deriving (Eq, Ord, Show)
 
 -- cmp is an efficient comparison function for patterns.
 -- It is very important that cmp is efficient, 
 -- because it is a bottleneck for simplification and smart construction of large queries.
 cmp :: Pattern -> Pattern -> Ordering
-cmp a b = compare (hash a) (hash b) <>
-    compare (typ a) (typ b) <>
-    compare (func a) (func b) <>
-    foldl (<>) EQ (zipWith cmp (patterns a) (patterns b)) <>
-    compare (ref a) (ref b)
+cmp a b = if hashcmp == EQ then compare a b else hashcmp
+    where hashcmp = compare (hash a) (hash b)
+
+-- eq is an efficient comparison function for patterns.
+-- It is very important that eq is efficient, 
+-- because it is a bottleneck for simplification and smart construction of large queries.
+eq :: Pattern -> Pattern -> Bool
+eq a b = cmp a b == EQ
+
+hash :: Pattern -> Int
+hash Empty = 3
+hash Node{_hash=h} = h
+hash Concat{_hash=h} = h
+hash Or{_hash=h} = h
+hash And{_hash=h} = h
+hash ZeroOrMore{_hash=h} = h
+hash Reference{_hash=h} = h
+hash Not{_hash=h} = h
+hash ZAny = 5
+hash Contains{_hash=h} = h
+hash Optional{_hash=h} = h
+hash Interleave{_hash=h} = h
+
+nullable :: Pattern -> Bool
+nullable Empty = True
+nullable Node{} = False
+nullable Concat{_nullable=n} = n
+nullable Or{_nullable=n} = n
+nullable And{_nullable=n} = n
+nullable ZeroOrMore{} = True
+nullable Reference{_nullable=n} = n
+nullable Not{_nullable=n} = n
+nullable ZAny = True
+nullable Contains{_nullable=n} = n
+nullable Optional{} = True
+nullable Interleave{_nullable=n} = n
 
 emptyPat :: Pattern
-emptyPat = Pattern {
-    typ = Empty
-    , func = Nothing
-    , patterns = []
-    , ref = Nothing
-    , hash = 3
-    , nullable = True
-}
+emptyPat = Empty
 
 zanyPat :: Pattern
-zanyPat = Pattern {
-    typ = ZAny
-    , func = Nothing
-    , patterns = []
-    , ref = Nothing
-    , hash = 5
-    , nullable = True
-}
+zanyPat = ZAny
 
 notPat :: Pattern -> Pattern
-notPat p
-    | typ p == Not = head $ patterns p
-    | otherwise = Pattern {
-        typ = Not
-        , func = Nothing
-        , patterns = [p]
-        , ref = Nothing
-        , hash = 31 * 7 + hash p
-        , nullable = not $ nullable p
-    }
+notPat Not {pat=p} = p
+notPat p = Not {
+    pat = p
+    , _nullable = not $ nullable p
+    , _hash = 31 * 7 + hash p
+}
 
 emptySet :: Pattern
 emptySet = notPat zanyPat
 
-nodePat :: Expr Bool -> Pattern -> Pattern
-nodePat e p = 
-    case evalConst e of
+nodePat :: Expr.Expr Bool -> Pattern -> Pattern
+nodePat e p =
+    case Expr.evalConst e of
     (Just False) -> emptySet
-    _ -> Pattern {
-        typ = Node
-        , func = Just e
-        , patterns = [p]
-        , ref = Nothing
-        , hash = 31 * (11 + 31 * _hash (desc e)) + hash p
-        , nullable = False
+    _ -> Node {
+        func = e
+        , pat = p
+        , _hash = 31 * (11 + 31 * Expr._hash (Expr.desc e)) + hash p
     }
 
 isLeaf :: Pattern -> Bool
-isLeaf p = typ p == Node && (typ $ head $ patterns p) == Empty
-
-isNotZAny :: Pattern -> Bool
-isNotZAny p = typ p == Not && typ (head (patterns p)) == ZAny
+isLeaf Node{pat=Empty} = True
+isLeaf _ = False
 
 concatPat :: Pattern -> Pattern -> Pattern
-concatPat a b
-    | isNotZAny a = emptySet
-    | isNotZAny b = emptySet
-    | typ a == Empty = b
-    | typ b == Empty = a
-    | typ a == Concat = concatPat (head $ patterns a) $ concatPat (patterns a !! 1) b
-    | typ a == ZAny && typ b == Concat && typ (patterns b !! 1) == ZAny = containsPat (head $ patterns b)
-    | otherwise = Pattern {
-        typ = Concat
-        , func = Nothing
-        , patterns = [a, b]
-        , ref = Nothing
-        , hash = 31 * (13 + 31 * hash a) + hash b
-        , nullable = nullable a && nullable b
-    }
+concatPat notZAny@Not{pat=ZAny} _ = notZAny
+concatPat _ notZAny@Not{pat=ZAny} = notZAny
+concatPat Empty b = b
+concatPat a Empty = a
+concatPat Concat{left=a1, right=a2} b = concatPat a1 (concatPat a2 b)
+concatPat ZAny Concat{left=b1, right=ZAny} = containsPat b1
+concatPat a b = Concat {
+    left = a
+    , right = b 
+    , _nullable = nullable a && nullable b
+    , _hash = 31 * (13 + 31 * hash a) + hash b
+}
 
 containsPat :: Pattern -> Pattern
-containsPat p
-    | typ p == Empty = zanyPat
-    | typ p == ZAny = zanyPat
-    | isNotZAny p = p
-    | otherwise = Pattern {
-        typ = Contains
-        , func = Nothing
-        , patterns = [p]
-        , ref = Nothing
-        , hash = 31 * 17 + hash p
-        , nullable = nullable p
-    }
+containsPat Empty = ZAny
+containsPat p@ZAny = p
+containsPat p@Not{pat=ZAny} = p
+containsPat p = Contains {
+    pat = p
+    , _nullable = nullable p
+    , _hash = 31 * 17 + hash p
+}
 
 optionalPat :: Pattern -> Pattern
-optionalPat p
-    | typ p == Empty = emptyPat
-    | typ p == Optional = p
-    | otherwise = Pattern {
-        typ = Optional
-        , func = Nothing
-        , patterns = [p]
-        , ref = Nothing
-        , hash = 31 * 19 + hash p
-        , nullable = True
-    }
+optionalPat p@Empty = p
+optionalPat p@Optional{} = p
+optionalPat p = Optional {
+    pat = p
+    , _hash = 31 * 19 + hash p
+}
 
 zeroOrMorePat :: Pattern -> Pattern
-zeroOrMorePat p
-    | typ p == ZeroOrMore = p
-    | otherwise = Pattern {
-        typ = ZeroOrMore
-        , func = Nothing
-        , patterns = [p]
-        , ref = Nothing
-        , hash = 31 * 23 + hash p
-        , nullable = True
-    }
+zeroOrMorePat p@ZeroOrMore{} = p
+zeroOrMorePat p = ZeroOrMore {
+    pat = p
+    , _hash = 31 * 23 + hash p
+}
 
-refPat :: Grammar -> String -> Either String Grammar
-refPat g n = Grammar (Pattern {
-        typ = Reference
-        , func = Nothing
-        , patterns = []
-        , ref = Just n
-        , hash = 31 * 29 + hashString n
-        , nullable = nullable $ lookupRef g n
-    }, emptyRef)
+refPat :: Grammar -> String -> Either String Pattern
+refPat g n = do {
+    p <- lookupRef g n;
+    return Reference {
+        name = n
+        , _hash = 31 * 29 + Expr.hashString n
+        , _nullable = nullable p
+    }
+}
 
 orPat :: Pattern -> Pattern -> Pattern
 orPat a b = orPat' $ S.fromList (getOrs a ++ getOrs b)
 
 getOrs :: Pattern -> [Pattern]
-getOrs p = if typ p == Or
-    then patterns p
-    else [p]
+getOrs Or{pats=ps} = ps
+getOrs p = [p]
 
 orPat' :: S.Set Pattern -> Pattern
 orPat' ps = ps `returnIfSingleton`
@@ -212,23 +219,19 @@ orPat' ps = ps `returnIfSingleton`
         else ps) `returnIfSingleton`
     \ps -> mergeLeaves orExpr ps `returnIfSingleton`
     \ps -> mergeNodesWithEqualNames orPat ps `returnIfSingleton`
-    \ps -> let psList = sort $ S.toList ps in
-    Pattern {
-        typ = Or
-        , func = Nothing
-        , patterns = psList
-        , ref = Nothing
-        , hash = hashList (31*33) $ map hash psList
-        , nullable = any nullable psList
-    }
+    \ps -> let psList = sort $ S.toList ps
+    in  Or {
+            pats = psList
+            , _nullable = any nullable psList
+            , _hash = Expr.hashList (31*33) $ map hash psList
+        }
 
 andPat :: Pattern -> Pattern -> Pattern
 andPat a b = andPat' $ S.fromList (getAnds a ++ getAnds b)
 
 getAnds :: Pattern -> [Pattern]
-getAnds p = if typ p == And
-    then patterns p
-    else [p]
+getAnds And{pats=ps} = ps
+getAnds p = [p]
 
 andPat' :: S.Set Pattern -> Pattern
 andPat' ps = ps `returnIfSingleton`
@@ -242,14 +245,11 @@ andPat' ps = ps `returnIfSingleton`
         else ps `returnIfSingleton`
     \ps -> mergeLeaves andExpr ps `returnIfSingleton`
     \ps -> mergeNodesWithEqualNames andPat ps `returnIfSingleton`
-    \ps -> let psList = sort $ S.toList ps in
-    Pattern {
-        typ = And
-        , func = Nothing
-        , patterns = psList
-        , ref = Nothing
-        , hash = hashList (31*37) $ map hash psList
-        , nullable = all nullable psList
+    \ps -> let psList = sort $ S.toList ps 
+    in And {
+        pats = psList
+        , _nullable = all nullable psList
+        , _hash = Expr.hashList (31*37) $ map hash psList
     }
 
 -- | returnIfSingleton returns the pattern from the set if the set is of size one, otherwise it applies the function to the set.
@@ -257,28 +257,26 @@ returnIfSingleton :: S.Set Pattern -> (S.Set Pattern -> Pattern) -> Pattern
 returnIfSingleton s1 f =
     if S.size s1 == 1 then head $ S.toList s1 else f s1
 
-mergeLeaves :: (Expr Bool -> Expr Bool -> Expr Bool) -> S.Set Pattern -> S.Set Pattern
-mergeLeaves merger = merge $ \a b -> 
-    if isLeaf a && isLeaf b 
-        then [nodePat (merger (fromJust $ func a) (fromJust $ func b)) emptyPat]
-        else [a,b]
+mergeLeaves :: (Expr.Expr Bool -> Expr.Expr Bool -> Expr.Expr Bool) -> S.Set Pattern -> S.Set Pattern
+mergeLeaves merger = merge $ \a b -> case (a,b) of
+    (Node{func=fa,pat=Empty},Node{func=fb,pat=Empty}) -> [nodePat (merger fa fb) emptyPat]
+    _ -> [a,b]
 
 mergeNodesWithEqualNames :: (Pattern -> Pattern -> Pattern) -> S.Set Pattern -> S.Set Pattern
-mergeNodesWithEqualNames merger = merge $ \a b ->
-    if typ a == Node && typ b == Node && func a == func b
-        then [nodePat (fromJust $ func a) (merger (head $ patterns a) (head $ patterns b))]
-        else [a,b]
+mergeNodesWithEqualNames merger = merge $ \a b -> case (a,b) of
+    (Node{func=fa,pat=pa},Node{func=fb,pat=pb}) -> 
+        if fa == fb then [nodePat fa (merger pa pb)] else [a,b]
+    _ -> [a,b]
 
 merge :: (Pattern -> Pattern -> [Pattern]) -> S.Set Pattern -> S.Set Pattern
 merge merger ps = let list = sortBy leavesThenNamesAndThenContains (S.toList ps)
     in S.fromList $ foldl (\(a:merged) b -> merger a b ++ merged) [head list] (tail list)
 
 leavesThenNamesAndThenContains :: Pattern -> Pattern -> Ordering
-leavesThenNamesAndThenContains a b
-    | typ a == Node && typ b /= Node = LT
-    | typ b == Node && typ a /= Node = GT
-    | typ a == Node && typ b == Node = leavesFirst a b
-    | otherwise = containsThird a b
+leavesThenNamesAndThenContains a@Node{} b@Node{} = leavesFirst a b
+leavesThenNamesAndThenContains Node{} _ = LT
+leavesThenNamesAndThenContains _ Node{} = GT
+leavesThenNamesAndThenContains a b = containsThird a b
 
 leavesFirst :: Pattern -> Pattern -> Ordering
 leavesFirst a b
@@ -288,53 +286,53 @@ leavesFirst a b
     | otherwise = namesSecond a b
 
 namesSecond :: Pattern -> Pattern -> Ordering
-namesSecond a b = compare (func a) (func b) <> compare a b
+namesSecond a@Node{func=fa} b@Node{func=fb} = let fcomp = compare fa fb
+    in if fcomp == EQ 
+        then compare a b
+        else fcomp
 
 containsThird :: Pattern -> Pattern -> Ordering
-containsThird a b
-    | typ a == Contains && typ b == Contains = compare a b
-    | typ a == Contains = LT
-    | typ b == Contains = GT
-    | otherwise = compare a b
+containsThird a@Contains{} b@Contains{} = compare a b
+containsThird Contains{} _ = LT
+containsThird _ Contains{} = GT
+containsThird a b = compare a b
 
 interleavePat :: Pattern -> Pattern -> Pattern
 interleavePat a b = interleavePat' (getInterleaves a ++ getInterleaves b)
 
 getInterleaves :: Pattern -> [Pattern]
-getInterleaves p = if typ p == Interleave
-    then patterns p
-    else [p]
+getInterleaves Interleave{pats=ps} = ps
+getInterleaves p = [p]
 
 interleavePat' :: [Pattern] -> Pattern
 interleavePat' ps
     | emptySet `elem` ps = emptySet
-    | all (\p -> typ p == Empty) ps = emptyPat
+    | all (eq Empty) ps = emptyPat
     | otherwise = delete Empty ps `returnIfOnlyOne`
-        \ps -> (if any (\p -> typ p == ZAny) ps
+        \ps -> (if any (eq ZAny) ps
             then zanyPat : delete ZAny ps
             else ps) `returnIfOnlyOne`
         \ps -> let psList = sort ps
-        in Pattern {
-            typ = Interleave
-            , func = Nothing
-            , patterns = psList
-            , ref = Nothing
-            , hash = hashList (31*41) $ map hash psList
-            , nullable = all nullable psList
+        in Interleave {
+            pats = psList
+            , _nullable = all nullable psList
+            , _hash = Expr.hashList (31*41) $ map hash psList
         }
 
 -- | returnIfOnlyOne returns the pattern from the list if the list is of size one, otherwise it applies the function to the list.
 returnIfOnlyOne :: [Pattern] -> ([Pattern] -> Pattern) -> Pattern
 returnIfOnlyOne xs f = if length xs == 1 then head xs else f xs
 
-delete :: PatternType -> [Pattern] -> [Pattern]
-delete pt = filter (not . (\p -> typ p == pt))
+delete :: Pattern -> [Pattern] -> [Pattern]
+delete removeItem = filter (not . (\p -> p == removeItem))
 
 -- |
 -- unescapable is used for short circuiting.
 -- A part of the tree can be skipped if all patterns are unescapable.
 unescapable :: Pattern -> Bool
-unescapable p = typ p == ZAny || isNotZAny p
+unescapable ZAny = True
+unescapable Not{pat=ZAny} = True
+unescapable _ = False
 
 -- |
 -- Grammar is a map from reference name to pattern and describes a relapse grammar.
@@ -347,19 +345,19 @@ type Refs = M.Map String Pattern
 
 -- |
 -- lookupRef looks up a pattern in the reference map, given a reference name.
-lookupRef :: Grammar -> String -> Except String Pattern
+lookupRef :: Grammar -> String -> Either String Pattern
 lookupRef (Grammar (main, m)) name = if name == "main" 
-    then main 
-    else case M.lookup m name of
-        Nothing -> throwError $ "no reference: " ++ name
-        (Just p) -> return p
+    then return main 
+    else case M.lookup name m of
+        Nothing -> Left $ "no reference: " ++ name
+        (Just p) -> Right p
 
 -- |
 -- reverseLookupRef returns the reference name for a given pattern.
 reverseLookupRef :: Pattern -> Grammar -> Maybe String
 reverseLookupRef p (Grammar (main, m)) = if p == main
     then Just "main"
-    else case M.keys $ M.filter (== p) m of
+    else case M.keys $ M.filter (eq p) m of
         []      -> Nothing
         (k:_)  -> Just k
 
@@ -381,26 +379,26 @@ union = M.union
 -- |
 -- hasRecursion returns whether an relapse grammar has any recursion, starting from the "main" reference.
 hasRecursion :: Grammar -> Bool
-hasRecursion g@(Grammar (main, _)) = hasRec g (S.singleton "main") main
+hasRecursion g@(Grammar (main, _)) = either (const True) id $ hasRec g (S.singleton "main") main
 
-hasRec :: Grammar -> S.Set String -> Pattern -> Except String Bool
+hasRec :: Grammar -> S.Set String -> Pattern -> Either String Bool
 hasRec g set p = let 
     hRec = hasRec g set
-    p0 = head $ patterns p
-    in case typ p of
-        Empty -> False
-        ZAny -> False
-        Node -> False
-        Or -> any hRec (patterns p)
-        And -> any hRec (patterns p)
-        Interleave -> any hRec (patterns p)
-        Not -> hRec p0
-        Concat -> hRec p0 || (nullable p0 && hRec (patterns p !! 1))
-        ZeroOrMore -> hRec p0
-        Optional -> hRec p0
-        Contains -> hRec p0
-        Reference -> 
-            let (Just name) = ref p
-            in if S.member name set 
-                then return True
-                else (hasRec g (S.insert name set)) <$> (lookupRef g name)
+    in case p of
+        Empty -> return False
+        ZAny -> return False
+        Node{} -> return False
+        Or{pats=ps} -> anyM hRec ps
+        And{pats=ps} -> anyM hRec ps
+        Interleave{pats=ps} -> anyM hRec ps
+        Not{pat=p0} -> hRec p0
+        Concat{left=p0,right=p1} -> hRec p0 ||^ (return (nullable p0) &&^ hRec p1)
+        ZeroOrMore{pat=p0} -> hRec p0
+        Optional{pat=p0} -> hRec p0
+        Contains{pat=p0} -> hRec p0
+        Reference{name=n} -> if S.member n set 
+            then return True
+            else do {
+                pat <- lookupRef g n;
+                hasRec g (S.insert n set) pat;
+            }
