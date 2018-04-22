@@ -45,7 +45,6 @@ library
                      , Exprs.Type
                      , Exprs.Var
                      , Exprs
-                     , Simplify
                      , Json
                      , Xml
                      , Parsers

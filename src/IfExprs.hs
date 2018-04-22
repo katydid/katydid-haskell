@@ -12,7 +12,6 @@ module IfExprs (
 import Patterns
 import Expr
 import Exprs.Logic
-import Simplify
 import Zip
 import Parsers
 
@@ -49,11 +48,8 @@ evalIfExprs (Cond c t e) l = do {
 }
 
 simplifyIf :: Refs -> IfExpr -> IfExpr
-simplifyIf refs (IfExpr (c, t, e)) =
-    let scond = c
-        sthn  = simplify refs t
-        sels  = simplify refs e
-    in if sthn == sels then IfExpr (boolExpr True, sthn, sels) else IfExpr (scond, sthn, sels)
+simplifyIf refs (IfExpr (c, t, e)) = 
+    if t == e then IfExpr (boolExpr True, t, e) else IfExpr (c, t, e)
 
 addIfExpr :: (Expr Bool, Pattern, Pattern) -> IfExprs -> IfExprs
 addIfExpr (c, t, e) (Ret ps) =

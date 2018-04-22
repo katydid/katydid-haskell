@@ -26,16 +26,17 @@ newtype Zipper = Zipper [ZipEntry]
 zippy :: [Pattern] -> ([Pattern], Zipper)
 zippy ps =
     let s = S.fromList ps
-        s' = S.delete ZAny s
-        s'' = S.delete (Not ZAny) s'
+        s' = S.delete zanyPat s
+        s'' = S.delete emptySet s'
         l = S.toAscList s''
     in (l, Zipper $ map (indexOf l) ps)
 
 indexOf :: [Pattern] -> Pattern -> ZipEntry
-indexOf _ ZAny = ZipZAny
-indexOf _ (Not ZAny) = ZipNotZAny
-indexOf ps p = case elemIndex p ps of
-    (Just i) -> ZipVal i
+indexOf ps p
+    | p == zanyPat = ZipZAny
+    | p == emptySet = ZipNotZAny
+    | otherwise = case elemIndex p ps of
+        (Just i) -> ZipVal i
 
 -- | unzipby uncompresses a list of bools (nullability of patterns).
 unzipby :: Zipper -> [Bool] -> [Bool]

@@ -16,7 +16,6 @@ import Data.Foldable (foldlM)
 import Patterns
 import Expr
 import Parsers
-import Simplify
 import Zip
 import IfExprs
 
@@ -34,21 +33,21 @@ import IfExprs
 calls :: Refs -> [Pattern] -> IfExprs
 calls refs ps = compileIfExprs refs $ concatMap (\p -> deriveCall refs p []) ps
 
-deriveCall :: Refs -> Pattern -> [IfExpr]-> [IfExpr]
-deriveCall _ Empty res = res
-deriveCall _ ZAny res = res
-deriveCall _ (Node v p) res = newIfExpr v p (Not ZAny) : res
-deriveCall refs (Concat l r) res
+deriveCall :: Refs -> Pattern -> [IfExpr] -> [IfExpr]
+deriveCall _ Pattern{typ=Empty} res = res
+deriveCall _ Pattern{typ=ZAny} res = res
+deriveCall _ Pattern{typ=Node, func=(Just v), patterns=[p]} res = newIfExpr v p emptySet : res
+deriveCall refs Pattern{typ=Concat, patterns=[l,r]} res
     | nullable refs l = deriveCall refs l (deriveCall refs r res)
     | otherwise = deriveCall refs l res
-deriveCall refs (Or l r) res = deriveCall refs l (deriveCall refs r res)
-deriveCall refs (And l r) res = deriveCall refs l (deriveCall refs r res)
-deriveCall refs (Interleave l r) res = deriveCall refs l (deriveCall refs r res)
-deriveCall refs (ZeroOrMore p) res = deriveCall refs p res
-deriveCall refs (Reference name) res = deriveCall refs (lookupRef refs name) res
-deriveCall refs (Not p) res = deriveCall refs p res
-deriveCall refs (Contains p) res = deriveCall refs (Concat ZAny (Concat p ZAny)) res
-deriveCall refs (Optional p) res = deriveCall refs (Or p Empty) res
+deriveCall refs Pattern{typ=Or, patterns=[l,r]} res = deriveCall refs l (deriveCall refs r res)
+deriveCall refs Pattern{typ=And, patterns=[l,r]} res = deriveCall refs l (deriveCall refs r res)
+deriveCall refs Pattern{typ=Interleave, patterns=[l,r]} res = deriveCall refs l (deriveCall refs r res)
+deriveCall refs Pattern{typ=ZeroOrMore, patterns=[p]} res = deriveCall refs p res
+deriveCall refs Pattern{typ=Reference, ref=(Just name)} res = deriveCall refs (lookupRef refs name) res
+deriveCall refs Pattern{typ=Not, patterns=[p]} res = deriveCall refs p res
+deriveCall refs Pattern{typ=Contains, patterns=[p]} res = deriveCall refs (Concat ZAny (Concat p ZAny)) res
+deriveCall refs Pattern{typ=Optional, patterns=[p]} res = deriveCall refs (Or p Empty) res
 
 -- |
 -- returns takes a list of patterns and list of bools.
