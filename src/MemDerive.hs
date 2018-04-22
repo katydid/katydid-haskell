@@ -17,7 +17,7 @@ import Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
 
 import qualified Derive
 import qualified Patterns
-import Patterns (Refs, Pattern)
+import Patterns (Grammar, Pattern)
 import IfExprs
 import Expr
 import Zip
@@ -45,39 +45,39 @@ newMem = Mem (M.empty, M.empty, M.empty)
 
 -- |
 -- nullable returns whether a pattern is nullable and memoizes the results.
-nullable :: Refs -> Pattern -> State Mem Bool
-nullable refs k = state $ \(Mem (n, c, r)) -> let (v', n') = mem (Patterns.nullable refs) k n;
+nullable :: Grammar -> Pattern -> State Mem Bool
+nullable g k = state $ \(Mem (n, c, r)) -> let (v', n') = mem (Patterns.nullable g) k n;
     in (v', Mem (n', c, r))
 
-calls :: Refs -> [Pattern] -> State Mem IfExprs
-calls refs k = state $ \(Mem (n, c, r)) -> let (v', c') = mem (Derive.calls refs) k c;
+calls :: Grammar -> [Pattern] -> State Mem IfExprs
+calls g k = state $ \(Mem (n, c, r)) -> let (v', c') = mem (Derive.calls g) k c;
     in (v', Mem (n, c', r))
 
-returns :: Refs -> ([Pattern], [Bool]) -> State Mem [Pattern]
-returns refs k = state $ \(Mem (n, c, r)) -> let (v', r') = mem (Derive.returns refs) k r;
+returns :: Grammar -> ([Pattern], [Bool]) -> State Mem [Pattern]
+returns g k = state $ \(Mem (n, c, r)) -> let (v', r') = mem (Derive.returns g) k r;
     in (v', Mem (n, c, r'))
 
-mderive :: Tree t => Refs -> [Pattern] -> [t] -> EitherT String (State Mem) [Pattern]
+mderive :: Tree t => Grammar -> [Pattern] -> [t] -> EitherT String (State Mem) [Pattern]
 mderive _ ps [] = return ps
-mderive refs ps (tree:ts) = do {
-    ifs <- lift $ calls refs ps;
+mderive g ps (tree:ts) = do {
+    ifs <- lift $ calls g ps;
     childps <- hoistEither $ evalIfExprs ifs (getLabel tree);
     (zchildps, zipper) <- return $ zippy childps;
-    childres <- mderive refs zchildps (getChildren tree);
-    nulls <- lift $ mapM (nullable refs) childres;
+    childres <- mderive g zchildps (getChildren tree);
+    nulls <- lift $ mapM (nullable g) childres;
     let 
         unzipns = unzipby zipper nulls
     ;
-    rs <- lift $ returns refs (ps, unzipns);
-    mderive refs rs ts
+    rs <- lift $ returns g (ps, unzipns);
+    mderive g rs ts
 }
 
 -- |
 -- derive is the classic derivative implementation for trees.
-derive :: Tree t => Refs -> [t] -> Either String Pattern
-derive refs ts =
-    let start = [Patterns.lookupRef refs "main"]
-        (res, _) = runState (runEitherT $ mderive refs start ts) newMem
+derive :: Tree t => Grammar -> [t] -> Either String Pattern
+derive g ts =
+    let start = [Patterns.lookupRef g "main"]
+        (res, _) = runState (runEitherT $ mderive g start ts) newMem
     in case res of
         (Left l) -> Left $ show l
         (Right [r]) -> return r
@@ -86,10 +86,10 @@ derive refs ts =
 -- |
 -- validate is the uses the derivative implementation for trees and
 -- return whether tree is valid, given the input grammar and start pattern.
-validate :: Tree t => Refs -> Pattern -> [t] -> (State Mem) Bool
-validate refs start tree = do {
-        rs <- runEitherT (mderive refs [start] tree);
+validate :: Tree t => Grammar -> Pattern -> [t] -> (State Mem) Bool
+validate g start tree = do {
+        rs <- runEitherT (mderive g [start] tree);
         case rs of
-        (Right [r]) -> nullable refs r
+        (Right [r]) -> nullable g r
         _ -> return False
     }

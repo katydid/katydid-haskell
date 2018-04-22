@@ -35,10 +35,10 @@ data IfExprs
     | Ret [Pattern]
 
 -- | compileIfExprs compiles a list of if expressions in an IfExprs tree, for efficient evaluation.
-compileIfExprs :: Refs -> [IfExpr] -> IfExprs
+compileIfExprs :: Grammar -> [IfExpr] -> IfExprs
 compileIfExprs _ [] = Ret []
-compileIfExprs refs (e:es) = let (IfExpr ifExpr) = simplifyIf refs e
-    in addIfExpr ifExpr (compileIfExprs refs es)
+compileIfExprs g (e:es) = let (IfExpr ifExpr) = simplifyIf g e
+    in addIfExpr ifExpr (compileIfExprs g es)
 
 -- | valIfExprs evaluates a tree of if expressions and returns the resulting patterns or an error.
 evalIfExprs :: IfExprs -> Label -> Either String [Pattern]
@@ -48,11 +48,11 @@ evalIfExprs (Cond c t e) l = do {
     if b then evalIfExprs t l else evalIfExprs e l
 }
 
-simplifyIf :: Refs -> IfExpr -> IfExpr
-simplifyIf refs (IfExpr (c, t, e)) =
+simplifyIf :: Grammar -> IfExpr -> IfExpr
+simplifyIf g (IfExpr (c, t, e)) =
     let scond = c
-        sthn  = simplify refs t
-        sels  = simplify refs e
+        sthn  = simplify g t
+        sels  = simplify g e
     in if sthn == sels then IfExpr (boolExpr True, sthn, sels) else IfExpr (scond, sthn, sels)
 
 addIfExpr :: (Expr Bool, Pattern, Pattern) -> IfExprs -> IfExprs

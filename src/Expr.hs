@@ -5,7 +5,7 @@ module Expr (
     Desc(..), mkDesc
     , AnyExpr(..), AnyFunc(..)
     , Expr(..), Func, params, name, hasVar
-    , hashWithName
+    , hashWithName, hashList, hashString
     , evalConst, isConst
     , assertArgs1, assertArgs2
     , mkBoolExpr, mkIntExpr, mkStringExpr, mkDoubleExpr, mkBytesExpr, mkUintExpr
@@ -29,16 +29,16 @@ import qualified Parsers
 -- returns the argument or an error message 
 -- containing the function name that was passed in as an argument to assertArgs1.
 assertArgs1 :: String -> [AnyExpr] -> Either String AnyExpr
-assertArgs1 name [e1] = Right e1
-assertArgs1 name es = Left $ name ++ ": expected one argument, but got " ++ show (length es) ++ ": " ++ show es
+assertArgs1 _ [e1] = Right e1
+assertArgs1 exprName es = Left $ exprName ++ ": expected one argument, but got " ++ show (length es) ++ ": " ++ show es
 
 -- |
 -- assertArgs2 asserts that the list of arguments is only two arguments and 
 -- returns the two arguments or an error message 
 -- containing the function name that was passed in as an argument to assertArgs2.
 assertArgs2 :: String -> [AnyExpr] -> Either String (AnyExpr, AnyExpr)
-assertArgs2 name [e1, e2] = Right (e1, e2)
-assertArgs2 name es = Left $ name ++ ": expected two arguments, but got " ++ show (length es) ++ ": " ++ show es
+assertArgs2 _ [e1, e2] = Right (e1, e2)
+assertArgs2 exprName es = Left $ exprName ++ ": expected two arguments, but got " ++ show (length es) ++ ": " ++ show es
 
 -- |
 -- Desc is the description of a function, 

@@ -6,7 +6,7 @@
 -- Finally it also contains some very simple pattern functions.
 module Patterns (
     Pattern(..), 
-    Refs, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion,
+    Grammar, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion,
     nullable, unescapable
 ) where
 
@@ -35,19 +35,19 @@ data Pattern
 -- |
 -- The nullable function returns whether a pattern is nullable.
 -- This means that the pattern matches the empty string.
-nullable :: Refs -> Pattern -> Bool
+nullable :: Grammar -> Pattern -> Bool
 nullable _ Empty = True
 nullable _ ZAny = True
 nullable _ Node{} = False
-nullable refs (Or l r) = nullable refs l || nullable refs r
-nullable refs (And l r) = nullable refs l && nullable refs r
-nullable refs (Not p) = not $ nullable refs p
-nullable refs (Concat l r) = nullable refs l && nullable refs r
-nullable refs (Interleave l r) = nullable refs l && nullable refs r
+nullable g (Or l r) = nullable g l || nullable g r
+nullable g (And l r) = nullable g l && nullable g r
+nullable g (Not p) = not $ nullable g p
+nullable g (Concat l r) = nullable g l && nullable g r
+nullable g (Interleave l r) = nullable g l && nullable g r
 nullable _ (ZeroOrMore _) = True
 nullable _ (Optional _) = True
-nullable refs (Contains p) = nullable refs p
-nullable refs (Reference name) = nullable refs $ lookupRef refs name
+nullable g (Contains p) = nullable g p
+nullable g (Reference refName) = nullable g $ lookupRef g refName
 
 -- |
 -- unescapable is used for short circuiting.
@@ -59,51 +59,51 @@ unescapable _ = False
 
 -- |
 -- Refs is a map from reference name to pattern and describes a relapse grammar.
-newtype Refs = Refs (M.Map String Pattern)
+newtype Grammar = Grammar (M.Map String Pattern)
     deriving (Show, Eq)
 
 -- |
 -- lookupRef looks up a pattern in the reference map, given a reference name.
-lookupRef :: Refs -> String -> Pattern
-lookupRef (Refs m) name = m M.! name
+lookupRef :: Grammar -> String -> Pattern
+lookupRef (Grammar m) refName = m M.! refName
 
 -- |
 -- reverseLookupRef returns the reference name for a given pattern.
-reverseLookupRef :: Pattern -> Refs -> Maybe String
-reverseLookupRef p (Refs m) = case M.keys $ M.filter (== p) m of
+reverseLookupRef :: Pattern -> Grammar -> Maybe String
+reverseLookupRef p (Grammar m) = case M.keys $ M.filter (== p) m of
     []      -> Nothing
     (k:_)  -> Just k
 
 -- |
 -- newRef returns a new reference map given a single pattern and its reference name.
-newRef :: String -> Pattern -> Refs
-newRef key value = Refs $ M.singleton key value
+newRef :: String -> Pattern -> Grammar
+newRef key value = Grammar $ M.singleton key value
 
 -- |
 -- emptyRef returns an empty reference map.
-emptyRef :: Refs
-emptyRef = Refs M.empty
+emptyRef :: Grammar
+emptyRef = Grammar M.empty
 
 -- |
 -- union returns the union of two reference maps.
-union :: Refs -> Refs -> Refs
-union (Refs m1) (Refs m2) = Refs $ M.union m1 m2 
+union :: Grammar -> Grammar -> Grammar
+union (Grammar m1) (Grammar m2) = Grammar $ M.union m1 m2 
 
 -- |
 -- hasRecursion returns whether an relapse grammar has any recursion, starting from the "main" reference.
-hasRecursion :: Refs -> Bool
-hasRecursion refs = hasRec refs (S.singleton "main") (lookupRef refs "main")
+hasRecursion :: Grammar -> Bool
+hasRecursion g = hasRec g (S.singleton "main") (lookupRef g "main")
 
-hasRec :: Refs -> S.Set String -> Pattern -> Bool
+hasRec :: Grammar -> S.Set String -> Pattern -> Bool
 hasRec _ _ Empty = False
 hasRec _ _ ZAny = False
 hasRec _ _ Node{} = False
-hasRec refs set (Or l r) = hasRec refs set l || hasRec refs set r
-hasRec refs set (And l r) = hasRec refs set l || hasRec refs set r
-hasRec refs set (Not p) = hasRec refs set p
-hasRec refs set (Concat l r) = hasRec refs set l || (nullable refs l && hasRec refs set r)
-hasRec refs set (Interleave l r) = hasRec refs set l || hasRec refs set r
+hasRec g set (Or l r) = hasRec g set l || hasRec g set r
+hasRec g set (And l r) = hasRec g set l || hasRec g set r
+hasRec g set (Not p) = hasRec g set p
+hasRec g set (Concat l r) = hasRec g set l || (nullable g l && hasRec g set r)
+hasRec g set (Interleave l r) = hasRec g set l || hasRec g set r
 hasRec _ _ (ZeroOrMore _) = False
-hasRec refs set (Optional p) = hasRec refs set p
-hasRec refs set (Contains p) = hasRec refs set p
-hasRec refs set (Reference name) = S.member name set || hasRec refs (S.insert name set) (lookupRef refs name)
+hasRec g set (Optional p) = hasRec g set p
+hasRec g set (Contains p) = hasRec g set p
+hasRec g set (Reference refName) = S.member refName set || hasRec g (S.insert refName set) (lookupRef g refName)

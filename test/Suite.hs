@@ -12,7 +12,7 @@ import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirect
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 
 import Parsers (Tree)
-import Patterns (Refs, Pattern, nullable, hasRecursion)
+import Patterns (Grammar, Pattern, nullable, hasRecursion)
 import Json (JsonTree, decodeJSON)
 import Xml (decodeXML)
 import Parser (parseGrammar)
@@ -46,7 +46,7 @@ readTestCases = do {
 
 data TestSuiteCase = TestSuiteCase {
     name        :: String
-    , grammar   :: Refs
+    , grammar   :: Grammar
     , input     :: EncodedData
     , valid     :: Bool
 } deriving Show
@@ -71,7 +71,7 @@ newTestCase algo c@(TestSuiteCase name g (JsonData t) want) =
 testName :: Algo -> TestSuiteCase -> String
 testName algo (TestSuiteCase name g t want) = name ++ "_" ++ show algo
 
-testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
+testDeriv :: Tree t => Algo -> String -> Grammar -> [t] -> Bool -> IO ()
 testDeriv AlgoDeriv name g ts want = 
     let p = either error id $ Derive.derive g ts
         got = nullable g p
@@ -101,10 +101,10 @@ isValidCase paths = length (filter (\fname -> takeBaseName fname == "valid") pat
 filepathWithExt :: [FilePath] -> String -> FilePath
 filepathWithExt paths ext = head $ filter (\fname -> takeExtension fname == ext && takeBaseName fname /= "relapse") paths
 
-fromGrammar :: String -> Refs
+fromGrammar :: String -> Grammar
 fromGrammar s = case parseGrammar s of
     (Left err) -> error $ "given input: <" ++ s ++ "> got parse error: " ++ show err
-    (Right r) -> r
+    (Right g) -> g
 
 readJsonTest :: FilePath -> IO TestSuiteCase
 readJsonTest path = do {

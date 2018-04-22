@@ -23,35 +23,35 @@ import Control.Monad (filterM)
 import Control.Arrow (left)
 
 import qualified Parser
-import Patterns (Refs)
+import Patterns (Grammar)
 import qualified Patterns
 import qualified MemDerive
 import Parsers
 import qualified Exprs
 
 -- |
--- parseGrammar parses the relapse grammar and returns either a parsed grammar (Refs, for the list of references) or an error string.
-parseGrammar :: String -> Either String Refs
+-- parseGrammar parses the relapse grammar and returns either a parsed grammar or an error string.
+parseGrammar :: String -> Either String Grammar
 parseGrammar = left show . Parser.parseGrammar
 
 -- |
 -- parseGrammarWithUDFs parses the relapse grammar with extra user defined functions
--- and returns either a parsed grammar (Refs, for the list of references) or an error string.
-parseGrammarWithUDFs :: Exprs.MkFunc -> String -> Either String Refs
+-- and returns either a parsed grammar or an error string.
+parseGrammarWithUDFs :: Exprs.MkFunc -> String -> Either String Grammar
 parseGrammarWithUDFs userLib grammarString = left show $ Parser.parseGrammarWithUDFs userLib grammarString
 
 -- |
--- validate returns whether a tree is valid, given the grammar (Refs).
-validate :: Tree t => Refs -> [t] -> Bool
-validate refs tree = case filter refs [tree] of
+-- validate returns whether a tree is valid, given the grammar.
+validate :: Tree t => Grammar -> [t] -> Bool
+validate g tree = case filter g [tree] of
     [] -> False
     _ -> True
 
 -- |
--- filter returns a filtered list of trees, given the grammar (Refs).
-filter :: Tree t => Refs -> [[t]] -> [[t]]
-filter refs trees = 
-    let start = Patterns.lookupRef refs "main"
-        f = filterM (MemDerive.validate refs start) trees
+-- filter returns a filtered list of trees, given the grammar.
+filter :: Tree t => Grammar -> [[t]] -> [[t]]
+filter g trees = 
+    let start = Patterns.lookupRef g "main"
+        f = filterM (MemDerive.validate g start) trees
         (r, _) = runState f MemDerive.newMem
     in r
