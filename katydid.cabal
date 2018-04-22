@@ -30,7 +30,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:   Patterns
+  exposed-modules:   Ast
                      , Derive
                      , MemDerive
                      , Zip
@@ -63,6 +63,7 @@ library
                      , text
                      , bytestring
                      , either
+                     , extra
   default-language:    Haskell2010
 
 executable katydid-exe

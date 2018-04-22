@@ -15,8 +15,8 @@ import Data.Foldable (foldlM)
 import Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
 
 import qualified Derive
-import Patterns (Grammar, Pattern)
-import qualified Patterns
+import Ast (Grammar, Pattern)
+import qualified Ast
 import IfExprs
 import Expr
 import Zip
@@ -41,7 +41,7 @@ newVpa :: Grammar -> Vpa
 newVpa g = Vpa (M.empty, M.empty, M.empty, g)
 
 nullable :: [Pattern] -> State Vpa [Bool]
-nullable key = state $ \(Vpa (n, c, r, g)) -> let (v', n') = mem (map $ Patterns.nullable g) key n;
+nullable key = state $ \(Vpa (n, c, r, g)) -> let (v', n') = mem (map $ Ast.nullable g) key n;
     in (v', Vpa (n', c, r, g))
 
 calls :: [Pattern] -> State Vpa ZippedIfExprs
@@ -90,7 +90,7 @@ foldLT m current (t:ts) =
 -- This implementation makes use of visual pushdown automata.
 derive :: Tree t => Grammar -> [t] -> Either String Pattern
 derive g ts = 
-    let start = [Patterns.lookupRef g "main"]
+    let start = [Ast.lookupRef g "main"]
     in case foldLT (newVpa g) start ts of
         (Left l) -> Left $ show l
         (Right [r]) -> return r

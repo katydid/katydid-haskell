@@ -23,8 +23,8 @@ import Control.Monad (filterM)
 import Control.Arrow (left)
 
 import qualified Parser
-import Patterns (Grammar)
-import qualified Patterns
+import Ast (Grammar)
+import qualified Ast
 import qualified MemDerive
 import Parsers
 import qualified Exprs
@@ -51,7 +51,7 @@ validate g tree = case filter g [tree] of
 -- filter returns a filtered list of trees, given the grammar.
 filter :: Tree t => Grammar -> [[t]] -> [[t]]
 filter g trees = 
-    let start = Patterns.lookupRef g "main"
+    let start = Ast.lookupRef g "main"
         f = filterM (MemDerive.validate g start) trees
         (r, _) = runState f MemDerive.newMem
     in r

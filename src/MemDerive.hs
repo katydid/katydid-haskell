@@ -16,8 +16,8 @@ import Control.Monad.State (State, runState, lift, state)
 import Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
 
 import qualified Derive
-import qualified Patterns
-import Patterns (Grammar, Pattern)
+import qualified Ast
+import Ast (Grammar, Pattern)
 import IfExprs
 import Expr
 import Zip
@@ -46,7 +46,7 @@ newMem = Mem (M.empty, M.empty, M.empty)
 -- |
 -- nullable returns whether a pattern is nullable and memoizes the results.
 nullable :: Grammar -> Pattern -> State Mem Bool
-nullable g k = state $ \(Mem (n, c, r)) -> let (v', n') = mem (Patterns.nullable g) k n;
+nullable g k = state $ \(Mem (n, c, r)) -> let (v', n') = mem (Ast.nullable g) k n;
     in (v', Mem (n', c, r))
 
 calls :: Grammar -> [Pattern] -> State Mem IfExprs
@@ -76,7 +76,7 @@ mderive g ps (tree:ts) = do {
 -- derive is the classic derivative implementation for trees.
 derive :: Tree t => Grammar -> [t] -> Either String Pattern
 derive g ts =
-    let start = [Patterns.lookupRef g "main"]
+    let start = [Ast.lookupRef g "main"]
         (res, _) = runState (runEitherT $ mderive g start ts) newMem
     in case res of
         (Left l) -> Left $ show l

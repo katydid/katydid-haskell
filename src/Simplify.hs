@@ -9,7 +9,7 @@ module Simplify (
 
 import qualified Data.Set as S
 
-import Patterns
+import Ast
 import Expr
 import Exprs.Logic
 

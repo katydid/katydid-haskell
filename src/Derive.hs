@@ -13,7 +13,7 @@ module Derive (
 
 import Data.Foldable (foldlM)
 
-import Patterns
+import Ast
 import Parsers
 import Simplify
 import Zip

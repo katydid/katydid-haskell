@@ -1,10 +1,10 @@
 -- |
--- This module describes the patterns supported by Relapse.
+-- This module describes the Relapse's abstract syntax tree.
 --
 -- It also contains some simple functions for the map of references that a Relapse grammar consists of.
 --
 -- Finally it also contains some very simple pattern functions.
-module Patterns (
+module Ast (
     Pattern(..), 
     Grammar, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion,
     nullable, unescapable

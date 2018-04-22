@@ -20,7 +20,7 @@ import Expr
 import Exprs
 import Exprs.Logic
 import Exprs.Var
-import Patterns
+import Ast
 
 -- | parseGrammar parses the Relapse Grammar.
 parseGrammar :: String -> Either ParseError Grammar

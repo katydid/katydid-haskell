@@ -9,7 +9,7 @@ module IfExprs (
     ZippedIfExprs, zipIfExprs, evalZippedIfExprs
 ) where
 
-import Patterns
+import Ast
 import Expr
 import Exprs.Logic
 import Simplify

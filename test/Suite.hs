@@ -12,7 +12,7 @@ import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirect
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 
 import Parsers (Tree)
-import Patterns (Grammar, Pattern, nullable, hasRecursion)
+import Ast (Grammar, Pattern, nullable, hasRecursion)
 import Json (JsonTree, decodeJSON)
 import Xml (decodeXML)
 import Parser (parseGrammar)

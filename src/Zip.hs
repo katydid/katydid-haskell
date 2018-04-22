@@ -10,7 +10,7 @@ module Zip (
 import qualified Data.Set as S
 import Data.List (elemIndex)
 
-import Patterns
+import Ast
 
 data ZipEntry = ZipVal Int | ZipZAny | ZipNotZAny
     deriving (Eq, Ord)
