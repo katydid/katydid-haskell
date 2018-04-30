@@ -12,8 +12,9 @@ module Derive (
 ) where
 
 import Data.Foldable (foldlM)
+import Data.List.Index (imap)
 
-import Ast
+import Smart
 import Parsers
 import Simplify
 import Zip
@@ -31,23 +32,23 @@ import IfExprs
 -- , where the resulting list of patterns are the child patterns,
 -- that need to be derived given the trees child values.
 calls :: Grammar -> [Pattern] -> IfExprs
-calls g ps = compileIfExprs g $ concatMap (\p -> deriveCall g p []) ps
+calls g ps = compileIfExprs $ concatMap (\p -> deriveCall g p []) ps
 
-deriveCall :: Grammar -> Pattern -> [IfExpr]-> [IfExpr]
+deriveCall :: Grammar -> Pattern -> [IfExpr] -> [IfExpr]
 deriveCall _ Empty res = res
 deriveCall _ ZAny res = res
-deriveCall _ (Node v p) res = newIfExpr v p (Not ZAny) : res
-deriveCall g (Concat l r) res
-    | nullable g l = deriveCall g l (deriveCall g r res)
+deriveCall _ Node{expr=v,pat=p} res = newIfExpr v p emptySet : res
+deriveCall g Concat{left=l,right=r} res
+    | nullable l = deriveCall g l (deriveCall g r res)
     | otherwise = deriveCall g l res
-deriveCall g (Or l r) res = deriveCall g l (deriveCall g r res)
-deriveCall g (And l r) res = deriveCall g l (deriveCall g r res)
-deriveCall g (Interleave l r) res = deriveCall g l (deriveCall g r res)
-deriveCall g (ZeroOrMore p) res = deriveCall g p res
-deriveCall g (Reference name) res = deriveCall g (lookupRef g name) res
-deriveCall g (Not p) res = deriveCall g p res
-deriveCall g (Contains p) res = deriveCall g (Concat ZAny (Concat p ZAny)) res
-deriveCall g (Optional p) res = deriveCall g (Or p Empty) res
+deriveCall g Or{pats=ps} res = foldr (deriveCall g) res ps
+deriveCall g And{pats=ps} res = foldr (deriveCall g) res ps
+deriveCall g Interleave{pats=ps} res = foldr (deriveCall g) res ps
+deriveCall g ZeroOrMore{pat=p} res = deriveCall g p res
+deriveCall g Reference{refName=name} res = deriveCall g (lookupRef g name) res
+deriveCall g Not{pat=p} res = deriveCall g p res
+deriveCall g Contains{pat=p} res = deriveCall g p res
+deriveCall g Optional{pat=p} res = deriveCall g p res
 
 -- |
 -- returns takes a list of patterns and list of bools.
@@ -58,50 +59,57 @@ returns :: Grammar -> ([Pattern], [Bool]) -> [Pattern]
 returns _ ([], []) = []
 returns g (p:tailps, ns) =
     let (dp, tailns) = deriveReturn g p ns
-        sp = simplify g dp
-    in  sp:returns g (tailps, tailns)
+    in  dp:returns g (tailps, tailns)
+
+mapReturn :: Grammar -> [Pattern] -> [Bool] -> ([Pattern], [Bool])
+mapReturn g ps ns = foldr (\p (dps, tailns) -> 
+        let (dp, tailoftail) = deriveReturn g p tailns
+        in (dp:dps, tailoftail)
+    ) ([], ns) ps
 
 deriveReturn :: Grammar -> Pattern -> [Bool] -> (Pattern, [Bool])
-deriveReturn _ Empty ns = (Not ZAny, ns)
-deriveReturn _ ZAny ns = (ZAny, ns)
-deriveReturn _ Node{} ns 
-    | head ns = (Empty, tail ns)
-    | otherwise = (Not ZAny, tail ns)
-deriveReturn g (Concat l r) ns
-    | nullable g l = 
-            let (leftDeriv, leftTail) = deriveReturn g l ns
-                (rightDeriv, rightTail) = deriveReturn g r leftTail
-            in  (Or (Concat leftDeriv r) rightDeriv, rightTail)
-    | otherwise = 
-            let (leftDeriv, leftTail) = deriveReturn g l ns
-            in  (Concat leftDeriv r, leftTail)
-deriveReturn g (Or l r) ns = 
-    let (leftDeriv, leftTail) = deriveReturn g l ns
-        (rightDeriv, rightTail) = deriveReturn g r leftTail
-    in (Or leftDeriv rightDeriv, rightTail)
-deriveReturn g (And l r) ns = 
-    let (leftDeriv, leftTail) = deriveReturn g l ns
-        (rightDeriv, rightTail) = deriveReturn g r leftTail
-    in (And leftDeriv rightDeriv, rightTail)
-deriveReturn g (Interleave l r) ns = 
-    let (leftDeriv, leftTail) = deriveReturn g l ns
-        (rightDeriv, rightTail) = deriveReturn g r leftTail
-    in (Or (Interleave leftDeriv r) (Interleave rightDeriv l), rightTail)
-deriveReturn g z@(ZeroOrMore p) ns = 
-    let (derivp, tailns) = deriveReturn g p ns
-    in  (Concat derivp z, tailns)
-deriveReturn g (Reference name) ns = deriveReturn g (lookupRef g name) ns
-deriveReturn g (Not p) ns =
-    let (derivp, tailns) = deriveReturn g p ns
-    in  (Not derivp, tailns)
-deriveReturn g (Contains p) ns = deriveReturn g (Concat ZAny (Concat p ZAny)) ns
-deriveReturn g (Optional p) ns = deriveReturn g (Or p Empty) ns
+deriveReturn _ Empty ns = (emptySet, ns)
+deriveReturn _ ZAny ns = (zanyPat, ns)
+deriveReturn _ Node{} ns
+    | head ns = (emptyPat, tail ns)
+    | otherwise = (emptySet, tail ns)
+deriveReturn g Concat{left=l,right=r} ns
+    | nullable l =
+        let (dl, ltail) = deriveReturn g l ns
+            (dr, rtail) = deriveReturn g r ltail
+        in  (orPat (concatPat dl r) dr, rtail)
+    | otherwise =
+        let (dl, ltail) = deriveReturn g l ns
+        in  (concatPat dl r, ltail)
+deriveReturn g Or{pats=ps} ns =
+    let (dps, tailns) = mapReturn g ps ns
+    in (foldl1 orPat dps, tailns)
+deriveReturn g And{pats=ps} ns =
+    let (dps, tailns) = mapReturn g ps ns
+    in (foldl1 andPat dps, tailns)
+deriveReturn g Interleave{pats=ps} ns =
+    let (dps, tailns) = mapReturn g ps ns
+    in (foldl1 orPat $ imap (\index dp ->
+        let (start, end) = splitAt index ps
+        in foldl1 interleavePat (dp:start ++ tail end)
+    ) dps, tailns)
+deriveReturn g z@ZeroOrMore{pat=p} ns = 
+    let (dp, tailns) = deriveReturn g p ns
+    in  (concatPat dp z, tailns)
+deriveReturn g Reference{refName=name} ns = deriveReturn g (lookupRef g name) ns
+deriveReturn g Not{pat=p} ns =
+    let (dp, tailns) = deriveReturn g p ns
+    in  (notPat dp, tailns)
+deriveReturn g c@Contains{pat=p} ns =
+    let (dp, tailns) = deriveReturn g p ns 
+    in  (orPat c (containsPat dp), tailns)
+deriveReturn g Optional{pat=p} ns = deriveReturn g p ns
 
 -- |
 -- derive is the classic derivative implementation for trees.
 derive :: Tree t => Grammar -> [t] -> Either String Pattern
 derive g ts = do {
-    ps <- foldlM (deriv g) [lookupRef g "main"] ts;
+    ps <- foldlM (deriv g) [lookupMain g] ts;
     if length ps == 1 
         then return $ head ps
         else Left $ "Number of patterns is not one, but " ++ show ps
@@ -112,7 +120,7 @@ deriv g ps tree =
     if all unescapable ps then return ps else
     let ifs = calls g ps
         d = deriv g
-        nulls = map (nullable g)
+        nulls = map nullable
     in do {
         childps <- evalIfExprs ifs (getLabel tree);
         childres <- foldlM d childps (getChildren tree);
@@ -124,7 +132,7 @@ deriv g ps tree =
 -- It zips its intermediate pattern lists to reduce the state space.
 zipderive :: Tree t => Grammar -> [t] -> Either String Pattern
 zipderive g ts = do {
-    ps <- foldlM (zipderiv g) [lookupRef g "main"] ts;
+    ps <- foldlM (zipderiv g) [lookupMain g] ts;
     if length ps == 1 
         then return $ head ps
         else Left $ "Number of patterns is not one, but " ++ show ps
@@ -135,7 +143,7 @@ zipderiv g ps tree =
     if all unescapable ps then return ps else
     let ifs = calls g ps
         d = zipderiv g
-        nulls = map (nullable g)
+        nulls = map nullable
     in do {
         childps <- evalIfExprs ifs (getLabel tree);
         (zchildps, zipper) <- return $ zippy childps;

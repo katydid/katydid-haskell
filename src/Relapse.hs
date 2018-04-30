@@ -14,7 +14,8 @@
 -- If your tree has a single root, simply provide a singleton list as input.
 
 module Relapse (
-    parseGrammar, parseGrammarWithUDFs, validate, filter
+    parse, parseWithUDFs, Grammar
+    , validate, filter
 ) where
 
 import Prelude hiding (filter)
@@ -23,22 +24,30 @@ import Control.Monad (filterM)
 import Control.Arrow (left)
 
 import qualified Parser
-import Ast (Grammar)
 import qualified Ast
 import qualified MemDerive
+import qualified Smart
 import Parsers
 import qualified Exprs
 
--- |
--- parseGrammar parses the relapse grammar and returns either a parsed grammar or an error string.
-parseGrammar :: String -> Either String Grammar
-parseGrammar = left show . Parser.parseGrammar
+type Grammar = Smart.Grammar
 
 -- |
--- parseGrammarWithUDFs parses the relapse grammar with extra user defined functions
+-- parse parses the relapse grammar and returns either a parsed grammar or an error string.
+parse :: String -> Either String Grammar
+parse grammarString = do {
+    parsed <- left show (Parser.parseGrammar grammarString);
+    Smart.compile parsed;
+}
+
+-- |
+-- parseWithUDFs parses the relapse grammar with extra user defined functions
 -- and returns either a parsed grammar or an error string.
-parseGrammarWithUDFs :: Exprs.MkFunc -> String -> Either String Grammar
-parseGrammarWithUDFs userLib grammarString = left show $ Parser.parseGrammarWithUDFs userLib grammarString
+parseWithUDFs :: Exprs.MkFunc -> String -> Either String Grammar
+parseWithUDFs userLib grammarString = do {
+    parsed <- left show (Parser.parseGrammarWithUDFs userLib grammarString);
+    Smart.compile parsed;
+}
 
 -- |
 -- validate returns whether a tree is valid, given the grammar.
@@ -51,7 +60,7 @@ validate g tree = case filter g [tree] of
 -- filter returns a filtered list of trees, given the grammar.
 filter :: Tree t => Grammar -> [[t]] -> [[t]]
 filter g trees = 
-    let start = Ast.lookupRef g "main"
+    let start = Smart.lookupMain g
         f = filterM (MemDerive.validate g start) trees
         (r, _) = runState f MemDerive.newMem
     in r

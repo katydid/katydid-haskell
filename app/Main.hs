@@ -11,6 +11,6 @@ main = either
         else putStrLn "dragons are fictional"
     ) $
     Relapse.validate <$> 
-        Relapse.parseGrammar ".DragonsExist == true" <*> 
+        Relapse.parse ".DragonsExist == true" <*> 
         Json.decodeJSON "{\"DragonsExist\": false}"
 

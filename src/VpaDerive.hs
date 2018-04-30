@@ -1,9 +1,9 @@
 -- |
--- This module contains a VPA (Visual Pushdown Automaton) implementation of the internal derivative algorithm.
+-- This module contains a VPA (Visibly Pushdown Automaton) implementation of the internal derivative algorithm.
 --
 -- It is intended to be used for explanation purposes.
 --
--- It shows how out algorithm is effective equivalent to a visual pushdown automaton.
+-- It shows how our algorithm is effectively equivalent to a visibly pushdown automaton.
 
 module VpaDerive (
     derive      
@@ -15,8 +15,8 @@ import Data.Foldable (foldlM)
 import Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
 
 import qualified Derive
-import Ast (Grammar, Pattern)
-import qualified Ast
+import Smart (Grammar, Pattern)
+import qualified Smart
 import IfExprs
 import Expr
 import Zip
@@ -41,7 +41,7 @@ newVpa :: Grammar -> Vpa
 newVpa g = Vpa (M.empty, M.empty, M.empty, g)
 
 nullable :: [Pattern] -> State Vpa [Bool]
-nullable key = state $ \(Vpa (n, c, r, g)) -> let (v', n') = mem (map $ Ast.nullable g) key n;
+nullable key = state $ \(Vpa (n, c, r, g)) -> let (v', n') = mem (map Smart.nullable) key n;
     in (v', Vpa (n', c, r, g))
 
 calls :: [Pattern] -> State Vpa ZippedIfExprs
@@ -90,7 +90,7 @@ foldLT m current (t:ts) =
 -- This implementation makes use of visual pushdown automata.
 derive :: Tree t => Grammar -> [t] -> Either String Pattern
 derive g ts = 
-    let start = [Ast.lookupRef g "main"]
+    let start = [Smart.lookupMain g]
     in case foldLT (newVpa g) start ts of
         (Left l) -> Left $ show l
         (Right [r]) -> return r

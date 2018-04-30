@@ -10,7 +10,7 @@ module Zip (
 import qualified Data.Set as S
 import Data.List (elemIndex)
 
-import Ast
+import Smart
 
 data ZipEntry = ZipVal Int | ZipZAny | ZipNotZAny
     deriving (Eq, Ord)
@@ -27,13 +27,13 @@ zippy :: [Pattern] -> ([Pattern], Zipper)
 zippy ps =
     let s = S.fromList ps
         s' = S.delete ZAny s
-        s'' = S.delete (Not ZAny) s'
+        s'' = S.delete emptySet s'
         l = S.toAscList s''
     in (l, Zipper $ map (indexOf l) ps)
 
 indexOf :: [Pattern] -> Pattern -> ZipEntry
 indexOf _ ZAny = ZipZAny
-indexOf _ (Not ZAny) = ZipNotZAny
+indexOf _ Not{pat=ZAny} = ZipNotZAny
 indexOf ps p = case elemIndex p ps of
     (Just i) -> ZipVal i
 

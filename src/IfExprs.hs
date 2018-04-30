@@ -9,7 +9,7 @@ module IfExprs (
     ZippedIfExprs, zipIfExprs, evalZippedIfExprs
 ) where
 
-import Ast
+import Smart
 import Expr
 import Exprs.Logic
 import Simplify
@@ -35,10 +35,9 @@ data IfExprs
     | Ret [Pattern]
 
 -- | compileIfExprs compiles a list of if expressions in an IfExprs tree, for efficient evaluation.
-compileIfExprs :: Grammar -> [IfExpr] -> IfExprs
-compileIfExprs _ [] = Ret []
-compileIfExprs g (e:es) = let (IfExpr ifExpr) = simplifyIf g e
-    in addIfExpr ifExpr (compileIfExprs g es)
+compileIfExprs :: [IfExpr] -> IfExprs
+compileIfExprs [] = Ret []
+compileIfExprs (IfExpr ifExpr:es) = addIfExpr ifExpr (compileIfExprs es)
 
 -- | valIfExprs evaluates a tree of if expressions and returns the resulting patterns or an error.
 evalIfExprs :: IfExprs -> Label -> Either String [Pattern]
@@ -47,13 +46,6 @@ evalIfExprs (Cond c t e) l = do {
     b <- eval c l;
     if b then evalIfExprs t l else evalIfExprs e l
 }
-
-simplifyIf :: Grammar -> IfExpr -> IfExpr
-simplifyIf g (IfExpr (c, t, e)) =
-    let scond = c
-        sthn  = simplify g t
-        sels  = simplify g e
-    in if sthn == sels then IfExpr (boolExpr True, sthn, sels) else IfExpr (scond, sthn, sels)
 
 addIfExpr :: (Expr Bool, Pattern, Pattern) -> IfExprs -> IfExprs
 addIfExpr (c, t, e) (Ret ps) =

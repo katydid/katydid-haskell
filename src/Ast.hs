@@ -5,13 +5,14 @@
 --
 -- Finally it also contains some very simple pattern functions.
 module Ast (
-    Pattern(..), 
-    Grammar, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion,
-    nullable, unescapable
+    Pattern(..)
+    , Grammar, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion, listRefs
+    , nullable
 ) where
 
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
+import Control.Monad.Extra ((||^), (&&^))
 
 import Expr
 
@@ -35,27 +36,19 @@ data Pattern
 -- |
 -- The nullable function returns whether a pattern is nullable.
 -- This means that the pattern matches the empty string.
-nullable :: Grammar -> Pattern -> Bool
-nullable _ Empty = True
-nullable _ ZAny = True
-nullable _ Node{} = False
-nullable g (Or l r) = nullable g l || nullable g r
-nullable g (And l r) = nullable g l && nullable g r
-nullable g (Not p) = not $ nullable g p
-nullable g (Concat l r) = nullable g l && nullable g r
-nullable g (Interleave l r) = nullable g l && nullable g r
-nullable _ (ZeroOrMore _) = True
-nullable _ (Optional _) = True
+nullable :: Grammar -> Pattern -> Either String Bool
+nullable _ Empty = Right True
+nullable _ ZAny = Right True
+nullable _ Node{} = Right False
+nullable g (Or l r) = nullable g l ||^ nullable g r
+nullable g (And l r) = nullable g l &&^ nullable g r
+nullable g (Not p) = not <$> nullable g p
+nullable g (Concat l r) = nullable g l &&^ nullable g r
+nullable g (Interleave l r) = nullable g l &&^ nullable g r
+nullable _ (ZeroOrMore _) = Right True
+nullable _ (Optional _) = Right True
 nullable g (Contains p) = nullable g p
-nullable g (Reference refName) = nullable g $ lookupRef g refName
-
--- |
--- unescapable is used for short circuiting.
--- A part of the tree can be skipped if all patterns are unescapable.
-unescapable :: Pattern -> Bool
-unescapable ZAny = True
-unescapable (Not ZAny) = True
-unescapable _ = False
+nullable g (Reference refName) = lookupRef g refName >>= nullable g
 
 -- |
 -- Refs is a map from reference name to pattern and describes a relapse grammar.
@@ -64,8 +57,15 @@ newtype Grammar = Grammar (M.Map String Pattern)
 
 -- |
 -- lookupRef looks up a pattern in the reference map, given a reference name.
-lookupRef :: Grammar -> String -> Pattern
-lookupRef (Grammar m) refName = m M.! refName
+lookupRef :: Grammar -> String -> Either String Pattern
+lookupRef (Grammar m) refName = case M.lookup refName m of
+    Nothing -> Left $ "missing reference: " ++ refName
+    (Just p) -> Right p
+
+-- |
+-- listRefs returns the list of reference names.
+listRefs :: Grammar -> [String]
+listRefs (Grammar m) = M.keys m
 
 -- |
 -- reverseLookupRef returns the reference name for a given pattern.
@@ -91,19 +91,27 @@ union (Grammar m1) (Grammar m2) = Grammar $ M.union m1 m2
 
 -- |
 -- hasRecursion returns whether an relapse grammar has any recursion, starting from the "main" reference.
-hasRecursion :: Grammar -> Bool
-hasRecursion g = hasRec g (S.singleton "main") (lookupRef g "main")
+hasRecursion :: Grammar -> Either String Bool
+hasRecursion g = do {
+    mainPat <- lookupRef g "main";
+    hasRec g (S.singleton "main") mainPat 
+}
 
-hasRec :: Grammar -> S.Set String -> Pattern -> Bool
-hasRec _ _ Empty = False
-hasRec _ _ ZAny = False
-hasRec _ _ Node{} = False
-hasRec g set (Or l r) = hasRec g set l || hasRec g set r
-hasRec g set (And l r) = hasRec g set l || hasRec g set r
+hasRec :: Grammar -> S.Set String -> Pattern -> Either String Bool
+hasRec _ _ Empty = Right False
+hasRec _ _ ZAny = Right False
+hasRec _ _ Node{} = Right False
+hasRec g set (Or l r) = hasRec g set l ||^ hasRec g set r
+hasRec g set (And l r) = hasRec g set l ||^ hasRec g set r
 hasRec g set (Not p) = hasRec g set p
-hasRec g set (Concat l r) = hasRec g set l || (nullable g l && hasRec g set r)
-hasRec g set (Interleave l r) = hasRec g set l || hasRec g set r
-hasRec _ _ (ZeroOrMore _) = False
+hasRec g set (Concat l r) = hasRec g set l ||^ (nullable g l &&^ hasRec g set r)
+hasRec g set (Interleave l r) = hasRec g set l ||^ hasRec g set r
+hasRec g set (ZeroOrMore p) = hasRec g set p
 hasRec g set (Optional p) = hasRec g set p
 hasRec g set (Contains p) = hasRec g set p
-hasRec g set (Reference refName) = S.member refName set || hasRec g (S.insert refName set) (lookupRef g refName)
+hasRec g set (Reference refName) = if S.member refName set
+    then Right True
+    else do {
+        pat <- lookupRef g refName;
+        hasRec g (S.insert refName set) pat;
+    }

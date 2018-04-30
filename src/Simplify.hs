@@ -57,10 +57,10 @@ simplifyOr _ ZAny _ = ZAny
 simplifyOr _ _ ZAny = ZAny
 simplifyOr _ (Node v1 Empty) (Node v2 Empty) = Node (orExpr v1 v2) Empty
 simplifyOr g Empty p 
-    | nullable g p = p
+    | nullable g p == Right True = p
     | otherwise = Or Empty p
 simplifyOr g p Empty
-    | nullable g p = p 
+    | nullable g p == Right True = p 
     | otherwise = Or Empty p
 simplifyOr _ p1 p2 = bin Or $ simplifyChildren Or $ S.toAscList $ setOfOrs p1 `S.union` setOfOrs p2
 
@@ -88,10 +88,10 @@ simplifyAnd _ ZAny p = p
 simplifyAnd _ p ZAny = p
 simplifyAnd _ (Node v1 Empty) (Node v2 Empty) = Node (andExpr v1 v2) Empty
 simplifyAnd g Empty p
-    | nullable g p = Empty
+    | nullable g p == Right True = Empty
     | otherwise = Not ZAny
 simplifyAnd g p Empty
-    | nullable g p = Empty
+    | nullable g p == Right True = Empty
     | otherwise = Not ZAny
 simplifyAnd _ p1 p2 = bin And $ simplifyChildren And $ S.toAscList $ setOfAnds p1 `S.union` setOfAnds p2
 

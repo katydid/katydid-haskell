@@ -44,7 +44,7 @@ main = either
         else putStrLn "dragons are fictional"
     ) $
     Relapse.validate <$> 
-        Relapse.parseGrammar ".DragonsExist == true" <*> 
+        Relapse.parse ".DragonsExist == true" <*> 
         Json.decodeJSON "{\"DragonsExist\": false}"
 ```
 
@@ -69,7 +69,7 @@ main = either
         else putStrLn "JOMO"
     ) $
     Relapse.validate <$>
-        Relapse.parseGrammarWithUDFs userLib ".Survived->isPrime($int)" <*>
+        Relapse.parseWithUDFs userLib ".Survived->isPrime($int)" <*>
         Json.decodeJSON "{\"Survived\": 104743}"
 ```
 
