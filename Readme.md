@@ -25,7 +25,7 @@ All JSON and XML tests from [the language agnostic test suite](https://github.co
 
 Validating a single structure can be done using the validate function:
 ```haskell
-validate :: Tree t => Refs -> [t] -> Bool
+validate :: Tree t => Grammar -> [t] -> Bool
 ```
 
 , where a tree is a class in the [Parsers](https://katydid.github.io/katydid-haskell/Parsers.html) module:
@@ -44,7 +44,7 @@ main = either
         else putStrLn "dragons are fictional"
     ) $
     Relapse.validate <$> 
-        Relapse.parseGrammar ".DragonsExist == true" <*> 
+        Relapse.parse ".DragonsExist == true" <*> 
         Json.decodeJSON "{\"DragonsExist\": false}"
 ```
 
@@ -53,7 +53,7 @@ main = either
 If you want to validate multiple trees using the same grammar then the filter function does some internal memoization, which makes a huge difference.
 
 ```haskell
-filter :: Tree t => Refs -> [[t]] -> [[t]]
+filter :: Tree t => Grammar -> [[t]] -> [[t]]
 ```
 
 ## User Defined Functions
@@ -69,7 +69,7 @@ main = either
         else putStrLn "JOMO"
     ) $
     Relapse.validate <$>
-        Relapse.parseGrammarWithUDFs userLib ".Survived->isPrime($int)" <*>
+        Relapse.parseWithUDFs userLib ".Survived->isPrime($int)" <*>
         Json.decodeJSON "{\"Survived\": 104743}"
 ```
 
@@ -99,7 +99,6 @@ isPrimeExpr numExpr = trimBool Expr {
 
 ## Roadmap
 
-  - Smart constructors instead of out of band simplification
   - Protobuf parser
   - Profile and Optimize (bring up to par with Go version)
   - Typed DSL (Combinator)

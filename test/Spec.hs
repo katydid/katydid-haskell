@@ -10,6 +10,7 @@ import qualified Test.Tasty.HUnit as HUnit
 import qualified ParserSpec
 import qualified Suite
 import qualified RelapseSpec
+import qualified DeriveSpec
 
 main :: IO ()
 main = do {
@@ -18,5 +19,6 @@ main = do {
         ParserSpec.tests
         , RelapseSpec.tests
         , Suite.tests testSuiteCases
+        , DeriveSpec.tests
     ]
 }

@@ -9,22 +9,22 @@ module Simplify (
 
 import qualified Data.Set as S
 
-import Patterns
+import Ast
 import Expr
 import Exprs.Logic
 
 -- |
 -- simplify simplifies an input pattern to an equivalent simpler pattern.
-simplify :: Refs -> Pattern -> Pattern
-simplify refs pattern =
-    let simp = simplify' refs
-    in case pattern of
+simplify :: Grammar -> Pattern -> Pattern
+simplify g pat =
+    let simp = simplify' g
+    in case pat of
     Empty -> Empty
     ZAny -> ZAny
     (Node v p) -> simplifyNode v (simp p)
     (Concat p1 p2) -> simplifyConcat (simp p1) (simp p2)
-    (Or p1 p2) -> simplifyOr refs (simp p1) (simp p2)
-    (And p1 p2) -> simplifyAnd refs (simp p1) (simp p2)
+    (Or p1 p2) -> simplifyOr g (simp p1) (simp p2)
+    (And p1 p2) -> simplifyAnd g (simp p1) (simp p2)
     (ZeroOrMore p) -> simplifyZeroOrMore (simp p)
     (Not p) -> simplifyNot (simp p)
     (Optional p) -> simplifyOptional (simp p)
@@ -32,8 +32,8 @@ simplify refs pattern =
     (Contains p) -> simplifyContains (simp p)
     p@(Reference _) -> p
 
-simplify' :: Refs -> Pattern -> Pattern
-simplify' refs p = checkRef refs $ simplify refs p
+simplify' :: Grammar -> Pattern -> Pattern
+simplify' g p = checkRef g $ simplify g p
 
 simplifyNode :: Expr Bool -> Pattern -> Pattern
 simplifyNode v p = case evalConst v of
@@ -50,17 +50,17 @@ simplifyConcat p Empty = p
 simplifyConcat ZAny (Concat p ZAny) = Contains p
 simplifyConcat p1 p2 = Concat p1 p2
 
-simplifyOr :: Refs -> Pattern -> Pattern -> Pattern
+simplifyOr :: Grammar -> Pattern -> Pattern -> Pattern
 simplifyOr _ (Not ZAny) p = p
 simplifyOr _ p (Not ZAny) = p
 simplifyOr _ ZAny _ = ZAny
 simplifyOr _ _ ZAny = ZAny
 simplifyOr _ (Node v1 Empty) (Node v2 Empty) = Node (orExpr v1 v2) Empty
-simplifyOr refs Empty p 
-    | nullable refs p = p
+simplifyOr g Empty p 
+    | nullable g p == Right True = p
     | otherwise = Or Empty p
-simplifyOr refs p Empty
-    | nullable refs p = p 
+simplifyOr g p Empty
+    | nullable g p == Right True = p 
     | otherwise = Or Empty p
 simplifyOr _ p1 p2 = bin Or $ simplifyChildren Or $ S.toAscList $ setOfOrs p1 `S.union` setOfOrs p2
 
@@ -81,17 +81,17 @@ setOfOrs :: Pattern -> S.Set Pattern
 setOfOrs (Or p1 p2) = setOfOrs p1 `S.union` setOfOrs p2
 setOfOrs p = S.singleton p
 
-simplifyAnd :: Refs -> Pattern -> Pattern -> Pattern
+simplifyAnd :: Grammar -> Pattern -> Pattern -> Pattern
 simplifyAnd _ (Not ZAny) _ = Not ZAny
 simplifyAnd _ _ (Not ZAny) = Not ZAny
 simplifyAnd _ ZAny p = p
 simplifyAnd _ p ZAny = p
 simplifyAnd _ (Node v1 Empty) (Node v2 Empty) = Node (andExpr v1 v2) Empty
-simplifyAnd refs Empty p
-    | nullable refs p = Empty
+simplifyAnd g Empty p
+    | nullable g p == Right True = Empty
     | otherwise = Not ZAny
-simplifyAnd refs p Empty
-    | nullable refs p = Empty
+simplifyAnd g p Empty
+    | nullable g p == Right True = Empty
     | otherwise = Not ZAny
 simplifyAnd _ p1 p2 = bin And $ simplifyChildren And $ S.toAscList $ setOfAnds p1 `S.union` setOfAnds p2
 
@@ -129,8 +129,8 @@ simplifyContains ZAny = ZAny
 simplifyContains (Not ZAny) = Not ZAny
 simplifyContains p = Contains p
 
-checkRef :: Refs -> Pattern -> Pattern
-checkRef refs p = case reverseLookupRef p refs of
+checkRef :: Grammar -> Pattern -> Pattern
+checkRef g p = case reverseLookupRef p g of
     Nothing     -> p
     (Just k)    -> Reference k
 

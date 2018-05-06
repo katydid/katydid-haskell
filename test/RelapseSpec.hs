@@ -15,25 +15,25 @@ import Exprs (mkExpr)
 
 tests = T.testGroup "Relapse" [
     HUnit.testCase "parseGrammar success" $ either HUnit.assertFailure (\_ -> return ()) $
-        Relapse.parseGrammar "a == 1"
+        Relapse.parse "a == 1"
 
     , HUnit.testCase "parseGrammar failure" $ either (\_ -> return ()) (\_ -> HUnit.assertFailure "expected error") $
-        Relapse.parseGrammar "{ a : 1 }" 
+        Relapse.parse "{ a : 1 }" 
 
     , HUnit.testCase "validate success" $ 
         either HUnit.assertFailure (HUnit.assertBool "expected success") $ 
         Relapse.validate <$> 
-            Relapse.parseGrammar "a == 1" <*> 
+            Relapse.parse "a == 1" <*> 
             Json.decodeJSON "{\"a\":1}"
 
     , HUnit.testCase "validate failure" $
         either HUnit.assertFailure (HUnit.assertBool "expected failure" . not) $
         Relapse.validate <$> 
-            Relapse.parseGrammar "a == 1" <*> 
+            Relapse.parse "a == 1" <*> 
             Json.decodeJSON "{\"a\":2}"
 
     , HUnit.testCase "filter" $ case do {
-        refs <- Relapse.parseGrammar "a == 1";
+        refs <- Relapse.parse "a == 1";
         want <- Json.decodeJSON "{\"a\":1}";
         other <- Json.decodeJSON "{\"a\":2}";
         return (Relapse.filter refs [want, other], [want]);
@@ -42,7 +42,7 @@ tests = T.testGroup "Relapse" [
         (Right (got, want)) -> HUnit.assertEqual "expected the same tree" want got
 
     , HUnit.testCase "user defined function" $ case do {
-        refs <- Relapse.parseGrammarWithUDFs userLib "a->isPrime($int)";
+        refs <- Relapse.parseWithUDFs userLib "a->isPrime($int)";
         want <- Json.decodeJSON "{\"a\":3}";
         other <- Json.decodeJSON "{\"a\":4}";
         return (Relapse.filter refs [want, other], [want]);

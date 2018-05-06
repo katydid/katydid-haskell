@@ -1,9 +1,9 @@
 -- |
--- This module contains a VPA (Visual Pushdown Automaton) implementation of the internal derivative algorithm.
+-- This module contains a VPA (Visibly Pushdown Automaton) implementation of the internal derivative algorithm.
 --
 -- It is intended to be used for explanation purposes.
 --
--- It shows how out algorithm is effective equivalent to a visual pushdown automaton.
+-- It shows how our algorithm is effectively equivalent to a visibly pushdown automaton.
 
 module VpaDerive (
     derive      
@@ -15,8 +15,8 @@ import Data.Foldable (foldlM)
 import Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
 
 import qualified Derive
-import Patterns (Refs, Pattern)
-import qualified Patterns
+import Smart (Grammar, Pattern)
+import qualified Smart
 import IfExprs
 import Expr
 import Zip
@@ -35,18 +35,18 @@ type Calls = M.Map VpaState ZippedIfExprs
 type Nullable = M.Map [Pattern] [Bool]
 type Returns = M.Map ([Pattern], Zipper, [Bool]) [Pattern]
 
-newtype Vpa = Vpa (Nullable, Calls, Returns, Refs)
+newtype Vpa = Vpa (Nullable, Calls, Returns, Grammar)
 
-newVpa :: Refs -> Vpa
-newVpa refs = Vpa (M.empty, M.empty, M.empty, refs)
+newVpa :: Grammar -> Vpa
+newVpa g = Vpa (M.empty, M.empty, M.empty, g)
 
 nullable :: [Pattern] -> State Vpa [Bool]
-nullable key = state $ \(Vpa (n, c, r, refs)) -> let (v', n') = mem (map $ Patterns.nullable refs) key n;
-    in (v', Vpa (n', c, r, refs))
+nullable key = state $ \(Vpa (n, c, r, g)) -> let (v', n') = mem (map Smart.nullable) key n;
+    in (v', Vpa (n', c, r, g))
 
 calls :: [Pattern] -> State Vpa ZippedIfExprs
-calls key = state $ \(Vpa (n, c, r, refs)) -> let (v', c') = mem (zipIfExprs . Derive.calls refs) key c;
-    in (v', Vpa (n, c', r, refs))
+calls key = state $ \(Vpa (n, c, r, g)) -> let (v', c') = mem (zipIfExprs . Derive.calls g) key c;
+    in (v', Vpa (n, c', r, g))
 
 vpacall :: VpaState -> Label -> EitherT String (State Vpa) (StackElm, VpaState)
 vpacall vpastate label = do {
@@ -59,10 +59,10 @@ vpacall vpastate label = do {
 }
 
 returns :: ([Pattern], Zipper, [Bool]) -> State Vpa [Pattern]
-returns key = state $ \(Vpa (n, c, r, refs)) -> 
+returns key = state $ \(Vpa (n, c, r, g)) -> 
     let (v', r') = mem (\(ps, zipper, znulls) -> 
-            Derive.returns refs (ps, unzipby zipper znulls)) key r
-    in (v', Vpa (n, c, r', refs))
+            Derive.returns g (ps, unzipby zipper znulls)) key r
+    in (v', Vpa (n, c, r', g))
 
 vpareturn :: StackElm -> VpaState -> State Vpa VpaState
 vpareturn (vpastate, zipper) current = do {
@@ -88,10 +88,10 @@ foldLT m current (t:ts) =
 -- |
 -- derive is the derivative implementation for trees.
 -- This implementation makes use of visual pushdown automata.
-derive :: Tree t => Refs -> [t] -> Either String Pattern
-derive refs ts = 
-    let start = [Patterns.lookupRef refs "main"]
-    in case foldLT (newVpa refs) start ts of
+derive :: Tree t => Grammar -> [t] -> Either String Pattern
+derive g ts = 
+    let start = [Smart.lookupMain g]
+    in case foldLT (newVpa g) start ts of
         (Left l) -> Left $ show l
         (Right [r]) -> return r
         (Right rs) -> Left $ "Number of patterns is not one, but " ++ show rs

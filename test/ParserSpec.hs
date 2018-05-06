@@ -22,7 +22,7 @@ import Exprs.Strings
 import Exprs.Type
 import Exprs.Var
 import Exprs
-import Patterns
+import Ast
 
 import UserDefinedFuncs
 

@@ -12,7 +12,8 @@ import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirect
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 
 import Parsers (Tree)
-import Patterns (Refs, Pattern, nullable, hasRecursion)
+import Smart (Grammar, Pattern, nullable, compile)
+import qualified Ast
 import Json (JsonTree, decodeJSON)
 import Xml (decodeXML)
 import Parser (parseGrammar)
@@ -23,7 +24,7 @@ import qualified VpaDerive
 
 tests :: [TestSuiteCase] -> T.TestTree
 tests testSuiteCases = 
-    let nonRecursiveTestCases = filter (\(TestSuiteCase _ g _ _) -> not (hasRecursion g)) testSuiteCases
+    let nonRecursiveTestCases = filter (\(TestSuiteCase _ g _ _) -> not (either error id $ Ast.hasRecursion g)) testSuiteCases
         derivTests = T.testGroup "derive" $ map (newTestCase AlgoDeriv) nonRecursiveTestCases
         zipTests = T.testGroup "zip" $ map (newTestCase AlgoZip) nonRecursiveTestCases
         mapTests = T.testGroup "map" $ map (newTestCase AlgoMap) nonRecursiveTestCases
@@ -46,7 +47,7 @@ readTestCases = do {
 
 data TestSuiteCase = TestSuiteCase {
     name        :: String
-    , grammar   :: Refs
+    , grammar   :: Ast.Grammar
     , input     :: EncodedData
     , valid     :: Bool
 } deriving Show
@@ -71,23 +72,35 @@ newTestCase algo c@(TestSuiteCase name g (JsonData t) want) =
 testName :: Algo -> TestSuiteCase -> String
 testName algo (TestSuiteCase name g t want) = name ++ "_" ++ show algo
 
-testDeriv :: Tree t => Algo -> String -> Refs -> [t] -> Bool -> IO ()
+testDeriv :: Tree t => Algo -> String -> Ast.Grammar -> [t] -> Bool -> IO ()
 testDeriv AlgoDeriv name g ts want = 
-    let p = either error id $ Derive.derive g ts
-        got = nullable g p
-    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got
+    let p = either error id (do {
+            compiled <- compile g;
+            Derive.derive compiled ts;
+        })
+        got = nullable p
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nstarting grammar = " ++ show g ++ "\nresulting derivative = " ++ show p) want got
 testDeriv AlgoZip name g ts want = 
-    let p = either error id $ Derive.zipderive g ts 
-        got = nullable g p
-    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
+    let p = either error id (do {
+            compiled <- compile g;
+            Derive.zipderive compiled ts;
+        })
+        got = nullable p
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nstarting grammar = " ++ show g ++ "\nresulting derivative = " ++ show p) want got
 testDeriv AlgoMap name g ts want  = 
-    let p = either error id $ MemDerive.derive g ts 
-        got = nullable g p
-    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
+    let p = either error id (do {
+            compiled <- compile g;
+            MemDerive.derive compiled ts;
+        })
+        got = nullable p
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nstarting grammar = " ++ show g ++ "\nresulting derivative = " ++ show p) want got
 testDeriv AlgoVpa name g ts want  = 
-    let p = either error id $ VpaDerive.derive g ts 
-        got = nullable g p
-    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
+    let p = either error id (do {
+            compiled <- compile g;
+            VpaDerive.derive compiled ts;
+        })
+        got = nullable p
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nstarting grammar = " ++ show g ++ "\nresulting derivative = " ++ show p) want got
 
 getRelapseJson :: [FilePath] -> FilePath
 getRelapseJson paths = head $ filter (\fname -> takeExtension fname == ".json" && takeBaseName fname == "relapse") paths
@@ -101,10 +114,10 @@ isValidCase paths = length (filter (\fname -> takeBaseName fname == "valid") pat
 filepathWithExt :: [FilePath] -> String -> FilePath
 filepathWithExt paths ext = head $ filter (\fname -> takeExtension fname == ext && takeBaseName fname /= "relapse") paths
 
-fromGrammar :: String -> Refs
+fromGrammar :: String -> Ast.Grammar
 fromGrammar s = case parseGrammar s of
     (Left err) -> error $ "given input: <" ++ s ++ "> got parse error: " ++ show err
-    (Right r) -> r
+    (Right g) -> g
 
 readJsonTest :: FilePath -> IO TestSuiteCase
 readJsonTest path = do {

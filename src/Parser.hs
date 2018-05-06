@@ -20,14 +20,14 @@ import Expr
 import Exprs
 import Exprs.Logic
 import Exprs.Var
-import Patterns
+import Ast
 
 -- | parseGrammar parses the Relapse Grammar.
-parseGrammar :: String -> Either ParseError Refs
+parseGrammar :: String -> Either ParseError Grammar
 parseGrammar = parseGrammarWithUDFs stdOnly
 
 -- | parseGrammarWithUDFs parses the Relapse Grammar with extra user defined functions.
-parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Refs
+parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Grammar
 parseGrammarWithUDFs extraUDFs = 
     let mkFunc n es = case mkExpr n es of
             (Left _) -> extraUDFs n es
@@ -377,11 +377,11 @@ pattern mkFunc = char '*' *> (
     <|> try (_depthPattern mkFunc)
     <|> _notPattern mkFunc
     
-_patternDecl :: MkFunc -> CharParser () Refs
+_patternDecl :: MkFunc -> CharParser () Grammar
 _patternDecl mkFunc = newRef <$> (char '#' *> ws *> idLit) <*> (ws *> char '=' *> ws *> pattern mkFunc)
 
 -- | For internal testing
-grammar :: MkFunc -> CharParser () Refs
+grammar :: MkFunc -> CharParser () Grammar
 grammar mkFunc = ws *> (foldl1 union <$> many1 (_patternDecl mkFunc <* ws))
     <|> union <$> (newRef "main" <$> pattern mkFunc) <*> (foldl union emptyRef <$> many (ws *> _patternDecl mkFunc <* ws))
 
