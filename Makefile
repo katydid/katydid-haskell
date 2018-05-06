@@ -3,6 +3,9 @@
 test: 
 	stack test
 
+singletest:
+	stack test --ta '-p "Derive"'
+
 test-trace:
 	stack test --trace
 

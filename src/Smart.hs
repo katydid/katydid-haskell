@@ -18,7 +18,7 @@ module Smart (
 
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
-import Data.List (sort, sortBy)
+import Data.List (sort, sortBy, intercalate)
 import Control.Monad (when)
 
 import qualified Expr
@@ -105,7 +105,24 @@ data Pattern = Empty
         , _nullable :: Bool
         , _hash :: Int
     }
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord)
+
+instance Show Pattern where
+    show = toStr
+
+toStr :: Pattern -> String
+toStr Empty = "<empty>"
+toStr Node{expr=e, pat=p} = show e ++ ":" ++ show p
+toStr Concat{left=l,right=r} = "[" ++ show l ++ "," ++ show r ++ "]"
+toStr Or{pats=ps} = "(" ++ intercalate "|" (map show ps) ++ ")"
+toStr And{pats=ps} = "(" ++ intercalate "&" (map show ps) ++ ")"
+toStr ZeroOrMore{pat=p} = "(" ++ show p ++ ")*"
+toStr Reference{refName=(ValidRef n)} = "@"++n
+toStr Not{pat=p} = "!(" ++ show p ++ ")"
+toStr ZAny = "*"
+toStr Contains{pat=p} = "." ++ show p
+toStr Optional{pat=p} = "(" ++ show p ++ ")?"
+toStr Interleave{pats=ps} = "{" ++ intercalate ";" (map show ps) ++ "}"
 
 -- cmp is an efficient comparison function for patterns.
 -- It is very important that cmp is efficient, 

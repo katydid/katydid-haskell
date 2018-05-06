@@ -79,28 +79,28 @@ testDeriv AlgoDeriv name g ts want =
             Derive.derive compiled ts;
         })
         got = nullable p
-    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nstarting grammar = " ++ show g ++ "\nresulting derivative = " ++ show p) want got
 testDeriv AlgoZip name g ts want = 
     let p = either error id (do {
             compiled <- compile g;
             Derive.zipderive compiled ts;
         })
         got = nullable p
-    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nstarting grammar = " ++ show g ++ "\nresulting derivative = " ++ show p) want got
 testDeriv AlgoMap name g ts want  = 
     let p = either error id (do {
             compiled <- compile g;
             MemDerive.derive compiled ts;
         })
         got = nullable p
-    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nstarting grammar = " ++ show g ++ "\nresulting derivative = " ++ show p) want got
 testDeriv AlgoVpa name g ts want  = 
     let p = either error id (do {
             compiled <- compile g;
             VpaDerive.derive compiled ts;
         })
         got = nullable p
-    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nresulting derivative = " ++ show p) want got 
+    in HUnit.assertEqual ("want " ++ show want ++ " got " ++ show got ++ "\nstarting grammar = " ++ show g ++ "\nresulting derivative = " ++ show p) want got
 
 getRelapseJson :: [FilePath] -> FilePath
 getRelapseJson paths = head $ filter (\fname -> takeExtension fname == ".json" && takeBaseName fname == "relapse") paths

@@ -9,6 +9,7 @@
 
 module Derive (
     derive, calls, returns, zipderive
+    , removeOneForEach
 ) where
 
 import Data.Foldable (foldlM)
@@ -62,7 +63,7 @@ returns g (p:tailps, ns) =
     in  dp:returns g (tailps, tailns)
 
 mapReturn :: Grammar -> [Pattern] -> [Bool] -> ([Pattern], [Bool])
-mapReturn g ps ns = foldr (\p (dps, tailns) -> 
+mapReturn g ps ns = foldl (\(dps, tailns) p ->
         let (dp, tailoftail) = deriveReturn g p tailns
         in (dp:dps, tailoftail)
     ) ([], ns) ps
@@ -89,11 +90,11 @@ deriveReturn g And{pats=ps} ns =
     in (foldl1 andPat dps, tailns)
 deriveReturn g Interleave{pats=ps} ns =
     let (dps, tailns) = mapReturn g ps ns
-    in (foldl1 orPat $ imap (\index dp ->
-        let (start, end) = splitAt index ps
-        in foldl1 interleavePat (dp:start ++ tail end)
-    ) dps, tailns)
-deriveReturn g z@ZeroOrMore{pat=p} ns = 
+        pps = reverse $ removeOneForEach ps
+        ips = zipWith (:) dps pps
+        ors = map (foldl1 interleavePat) ips
+    in (foldl1 orPat ors, tailns)
+deriveReturn g z@ZeroOrMore{pat=p} ns =
     let (dp, tailns) = deriveReturn g p ns
     in  (concatPat dp z, tailns)
 deriveReturn g Reference{refName=name} ns = deriveReturn g (lookupRef g name) ns
@@ -101,9 +102,17 @@ deriveReturn g Not{pat=p} ns =
     let (dp, tailns) = deriveReturn g p ns
     in  (notPat dp, tailns)
 deriveReturn g c@Contains{pat=p} ns =
-    let (dp, tailns) = deriveReturn g p ns 
+    let (dp, tailns) = deriveReturn g p ns
     in  (orPat c (containsPat dp), tailns)
 deriveReturn g Optional{pat=p} ns = deriveReturn g p ns
+
+-- | For internal testing
+-- removeOneForEach creates N copies of the list removing the n'th element from each.
+removeOneForEach :: [a] -> [[a]]
+removeOneForEach xs = imap (\index list ->
+        let (start,end) = splitAt index list
+        in start ++ tail end
+    ) (replicate (length xs) xs)
 
 -- |
 -- derive is the classic derivative implementation for trees.
