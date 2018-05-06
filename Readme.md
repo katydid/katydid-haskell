@@ -99,7 +99,6 @@ isPrimeExpr numExpr = trimBool Expr {
 
 ## Roadmap
 
-  - Smart constructors instead of out of band simplification
   - Protobuf parser
   - Profile and Optimize (bring up to par with Go version)
   - Typed DSL (Combinator)
