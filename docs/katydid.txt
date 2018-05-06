@@ -892,7 +892,7 @@ returns :: Grammar -> ([Pattern], [Bool]) -> [Pattern]
 --   intermediate pattern lists to reduce the state space.
 zipderive :: Tree t => Grammar -> [t] -> Either String Pattern
 
--- | For internal testing removeOneForEach creates N copies of the list
+-- | For internal testing. removeOneForEach creates N copies of the list
 --   removing the n'th element from each.
 removeOneForEach :: [a] -> [[a]]
 

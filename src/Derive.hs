@@ -9,6 +9,8 @@
 
 module Derive (
     derive, calls, returns, zipderive
+    -- * Internal functions
+    -- | These functions are exposed for testing purposes.
     , removeOneForEach
 ) where
 
@@ -106,7 +108,7 @@ deriveReturn g c@Contains{pat=p} ns =
     in  (orPat c (containsPat dp), tailns)
 deriveReturn g Optional{pat=p} ns = deriveReturn g p ns
 
--- | For internal testing
+-- | For internal testing.
 -- removeOneForEach creates N copies of the list removing the n'th element from each.
 removeOneForEach :: [a] -> [[a]]
 removeOneForEach xs = imap (\index list ->
