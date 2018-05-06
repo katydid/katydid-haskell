@@ -11,7 +11,7 @@ import qualified Test.Tasty.HUnit as HUnit
 
 import Data.Tree
 import qualified Derive
-import qualified Relapse
+import qualified Parser
 import qualified Smart
 import qualified Parsers
 
@@ -25,15 +25,15 @@ tests = T.testGroup "Derive" [
     T.testGroup "derive" [
         HUnit.testCase "two ors" $
             either HUnit.assertFailure (\(want,got) -> HUnit.assertEqual "(want,got)" want got) $ do {
-                input <- Relapse.parse "(== 1 | !(== 2))";
-                want <- Relapse.parse "*";
+                input <- Parser.parseGrammar "(== 1 | !(== 2))" >>= Smart.compile;
+                want <- Parser.parseGrammar "*" >>= Smart.compile;
                 got <- Derive.derive input [Node (Parsers.Int 1) []];
                 return (Smart.lookupMain want, got)
             }
         , HUnit.testCase "two interleaves" $
             either HUnit.assertFailure (\(want,got) -> HUnit.assertEqual "(want,got)" want got) $ do {
-                input <- Relapse.parse "{== 1 ; !(== 2)}";
-                want <- Relapse.parse "({<empty>;!(==2)}|{==1;*})";
+                input <- Parser.parseGrammar "{== 1 ; !(== 2)}" >>= Smart.compile;
+                want <- Parser.parseGrammar "({<empty>;!(==2)}|{==1;*})" >>= Smart.compile;
                 got <- Derive.derive input [Node (Parsers.Int 1) []];
                 return (Smart.lookupMain want, got)
             }

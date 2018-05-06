@@ -15,6 +15,7 @@ import Numeric (readDec, readOct, readHex, readFloat)
 import Data.Char (chr)
 import qualified Data.Text as Text
 import qualified Data.ByteString.Char8 as ByteString
+import Control.Arrow (left)
 
 import Expr
 import Exprs
@@ -23,16 +24,16 @@ import Exprs.Var
 import Ast
 
 -- | parseGrammar parses the Relapse Grammar.
-parseGrammar :: String -> Either ParseError Grammar
+parseGrammar :: String -> Either String Grammar
 parseGrammar = parseGrammarWithUDFs stdOnly
 
 -- | parseGrammarWithUDFs parses the Relapse Grammar with extra user defined functions.
-parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Grammar
-parseGrammarWithUDFs extraUDFs = 
+parseGrammarWithUDFs :: MkFunc -> String -> Either String Grammar
+parseGrammarWithUDFs extraUDFs str = 
     let mkFunc n es = case mkExpr n es of
             (Left _) -> extraUDFs n es
             (Right v) -> return v
-    in parse (grammar mkFunc <* eof) ""
+    in left show $ parse (grammar mkFunc <* eof) "" str
 
 infixl 4 <++>
 (<++>) :: CharParser () String -> CharParser () String -> CharParser () String

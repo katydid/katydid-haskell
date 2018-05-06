@@ -628,11 +628,11 @@ instance GHC.Classes.Eq Ast.Pattern
 module Parser
 
 -- | parseGrammar parses the Relapse Grammar.
-parseGrammar :: String -> Either ParseError Grammar
+parseGrammar :: String -> Either String Grammar
 
 -- | parseGrammarWithUDFs parses the Relapse Grammar with extra user
 --   defined functions.
-parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Grammar
+parseGrammarWithUDFs :: MkFunc -> String -> Either String Grammar
 
 -- | For internal testing
 grammar :: MkFunc -> CharParser () Grammar
@@ -963,7 +963,9 @@ parse :: String -> Either String Grammar
 -- | parseWithUDFs parses the relapse grammar with extra user defined
 --   functions and returns either a parsed grammar or an error string.
 parseWithUDFs :: MkFunc -> String -> Either String Grammar
-type Grammar = Grammar
+
+-- | Grammar represents a compiled relapse grammar.
+data Grammar
 
 -- | validate returns whether a tree is valid, given the grammar.
 validate :: Tree t => Grammar -> [t] -> Bool

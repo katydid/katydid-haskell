@@ -21,7 +21,6 @@ module Relapse (
 import Prelude hiding (filter)
 import Control.Monad.State (runState)
 import Control.Monad (filterM)
-import Control.Arrow (left)
 
 import qualified Parser
 import qualified Ast
@@ -30,14 +29,15 @@ import qualified Smart
 import Parsers
 import qualified Exprs
 
-type Grammar = Smart.Grammar
+-- | Grammar represents a compiled relapse grammar.
+newtype Grammar = Grammar Smart.Grammar
 
 -- |
 -- parse parses the relapse grammar and returns either a parsed grammar or an error string.
 parse :: String -> Either String Grammar
 parse grammarString = do {
-    parsed <- left show (Parser.parseGrammar grammarString);
-    Smart.compile parsed;
+    parsed <- Parser.parseGrammar grammarString;
+    Grammar <$> Smart.compile parsed;
 }
 
 -- |
@@ -45,8 +45,8 @@ parse grammarString = do {
 -- and returns either a parsed grammar or an error string.
 parseWithUDFs :: Exprs.MkFunc -> String -> Either String Grammar
 parseWithUDFs userLib grammarString = do {
-    parsed <- left show (Parser.parseGrammarWithUDFs userLib grammarString);
-    Smart.compile parsed;
+    parsed <- Parser.parseGrammarWithUDFs userLib grammarString;
+    Grammar <$> Smart.compile parsed;
 }
 
 -- |
@@ -59,7 +59,7 @@ validate g tree = case filter g [tree] of
 -- |
 -- filter returns a filtered list of trees, given the grammar.
 filter :: Tree t => Grammar -> [[t]] -> [[t]]
-filter g trees = 
+filter (Grammar g) trees = 
     let start = Smart.lookupMain g
         f = filterM (MemDerive.validate g start) trees
         (r, _) = runState f MemDerive.newMem
