@@ -25,6 +25,7 @@ import qualified Expr
 import Exprs.Logic (orExpr, andExpr)
 import qualified Ast
 
+-- | compile complies an ast into a smart grammar.
 compile :: Ast.Grammar -> Either String Grammar
 compile g = do {
     Ast.lookupRef g "main"; -- making sure that the main reference exists.
@@ -151,6 +152,7 @@ hash Contains{_hash=h} = h
 hash Optional{_hash=h} = h
 hash Interleave{_hash=h} = h
 
+-- | nullable returns whether the pattern matches the empty string.
 nullable :: Pattern -> Bool
 nullable Empty = True
 nullable Node{} = False
@@ -165,12 +167,15 @@ nullable Contains{_nullable=n} = n
 nullable Optional{} = True
 nullable Interleave{_nullable=n} = n
 
+-- | emptyPat is the smart constructor for the empty pattern.
 emptyPat :: Pattern
 emptyPat = Empty
 
+-- | zanyPat is the smart constructor for the zany pattern.
 zanyPat :: Pattern
 zanyPat = ZAny
 
+-- | notPat is the smart constructor for the not pattern.
 notPat :: Pattern -> Pattern
 notPat Not {pat=p} = p
 notPat p = Not {
@@ -179,9 +184,11 @@ notPat p = Not {
     , _hash = 31 * 7 + hash p
 }
 
+-- | emptySet is the smart constructor for the !(*) pattern.
 emptySet :: Pattern
 emptySet = notPat zanyPat
 
+-- | nodePat is the smart constructor for the node pattern.
 nodePat :: Expr.Expr Bool -> Pattern -> Pattern
 nodePat e p =
     case Expr.evalConst e of
@@ -196,6 +203,7 @@ isLeaf :: Pattern -> Bool
 isLeaf Node{pat=Empty} = True
 isLeaf _ = False
 
+-- | concatPat is the smart constructor for the concat pattern.
 concatPat :: Pattern -> Pattern -> Pattern
 concatPat notZAny@Not{pat=ZAny} _ = notZAny
 concatPat _ notZAny@Not{pat=ZAny} = notZAny
@@ -210,6 +218,7 @@ concatPat a b = Concat {
     , _hash = 31 * (13 + 31 * hash a) + hash b
 }
 
+-- | containsPat is the smart constructor for the contains pattern.
 containsPat :: Pattern -> Pattern
 containsPat Empty = ZAny
 containsPat p@ZAny = p
@@ -220,6 +229,7 @@ containsPat p = Contains {
     , _hash = 31 * 17 + hash p
 }
 
+-- | optionalPat is the smart constructor for the optional pattern.
 optionalPat :: Pattern -> Pattern
 optionalPat p@Empty = p
 optionalPat p@Optional{} = p
@@ -228,6 +238,7 @@ optionalPat p = Optional {
     , _hash = 31 * 19 + hash p
 }
 
+-- | zeroOrMorePat is the smart constructor for the zeroOrMore pattern.
 zeroOrMorePat :: Pattern -> Pattern
 zeroOrMorePat p@ZeroOrMore{} = p
 zeroOrMorePat p = ZeroOrMore {
@@ -235,6 +246,7 @@ zeroOrMorePat p = ZeroOrMore {
     , _hash = 31 * 23 + hash p
 }
 
+-- | refPat is the smart constructor for the reference pattern.
 refPat :: M.Map String Bool -> String -> Either String Pattern
 refPat nullRefs name = 
     case M.lookup name nullRefs of
@@ -245,6 +257,7 @@ refPat nullRefs name =
             , _nullable = n
         }
 
+-- | orPat is the smart constructor for the or pattern.
 orPat :: Pattern -> Pattern -> Pattern
 orPat a b = orPat' $ S.fromList (getOrs a ++ getOrs b)
 
@@ -269,6 +282,7 @@ orPat' ps = ps `returnIfSingleton`
             , _hash = Expr.hashList (31*33) $ map hash psList
         }
 
+-- | andPat is the smart constructor for the and pattern.
 andPat :: Pattern -> Pattern -> Pattern
 andPat a b = andPat' $ S.fromList (getAnds a ++ getAnds b)
 
@@ -340,6 +354,7 @@ containsThird Contains{} _ = LT
 containsThird _ Contains{} = GT
 containsThird a b = compare a b
 
+-- | interleavePat is the smart constructor for the interleave pattern.
 interleavePat :: Pattern -> Pattern -> Pattern
 interleavePat a b = interleavePat' (getInterleaves a ++ getInterleaves b)
 
@@ -397,5 +412,6 @@ lookupRef (Grammar refs) (ValidRef name) =
         Nothing -> error $ "valid reference not found: " ++ name
         (Just p) -> p
 
+-- | lookupMain retrieves the main pattern from the grammar.
 lookupMain :: Grammar -> Pattern
 lookupMain g = lookupRef g (ValidRef "main")

@@ -135,6 +135,12 @@ hasVar :: Expr a -> Bool
 --   parameters.
 hashWithName :: String -> [Desc] -> Int
 
+-- | hashList folds a list of hashes into one, given a seed and the list.
+hashList :: Int -> [Int] -> Int
+
+-- | hashString calcuates a hash of a string.
+hashString :: String -> Int
+
 -- | evalConst tries to evaluate a constant expression and either returns
 --   the resulting constant value or nothing.
 evalConst :: Expr a -> Maybe a
@@ -557,13 +563,13 @@ type MkFunc = String -> [AnyExpr] -> Either String AnyExpr
 stdOnly :: String -> [AnyExpr] -> Either String AnyExpr
 
 
--- | This module describes the patterns supported by Relapse.
+-- | This module describes the Relapse's abstract syntax tree.
 --   
 --   It also contains some simple functions for the map of references that
 --   a Relapse grammar consists of.
 --   
 --   Finally it also contains some very simple pattern functions.
-module Patterns
+module Ast
 
 -- | Pattern recursively describes a Relapse Pattern.
 data Pattern
@@ -582,55 +588,54 @@ Reference :: String -> Pattern
 
 -- | Refs is a map from reference name to pattern and describes a relapse
 --   grammar.
-data Refs
+data Grammar
 
 -- | emptyRef returns an empty reference map.
-emptyRef :: Refs
+emptyRef :: Grammar
 
 -- | union returns the union of two reference maps.
-union :: Refs -> Refs -> Refs
+union :: Grammar -> Grammar -> Grammar
 
 -- | newRef returns a new reference map given a single pattern and its
 --   reference name.
-newRef :: String -> Pattern -> Refs
+newRef :: String -> Pattern -> Grammar
 
 -- | reverseLookupRef returns the reference name for a given pattern.
-reverseLookupRef :: Pattern -> Refs -> Maybe String
+reverseLookupRef :: Pattern -> Grammar -> Maybe String
 
 -- | lookupRef looks up a pattern in the reference map, given a reference
 --   name.
-lookupRef :: Refs -> String -> Pattern
+lookupRef :: Grammar -> String -> Either String Pattern
 
 -- | hasRecursion returns whether an relapse grammar has any recursion,
 --   starting from the "main" reference.
-hasRecursion :: Refs -> Bool
+hasRecursion :: Grammar -> Either String Bool
+
+-- | listRefs returns the list of reference names.
+listRefs :: Grammar -> [String]
 
 -- | The nullable function returns whether a pattern is nullable. This
 --   means that the pattern matches the empty string.
-nullable :: Refs -> Pattern -> Bool
-
--- | unescapable is used for short circuiting. A part of the tree can be
---   skipped if all patterns are unescapable.
-unescapable :: Pattern -> Bool
-instance GHC.Classes.Eq Patterns.Refs
-instance GHC.Show.Show Patterns.Refs
-instance GHC.Show.Show Patterns.Pattern
-instance GHC.Classes.Ord Patterns.Pattern
-instance GHC.Classes.Eq Patterns.Pattern
+nullable :: Grammar -> Pattern -> Either String Bool
+instance GHC.Classes.Eq Ast.Grammar
+instance GHC.Show.Show Ast.Grammar
+instance GHC.Show.Show Ast.Pattern
+instance GHC.Classes.Ord Ast.Pattern
+instance GHC.Classes.Eq Ast.Pattern
 
 
 -- | This module parses the Relapse Grammar using the Parsec Library.
 module Parser
 
 -- | parseGrammar parses the Relapse Grammar.
-parseGrammar :: String -> Either ParseError Refs
+parseGrammar :: String -> Either ParseError Grammar
 
 -- | parseGrammarWithUDFs parses the Relapse Grammar with extra user
 --   defined functions.
-parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Refs
+parseGrammarWithUDFs :: MkFunc -> String -> Either ParseError Grammar
 
 -- | For internal testing
-grammar :: MkFunc -> CharParser () Refs
+grammar :: MkFunc -> CharParser () Grammar
 
 -- | For internal testing
 pattern :: MkFunc -> CharParser () Pattern
@@ -667,7 +672,123 @@ ws :: CharParser () ()
 module Simplify
 
 -- | simplify simplifies an input pattern to an equivalent simpler pattern.
-simplify :: Refs -> Pattern -> Pattern
+simplify :: Grammar -> Pattern -> Pattern
+
+
+-- | This module describes the smart constructors for Relapse patterns.
+module Smart
+
+-- | Pattern recursively describes a Relapse Pattern.
+data Pattern
+Empty :: Pattern
+Node :: Expr Bool -> Pattern -> Int -> Pattern
+[expr] :: Pattern -> Expr Bool
+[pat] :: Pattern -> Pattern
+[_hash] :: Pattern -> Int
+Concat :: Pattern -> Pattern -> Bool -> Int -> Pattern
+[left] :: Pattern -> Pattern
+[right] :: Pattern -> Pattern
+[_nullable] :: Pattern -> Bool
+[_hash] :: Pattern -> Int
+Or :: [Pattern] -> Bool -> Int -> Pattern
+[pats] :: Pattern -> [Pattern]
+[_nullable] :: Pattern -> Bool
+[_hash] :: Pattern -> Int
+And :: [Pattern] -> Bool -> Int -> Pattern
+[pats] :: Pattern -> [Pattern]
+[_nullable] :: Pattern -> Bool
+[_hash] :: Pattern -> Int
+ZeroOrMore :: Pattern -> Int -> Pattern
+[pat] :: Pattern -> Pattern
+[_hash] :: Pattern -> Int
+Reference :: ValidRef -> Bool -> Int -> Pattern
+[refName] :: Pattern -> ValidRef
+[_nullable] :: Pattern -> Bool
+[_hash] :: Pattern -> Int
+Not :: Pattern -> Bool -> Int -> Pattern
+[pat] :: Pattern -> Pattern
+[_nullable] :: Pattern -> Bool
+[_hash] :: Pattern -> Int
+ZAny :: Pattern
+Contains :: Pattern -> Bool -> Int -> Pattern
+[pat] :: Pattern -> Pattern
+[_nullable] :: Pattern -> Bool
+[_hash] :: Pattern -> Int
+Optional :: Pattern -> Int -> Pattern
+[pat] :: Pattern -> Pattern
+[_hash] :: Pattern -> Int
+Interleave :: [Pattern] -> Bool -> Int -> Pattern
+[pats] :: Pattern -> [Pattern]
+[_nullable] :: Pattern -> Bool
+[_hash] :: Pattern -> Int
+
+-- | Grammar is a map from reference name to pattern and describes a
+--   relapse grammar.
+data Grammar
+
+-- | lookupRef looks up a pattern in the reference map, given a reference
+--   name.
+lookupRef :: Grammar -> ValidRef -> Pattern
+
+-- | compile complies an ast into a smart grammar.
+compile :: Grammar -> Either String Grammar
+
+-- | emptyPat is the smart constructor for the empty pattern.
+emptyPat :: Pattern
+
+-- | zanyPat is the smart constructor for the zany pattern.
+zanyPat :: Pattern
+
+-- | nodePat is the smart constructor for the node pattern.
+nodePat :: Expr Bool -> Pattern -> Pattern
+
+-- | orPat is the smart constructor for the or pattern.
+orPat :: Pattern -> Pattern -> Pattern
+
+-- | andPat is the smart constructor for the and pattern.
+andPat :: Pattern -> Pattern -> Pattern
+
+-- | notPat is the smart constructor for the not pattern.
+notPat :: Pattern -> Pattern
+
+-- | concatPat is the smart constructor for the concat pattern.
+concatPat :: Pattern -> Pattern -> Pattern
+
+-- | interleavePat is the smart constructor for the interleave pattern.
+interleavePat :: Pattern -> Pattern -> Pattern
+
+-- | zeroOrMorePat is the smart constructor for the zeroOrMore pattern.
+zeroOrMorePat :: Pattern -> Pattern
+
+-- | optionalPat is the smart constructor for the optional pattern.
+optionalPat :: Pattern -> Pattern
+
+-- | containsPat is the smart constructor for the contains pattern.
+containsPat :: Pattern -> Pattern
+
+-- | refPat is the smart constructor for the reference pattern.
+refPat :: Map String Bool -> String -> Either String Pattern
+
+-- | emptySet is the smart constructor for the !(*) pattern.
+emptySet :: Pattern
+
+-- | unescapable is used for short circuiting. A part of the tree can be
+--   skipped if all patterns are unescapable.
+unescapable :: Pattern -> Bool
+
+-- | nullable returns whether the pattern matches the empty string.
+nullable :: Pattern -> Bool
+
+-- | lookupMain retrieves the main pattern from the grammar.
+lookupMain :: Grammar -> Pattern
+instance GHC.Classes.Eq Smart.Grammar
+instance GHC.Show.Show Smart.Grammar
+instance GHC.Classes.Ord Smart.Pattern
+instance GHC.Classes.Eq Smart.Pattern
+instance GHC.Show.Show Smart.ValidRef
+instance GHC.Classes.Ord Smart.ValidRef
+instance GHC.Classes.Eq Smart.ValidRef
+instance GHC.Show.Show Smart.Pattern
 
 
 -- | This module contains the XML Parser.
@@ -721,7 +842,7 @@ evalIfExprs :: IfExprs -> Label -> Either String [Pattern]
 
 -- | compileIfExprs compiles a list of if expressions in an IfExprs tree,
 --   for efficient evaluation.
-compileIfExprs :: Refs -> [IfExpr] -> IfExprs
+compileIfExprs :: [IfExpr] -> IfExprs
 
 -- | ZippedIfExprs is a tree of if expressions, but with a zipped pattern
 --   list and a zipper on each of the leaves.
@@ -746,7 +867,7 @@ evalZippedIfExprs :: ZippedIfExprs -> Label -> Either String ([Pattern], Zipper)
 module Derive
 
 -- | derive is the classic derivative implementation for trees.
-derive :: Tree t => Refs -> [t] -> Either String Pattern
+derive :: Tree t => Grammar -> [t] -> Either String Pattern
 
 -- | calls returns a compiled if expression tree. Each if expression
 --   returns a child pattern, given the input value. In other words calls
@@ -758,32 +879,36 @@ derive :: Tree t => Refs -> [t] -> Either String Pattern
 --   
 --   , where the resulting list of patterns are the child patterns, that
 --   need to be derived given the trees child values.
-calls :: Refs -> [Pattern] -> IfExprs
+calls :: Grammar -> [Pattern] -> IfExprs
 
 -- | returns takes a list of patterns and list of bools. The list of bools
 --   represent the nullability of the derived child patterns. Each bool
 --   will then replace each Node pattern with either an Empty or EmptySet.
 --   The lists do not to be the same length, because each Pattern can
 --   contain an arbitrary number of Node Patterns.
-returns :: Refs -> ([Pattern], [Bool]) -> [Pattern]
+returns :: Grammar -> ([Pattern], [Bool]) -> [Pattern]
 
 -- | zipderive is a slighty optimized version of derivs. It zips its
 --   intermediate pattern lists to reduce the state space.
-zipderive :: Tree t => Refs -> [t] -> Either String Pattern
+zipderive :: Tree t => Grammar -> [t] -> Either String Pattern
+
+-- | For internal testing removeOneForEach creates N copies of the list
+--   removing the n'th element from each.
+removeOneForEach :: [a] -> [[a]]
 
 
--- | This module contains a VPA (Visual Pushdown Automaton) implementation
+-- | This module contains a VPA (Visibly Pushdown Automaton) implementation
 --   of the internal derivative algorithm.
 --   
 --   It is intended to be used for explanation purposes.
 --   
---   It shows how out algorithm is effective equivalent to a visual
+--   It shows how our algorithm is effectively equivalent to a visibly
 --   pushdown automaton.
 module VpaDerive
 
 -- | derive is the derivative implementation for trees. This implementation
 --   makes use of visual pushdown automata.
-derive :: Tree t => Refs -> [t] -> Either String Pattern
+derive :: Tree t => Grammar -> [t] -> Either String Pattern
 
 
 -- | This module is an efficient implementation of the derivative algorithm
@@ -798,7 +923,7 @@ derive :: Tree t => Refs -> [t] -> Either String Pattern
 module MemDerive
 
 -- | derive is the classic derivative implementation for trees.
-derive :: Tree t => Refs -> [t] -> Either String Pattern
+derive :: Tree t => Grammar -> [t] -> Either String Pattern
 
 -- | Mem is the object used to store memoized results of the nullable,
 --   calls and returns functions.
@@ -808,14 +933,10 @@ data Mem
 --   Each grammar should create its own memoize object.
 newMem :: Mem
 
--- | nullable returns whether a pattern is nullable and memoizes the
---   results.
-nullable :: Refs -> Pattern -> State Mem Bool
-
 -- | validate is the uses the derivative implementation for trees and
 --   return whether tree is valid, given the input grammar and start
 --   pattern.
-validate :: Tree t => Refs -> Pattern -> [t] -> (State Mem) Bool
+validate :: Tree t => Grammar -> Pattern -> [t] -> (State Mem) Bool
 
 
 -- | This module provides an implementation of the relapse validation
@@ -835,17 +956,17 @@ validate :: Tree t => Refs -> Pattern -> [t] -> (State Mem) Bool
 --   root, simply provide a singleton list as input.
 module Relapse
 
--- | parseGrammar parses the relapse grammar and returns either a parsed
---   grammar (Refs, for the list of references) or an error string.
-parseGrammar :: String -> Either String Refs
+-- | parse parses the relapse grammar and returns either a parsed grammar
+--   or an error string.
+parse :: String -> Either String Grammar
 
--- | parseGrammarWithUDFs parses the relapse grammar with extra user
---   defined functions and returns either a parsed grammar (Refs, for the
---   list of references) or an error string.
-parseGrammarWithUDFs :: MkFunc -> String -> Either String Refs
+-- | parseWithUDFs parses the relapse grammar with extra user defined
+--   functions and returns either a parsed grammar or an error string.
+parseWithUDFs :: MkFunc -> String -> Either String Grammar
+type Grammar = Grammar
 
--- | validate returns whether a tree is valid, given the grammar (Refs).
-validate :: Tree t => Refs -> [t] -> Bool
+-- | validate returns whether a tree is valid, given the grammar.
+validate :: Tree t => Grammar -> [t] -> Bool
 
--- | filter returns a filtered list of trees, given the grammar (Refs).
-filter :: Tree t => Refs -> [[t]] -> [[t]]
+-- | filter returns a filtered list of trees, given the grammar.
+filter :: Tree t => Grammar -> [[t]] -> [[t]]
