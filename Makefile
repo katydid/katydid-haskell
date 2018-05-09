@@ -1,19 +1,21 @@
 .PHONY: run test setup bench doc pkg
 
-test: 
+build:
+	stack build --bench --no-run-benchmarks
+
+test: build
 	stack test
 
-singletest:
+singletest: build
 	stack test --ta '-p "Derive"'
 
-test-trace:
+test-trace: build
 	stack test --trace
 
 bench:
 	stack bench
 
-run:
-	stack build
+run: build
 	stack exec katydid-exe
 
 setup:

@@ -15,18 +15,18 @@ import Control.DeepSeq (NFData)
 import GHC.Generics (Generic)
 import Data.Int (Int64)
 
-import Patterns (Refs, hasRecursion)
+import qualified Ast
 import Json (JsonTree, decodeJSON)
 import Xml (decodeXML)
-import Parser (parseGrammar)
+import qualified Parser
 
 import qualified Relapse
 
 runBench :: BenchSuiteCase -> IO Int
 runBench (BenchSuiteCase _ g (XMLDatas inputs)) =
-    return $ length $ Relapse.filter (fromGrammar g) inputs
+    return $ length $ Relapse.filter (compileGrammar g) inputs
 runBench (BenchSuiteCase _ g (JsonDatas inputs)) =
-    return $ length $ Relapse.filter (fromGrammar g) inputs
+    return $ length $ Relapse.filter (compileGrammar g) inputs
 
 readBenches :: IO [BenchSuiteCase]
 readBenches = do {
@@ -39,7 +39,7 @@ readBenches = do {
         -- xmldirs <- ls $ path </> "xml";
         -- xmlBenches <- mapM readXMLBench xmldirs;
         jsonBenches <- mapM readJsonBench jsondirs;
-        return $ filter (\(BenchSuiteCase _ g _) -> not (hasRecursion $ fromGrammar g)) jsonBenches
+        return $ filter (\(BenchSuiteCase _ g _) -> not (hasRecursion g)) jsonBenches
     } else return []
 }
 
@@ -74,8 +74,13 @@ getRelapse paths = head $ filter (\fname -> takeExtension fname == ".txt" && tak
 filesWithExt :: String -> [FilePath] -> [FilePath]
 filesWithExt ext = filter (\fname -> takeExtension fname == ext && takeBaseName fname /= "relapse")
 
-fromGrammar :: String -> Refs
-fromGrammar s = case parseGrammar s of
+compileGrammar :: String -> Relapse.Grammar
+compileGrammar s = case Relapse.parse s of
+    (Left err) -> error $ "given input: <" ++ s ++ "> got compile error: " ++ show err
+    (Right r) -> r
+
+hasRecursion :: String -> Bool
+hasRecursion s = case Parser.parseGrammar s >>= Ast.hasRecursion of
     (Left err) -> error $ "given input: <" ++ s ++ "> got parse error: " ++ show err
     (Right r) -> r
 

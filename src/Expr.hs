@@ -272,10 +272,6 @@ assertListOfBytes :: AnyExpr -> Either String (Expr [ByteString])
 assertListOfBytes (AnyExpr desc (ListOfBytesFunc eval)) = Right $ Expr desc eval
 assertListOfBytes (AnyExpr desc _) = Left $ "expected <" ++ show desc ++ "> to be of type bytes"
 
-(<>) :: Ordering -> Ordering -> Ordering
-(<>) EQ c = c
-(<>) c _ = c
-
 -- cmp is an efficient comparison function for expressions.
 -- It is very important that cmp is efficient, 
 -- because it is a bottleneck for simplification and smart construction of large queries.
