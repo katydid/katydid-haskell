@@ -12,7 +12,7 @@ module VpaDerive (
 import qualified Data.Map.Strict as M
 import Control.Monad.State (State, runState, state, lift)
 import Data.Foldable (foldlM)
-import Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
+import Control.Monad.Trans.Except (ExceptT(..), runExceptT)
 
 import qualified Derive
 import Smart (Grammar, Pattern)
@@ -48,15 +48,18 @@ calls :: [Pattern] -> State Vpa ZippedIfExprs
 calls key = state $ \(Vpa (n, c, r, g)) -> let (v', c') = mem (zipIfExprs . Derive.calls g) key c;
     in (v', Vpa (n, c', r, g))
 
-vpacall :: VpaState -> Label -> EitherT String (State Vpa) (StackElm, VpaState)
+vpacall :: VpaState -> Label -> ExceptT String (State Vpa) (StackElm, VpaState)
 vpacall vpastate label = do {
     zifexprs <- lift $ calls vpastate;
-    (nextstate, zipper) <- hoistEither $ evalZippedIfExprs zifexprs label;
+    (nextstate, zipper) <- hoistExcept $ evalZippedIfExprs zifexprs label;
     let 
         stackelm = (vpastate, zipper)
     ; 
     return (stackelm, nextstate)
 }
+
+hoistExcept :: (Monad m) => Either e a -> ExceptT e m a
+hoistExcept = ExceptT . return
 
 returns :: ([Pattern], Zipper, [Bool]) -> State Vpa [Pattern]
 returns key = state $ \(Vpa (n, c, r, g)) -> 
@@ -70,7 +73,7 @@ vpareturn (vpastate, zipper) current = do {
     returns (vpastate, zipper, zipnulls)
 }
 
-deriv :: Tree t => VpaState -> t -> EitherT String (State Vpa) VpaState
+deriv :: Tree t => VpaState -> t -> ExceptT String (State Vpa) VpaState
 deriv current tree = do {
     (stackelm, nextstate) <- vpacall current (getLabel tree);
     resstate <- foldlM deriv nextstate (getChildren tree);
@@ -80,7 +83,7 @@ deriv current tree = do {
 foldLT :: Tree t => Vpa -> VpaState -> [t] -> Either String [Pattern]
 foldLT _ current [] = return current
 foldLT m current (t:ts) = 
-    let (newstate, newm) = runState (runEitherT $ deriv current t) m
+    let (newstate, newm) = runState (runExceptT $ deriv current t) m
     in case newstate of
         (Left l) -> Left l
         (Right r) -> foldLT newm r ts

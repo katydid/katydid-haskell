@@ -13,7 +13,7 @@ module MemDerive (
 
 import qualified Data.Map.Strict as M
 import Control.Monad.State (State, runState, lift, state)
-import Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
+import Control.Monad.Trans.Except (ExceptT(..), runExceptT)
 
 import qualified Derive
 import Smart (Grammar, Pattern, lookupRef, nullable, lookupMain)
@@ -49,11 +49,11 @@ returns :: Grammar -> ([Pattern], [Bool]) -> State Mem [Pattern]
 returns g k = state $ \(Mem (c, r)) -> let (v', r') = mem (Derive.returns g) k r;
     in (v', Mem (c, r'))
 
-mderive :: Tree t => Grammar -> [Pattern] -> [t] -> EitherT String (State Mem) [Pattern]
+mderive :: Tree t => Grammar -> [Pattern] -> [t] -> ExceptT String (State Mem) [Pattern]
 mderive _ ps [] = return ps
 mderive g ps (tree:ts) = do {
     ifs <- lift $ calls g ps;
-    childps <- hoistEither $ evalIfExprs ifs (getLabel tree);
+    childps <- hoistExcept $ evalIfExprs ifs (getLabel tree);
     (zchildps, zipper) <- return $ zippy childps;
     childres <- mderive g zchildps (getChildren tree);
     let 
@@ -64,12 +64,15 @@ mderive g ps (tree:ts) = do {
     mderive g rs ts
 }
 
+hoistExcept :: (Monad m) => Either e a -> ExceptT e m a
+hoistExcept = ExceptT . return
+
 -- |
 -- derive is the classic derivative implementation for trees.
 derive :: Tree t => Grammar -> [t] -> Either String Pattern
 derive g ts =
     let start = [lookupMain g]
-        (res, _) = runState (runEitherT $ mderive g start ts) newMem
+        (res, _) = runState (runExceptT $ mderive g start ts) newMem
     in case res of
         (Left l) -> Left l
         (Right [r]) -> return r
@@ -80,7 +83,7 @@ derive g ts =
 -- return whether tree is valid, given the input grammar and start pattern.
 validate :: Tree t => Grammar -> Pattern -> [t] -> (State Mem) Bool
 validate g start tree = do {
-    rs <- runEitherT (mderive g [start] tree);
+    rs <- runExceptT (mderive g [start] tree);
     return $ case rs of
         (Right [r]) -> nullable r
         _ -> False
