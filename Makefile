@@ -25,10 +25,7 @@ ide-setup:
 	stack build intero
 
 doc:
-	stack haddock
-	rm -rf docs || true
-	mkdir docs
-	cp -R .stack-work/dist/x86_64-osx/Cabal-2.0.0.2/doc/html/katydid/* ./docs/
+	stack haddock --haddock-arguments "--odir=./docs"
 
 lint:
 	# -XNoPatternSynonyms is a temporary workaround for https://github.com/ndmitchell/hlint/issues/216

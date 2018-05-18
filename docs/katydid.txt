@@ -24,7 +24,7 @@
 --   If you want to implement your own parser then you can look at the
 --   Parsers module
 @package katydid
-@version 0.3.0.0
+@version 0.3.1.0
 
 
 -- | This module describes the abstract tree that can be validated by
