@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: eb9c235e419b3235c0c5d4afeb091cb0c185dc5894997b532fe20644255c1033
+-- hash: 5afbe6708301b18023de469fa4847a36e4c9612c2c60efdbf4e30ad3145b4636
 
 name:           katydid
 version:        0.4.0.1
@@ -22,7 +22,9 @@ extra-source-files:
     Changelog.md
     LICENSE
     Makefile
+    package.yaml
     Readme.md
+    stack.yaml
 
 source-repository head
   type: git

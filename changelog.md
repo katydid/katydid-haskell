@@ -1,18 +1,22 @@
+# 0.4.0.1
+
+Moved all files into move idiomatic folders.
+
 # 0.3.1.0
 
-stopped using outdated EitherT internally
+Fixed build, by removing internal uses of outdated EitherT.
 
 # 0.3.0.1
 
-Smart constructors and user defined functions
+New Smart constructors and user defined functions
 
 # 0.2.0.1
 
-Fixes parsing of builtin regex and contains functions.
+Fixed parsing of builtin regex and contains functions.
 
 # 0.2.0.0
 
-Adds benchmarks
+New benchmarks
 
 # 0.1.1.0
 

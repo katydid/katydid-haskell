@@ -4,34 +4,17 @@
 
 -- | A haskell implementation of Katydid
 --   
---   A haskell implementation of Katydid
---   
---   This includes:
---   
---   <ul>
---   <li>Relapse, a validation Language</li>
---   <li>Parsers for JSON, XML and an abstraction for trees</li>
---   </ul>
---   
---   You should only need the following modules:
---   
---   <ul>
---   <li>The Relapse module is used for validation.</li>
---   <li>The Json and XML modules are used to create Json and XML trees
---   that can be validated.</li>
---   </ul>
---   
---   If you want to implement your own parser then you can look at the
---   Parsers module
+--   Please see the README on GitHub at
+--   <a>https://github.com/katydid/katydid-haskell#readme</a>
 @package katydid
-@version 0.3.1.0
+@version 0.4.0.1
 
 
 -- | This module describes the abstract tree that can be validated by
 --   Relapse.
 --   
 --   The JSON and XML parsers both are both versions of this type class.
-module Parsers
+module Data.Katydid.Parser.Parser
 
 -- | Tree is the type class that should be implemented by a katydid parser.
 --   This is implemented by the Json and XML parser.
@@ -48,27 +31,35 @@ Uint :: Word -> Label
 Double :: Double -> Label
 Bool :: Bool -> Label
 Bytes :: ByteString -> Label
-instance Control.DeepSeq.NFData Parsers.Label
-instance GHC.Generics.Generic Parsers.Label
-instance GHC.Classes.Ord Parsers.Label
-instance GHC.Classes.Eq Parsers.Label
-instance GHC.Show.Show Parsers.Label
+instance Control.DeepSeq.NFData Data.Katydid.Parser.Parser.Label
+instance GHC.Generics.Generic Data.Katydid.Parser.Parser.Label
+instance GHC.Classes.Ord Data.Katydid.Parser.Parser.Label
+instance GHC.Classes.Eq Data.Katydid.Parser.Parser.Label
+instance GHC.Show.Show Data.Katydid.Parser.Parser.Label
 
 
 -- | This module contains the Json Parser.
-module Json
+module Data.Katydid.Parser.Json
 
 -- | decodeJSON returns a JsonTree, given an input string.
 decodeJSON :: String -> Either String [JsonTree]
 
 -- | JsonTree is a tree that can be validated by Relapse.
 type JsonTree = Tree Label
-instance Parsers.Tree Json.JsonTree
+instance Data.Katydid.Parser.Parser.Tree Data.Katydid.Parser.Json.JsonTree
+
+
+-- | This module contains the XML Parser.
+module Data.Katydid.Parser.Xml
+
+-- | decodeXML returns a XmlTree, given an input string.
+decodeXML :: String -> [XmlTree]
+instance Data.Katydid.Parser.Parser.Tree Text.XML.HXT.DOM.TypeDefs.XmlTree
 
 
 -- | This module contains all the functions you need to implement a Relapse
 --   expression.
-module Expr
+module Data.Katydid.Relapse.Expr
 
 -- | Desc is the description of a function, especially built to make
 --   comparisons of user defined expressions possible.
@@ -308,184 +299,82 @@ listOfBytesExpr :: [Expr ByteString] -> Expr [ByteString]
 -- | uintsExpr sequences a list of expressions that each return a uint, to
 --   a single expression that returns a list of uints.
 uintsExpr :: [Expr Word] -> Expr [Word]
-instance GHC.Show.Show (Expr.Expr a)
-instance GHC.Classes.Eq (Expr.Expr a)
-instance GHC.Classes.Ord (Expr.Expr a)
-instance GHC.Show.Show Expr.AnyExpr
-instance GHC.Classes.Eq Expr.AnyExpr
-instance GHC.Classes.Ord Expr.AnyExpr
-instance GHC.Show.Show Expr.Desc
-instance GHC.Classes.Ord Expr.Desc
-instance GHC.Classes.Eq Expr.Desc
+instance GHC.Show.Show (Data.Katydid.Relapse.Expr.Expr a)
+instance GHC.Classes.Eq (Data.Katydid.Relapse.Expr.Expr a)
+instance GHC.Classes.Ord (Data.Katydid.Relapse.Expr.Expr a)
+instance GHC.Show.Show Data.Katydid.Relapse.Expr.AnyExpr
+instance GHC.Classes.Eq Data.Katydid.Relapse.Expr.AnyExpr
+instance GHC.Classes.Ord Data.Katydid.Relapse.Expr.AnyExpr
+instance GHC.Show.Show Data.Katydid.Relapse.Expr.Desc
+instance GHC.Classes.Ord Data.Katydid.Relapse.Expr.Desc
+instance GHC.Classes.Eq Data.Katydid.Relapse.Expr.Desc
 
 
--- | This module contains all expressions for Relapse variables.
-module Exprs.Var
-
--- | varBoolExpr creates a bool variable expression.
-varBoolExpr :: Expr Bool
-
--- | varIntExpr creates an int variable expression.
-varIntExpr :: Expr Int
-
--- | varUintExpr creates a uint variable expression.
-varUintExpr :: Expr Word
-
--- | varDoubleExpr creates a double variable expression.
-varDoubleExpr :: Expr Double
-
--- | varStringExpr creates a string variable expression.
-varStringExpr :: Expr Text
-
--- | varBytesExpr creates a bytes variable expression.
-varBytesExpr :: Expr ByteString
-
--- | isVar returns whether an expression is one of the six variable
---   expressions.
-isVar :: Desc -> Bool
-
-
--- | This module contains the Relapse type expression.
-module Exprs.Type
-
--- | mkTypeExpr is used by the parser to create a type expression for the
---   specific input type.
-mkTypeExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | typeExpr creates an expression that returns true if the containing
---   expression does not return an error. For example: `(typeExpr
---   varBoolExpr)` will ony return true is the field value is a bool.
-typeExpr :: Expr a -> Expr Bool
-
-
--- | This module contains the Relapse string expressions.
-module Exprs.Strings
-
--- | mkHasPrefixExpr dynamically creates a hasPrefix expression.
-mkHasPrefixExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | hasPrefixExpr creates a hasPrefix expression that returns true if the
---   second is a prefix of the first.
-hasPrefixExpr :: Expr Text -> Expr Text -> Expr Bool
-
--- | mkHasSuffixExpr dynamically creates a hasSuffix expression.
-mkHasSuffixExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | hasSuffixExpr creates a hasSuffix expression that returns true if the
---   second is a suffix of the first.
-hasSuffixExpr :: Expr Text -> Expr Text -> Expr Bool
-
--- | mkRegexExpr dynamically creates a regex expression.
-mkRegexExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | regexExpr creates a regex expression that returns true if the first
---   expression matches the second string.
-regexExpr :: Expr Text -> Expr Text -> Expr Bool
-
--- | mkToLowerExpr dynamically creates a toLower expression.
-mkToLowerExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | toLowerExpr creates a toLower expression that converts the input
---   string to a lowercase string.
-toLowerExpr :: Expr Text -> Expr Text
-
--- | mkToUpperExpr dynamically creates a toUpper expression.
-mkToUpperExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | toUpperExpr creates a toUpper expression that converts the input
---   string to an uppercase string.
-toUpperExpr :: Expr Text -> Expr Text
-
-
--- | This module contains the Relapse logic expressions: not, and, or.
-module Exprs.Logic
-
--- | mkNotExpr dynamically creates a not expression, if the single argument
---   is a bool expression.
-mkNotExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | notExpr creates a not expression, that returns true is the argument
---   expression returns an error or false.
-notExpr :: Expr Bool -> Expr Bool
-
--- | mkAndExpr dynamically creates an and expression, if the two arguments
---   are both bool expressions.
-mkAndExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | andExpr creates an and expression that returns true if both arguments
---   are true.
-andExpr :: Expr Bool -> Expr Bool -> Expr Bool
-
--- | mkOrExpr dynamically creates an or expression, if the two arguments
---   are both bool expressions.
-mkOrExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | orExpr creates an or expression that returns true if either argument
---   is true.
-orExpr :: Expr Bool -> Expr Bool -> Expr Bool
-
-
--- | This module contains the Relapse length expressions.
-module Exprs.Length
-
--- | mkLengthExpr dynamically creates a length expression, if the single
---   argument is a list, string or bytes.
-mkLengthExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | lengthListExpr creates a length expression, that returns the length of
---   a list.
-lengthListExpr :: Expr [a] -> Expr Int
-
--- | lengthStringExpr creates a length expression, that returns the length
---   of a string.
-lengthStringExpr :: Expr Text -> Expr Int
-
--- | lengthBytesExpr creates a length expression, that returns the length
---   of bytes.
-lengthBytesExpr :: Expr ByteString -> Expr Int
-
-
--- | This module contains the Relapse elem expression.
-module Exprs.Elem
-
--- | mkElemExpr dynamically creates an elem expression, if the first
---   argument is a list and the second an int index.
-mkElemExpr :: [AnyExpr] -> Either String AnyExpr
-
--- | elemExpr creates an expression that returns an element from the list
---   at the specified index. Trimming this function would cause it to
---   become non generic. It is not necessary to trim each function, since
---   it is just an optimization.
-elemExpr :: Expr [a] -> Expr Int -> Expr a
-
-
--- | This module contains the Relapse contains expressions.
-module Exprs.Contains
-
--- | mkContainsExpr dynamically creates a contains expression, if the two
---   input types are:
+-- | This module describes the Relapse's abstract syntax tree.
 --   
---   <ul>
---   <li>String and String where the second string is the possible
---   substring.</li>
---   <li>A List of :Strings, Ints or Uints paired with a String, Int or
---   Uint respectively.</li>
---   </ul>
-mkContainsExpr :: [AnyExpr] -> Either String AnyExpr
+--   It also contains some simple functions for the map of references that
+--   a Relapse grammar consists of.
+--   
+--   Finally it also contains some very simple pattern functions.
+module Data.Katydid.Relapse.Ast
 
--- | containsStringExpr creates a contains expression that returns true if
---   the second string is a substring of the first.
-containsStringExpr :: Expr Text -> Expr Text -> Expr Bool
+-- | Pattern recursively describes a Relapse Pattern.
+data Pattern
+Empty :: Pattern
+ZAny :: Pattern
+Node :: (Expr Bool) -> Pattern -> Pattern
+Or :: Pattern -> Pattern -> Pattern
+And :: Pattern -> Pattern -> Pattern
+Not :: Pattern -> Pattern
+Concat :: Pattern -> Pattern -> Pattern
+Interleave :: Pattern -> Pattern -> Pattern
+ZeroOrMore :: Pattern -> Pattern
+Optional :: Pattern -> Pattern
+Contains :: Pattern -> Pattern
+Reference :: String -> Pattern
 
--- | containsExpr creates a contains expression that returns true if the
---   first argument is an element in the second list argument.
-containsExpr :: (Eq a) => Expr a -> Expr [a] -> Expr Bool
+-- | Refs is a map from reference name to pattern and describes a relapse
+--   grammar.
+data Grammar
+
+-- | emptyRef returns an empty reference map.
+emptyRef :: Grammar
+
+-- | union returns the union of two reference maps.
+union :: Grammar -> Grammar -> Grammar
+
+-- | newRef returns a new reference map given a single pattern and its
+--   reference name.
+newRef :: String -> Pattern -> Grammar
+
+-- | reverseLookupRef returns the reference name for a given pattern.
+reverseLookupRef :: Pattern -> Grammar -> Maybe String
+
+-- | lookupRef looks up a pattern in the reference map, given a reference
+--   name.
+lookupRef :: Grammar -> String -> Either String Pattern
+
+-- | hasRecursion returns whether an relapse grammar has any recursion,
+--   starting from the "main" reference.
+hasRecursion :: Grammar -> Either String Bool
+
+-- | listRefs returns the list of reference names.
+listRefs :: Grammar -> [String]
+
+-- | The nullable function returns whether a pattern is nullable. This
+--   means that the pattern matches the empty string.
+nullable :: Grammar -> Pattern -> Either String Bool
+instance GHC.Classes.Eq Data.Katydid.Relapse.Ast.Grammar
+instance GHC.Show.Show Data.Katydid.Relapse.Ast.Grammar
+instance GHC.Show.Show Data.Katydid.Relapse.Ast.Pattern
+instance GHC.Classes.Ord Data.Katydid.Relapse.Ast.Pattern
+instance GHC.Classes.Eq Data.Katydid.Relapse.Ast.Pattern
 
 
 -- | This module contains the Relapse compare expressions: equal, not
 --   equal, greater than, greater than or equal, less than and less than or
 --   equal.
-module Exprs.Compare
+module Data.Katydid.Relapse.Exprs.Compare
 
 -- | mkEqExpr dynamically creates an eq (equal) expression, if the two
 --   input types are the same.
@@ -542,9 +431,172 @@ mkLtExpr :: [AnyExpr] -> Either String AnyExpr
 ltExpr :: (Ord a) => Expr a -> Expr a -> Expr Bool
 
 
+-- | This module contains the Relapse contains expressions.
+module Data.Katydid.Relapse.Exprs.Contains
+
+-- | mkContainsExpr dynamically creates a contains expression, if the two
+--   input types are:
+--   
+--   <ul>
+--   <li>String and String where the second string is the possible
+--   substring.</li>
+--   <li>A List of :Strings, Ints or Uints paired with a String, Int or
+--   Uint respectively.</li>
+--   </ul>
+mkContainsExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | containsStringExpr creates a contains expression that returns true if
+--   the second string is a substring of the first.
+containsStringExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | containsExpr creates a contains expression that returns true if the
+--   first argument is an element in the second list argument.
+containsExpr :: (Eq a) => Expr a -> Expr [a] -> Expr Bool
+
+
+-- | This module contains the Relapse elem expression.
+module Data.Katydid.Relapse.Exprs.Elem
+
+-- | mkElemExpr dynamically creates an elem expression, if the first
+--   argument is a list and the second an int index.
+mkElemExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | elemExpr creates an expression that returns an element from the list
+--   at the specified index. Trimming this function would cause it to
+--   become non generic. It is not necessary to trim each function, since
+--   it is just an optimization.
+elemExpr :: Expr [a] -> Expr Int -> Expr a
+
+
+-- | This module contains the Relapse length expressions.
+module Data.Katydid.Relapse.Exprs.Length
+
+-- | mkLengthExpr dynamically creates a length expression, if the single
+--   argument is a list, string or bytes.
+mkLengthExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | lengthListExpr creates a length expression, that returns the length of
+--   a list.
+lengthListExpr :: Expr [a] -> Expr Int
+
+-- | lengthStringExpr creates a length expression, that returns the length
+--   of a string.
+lengthStringExpr :: Expr Text -> Expr Int
+
+-- | lengthBytesExpr creates a length expression, that returns the length
+--   of bytes.
+lengthBytesExpr :: Expr ByteString -> Expr Int
+
+
+-- | This module contains the Relapse string expressions.
+module Data.Katydid.Relapse.Exprs.Strings
+
+-- | mkHasPrefixExpr dynamically creates a hasPrefix expression.
+mkHasPrefixExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | hasPrefixExpr creates a hasPrefix expression that returns true if the
+--   second is a prefix of the first.
+hasPrefixExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | mkHasSuffixExpr dynamically creates a hasSuffix expression.
+mkHasSuffixExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | hasSuffixExpr creates a hasSuffix expression that returns true if the
+--   second is a suffix of the first.
+hasSuffixExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | mkRegexExpr dynamically creates a regex expression.
+mkRegexExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | regexExpr creates a regex expression that returns true if the first
+--   expression matches the second string.
+regexExpr :: Expr Text -> Expr Text -> Expr Bool
+
+-- | mkToLowerExpr dynamically creates a toLower expression.
+mkToLowerExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | toLowerExpr creates a toLower expression that converts the input
+--   string to a lowercase string.
+toLowerExpr :: Expr Text -> Expr Text
+
+-- | mkToUpperExpr dynamically creates a toUpper expression.
+mkToUpperExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | toUpperExpr creates a toUpper expression that converts the input
+--   string to an uppercase string.
+toUpperExpr :: Expr Text -> Expr Text
+
+
+-- | This module contains the Relapse type expression.
+module Data.Katydid.Relapse.Exprs.Type
+
+-- | mkTypeExpr is used by the parser to create a type expression for the
+--   specific input type.
+mkTypeExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | typeExpr creates an expression that returns true if the containing
+--   expression does not return an error. For example: `(typeExpr
+--   varBoolExpr)` will ony return true is the field value is a bool.
+typeExpr :: Expr a -> Expr Bool
+
+
+-- | This module contains all expressions for Relapse variables.
+module Data.Katydid.Relapse.Exprs.Var
+
+-- | varBoolExpr creates a bool variable expression.
+varBoolExpr :: Expr Bool
+
+-- | varIntExpr creates an int variable expression.
+varIntExpr :: Expr Int
+
+-- | varUintExpr creates a uint variable expression.
+varUintExpr :: Expr Word
+
+-- | varDoubleExpr creates a double variable expression.
+varDoubleExpr :: Expr Double
+
+-- | varStringExpr creates a string variable expression.
+varStringExpr :: Expr Text
+
+-- | varBytesExpr creates a bytes variable expression.
+varBytesExpr :: Expr ByteString
+
+-- | isVar returns whether an expression is one of the six variable
+--   expressions.
+isVar :: Desc -> Bool
+
+
+-- | This module contains the Relapse logic expressions: not, and, or.
+module Data.Katydid.Relapse.Exprs.Logic
+
+-- | mkNotExpr dynamically creates a not expression, if the single argument
+--   is a bool expression.
+mkNotExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | notExpr creates a not expression, that returns true is the argument
+--   expression returns an error or false.
+notExpr :: Expr Bool -> Expr Bool
+
+-- | mkAndExpr dynamically creates an and expression, if the two arguments
+--   are both bool expressions.
+mkAndExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | andExpr creates an and expression that returns true if both arguments
+--   are true.
+andExpr :: Expr Bool -> Expr Bool -> Expr Bool
+
+-- | mkOrExpr dynamically creates an or expression, if the two arguments
+--   are both bool expressions.
+mkOrExpr :: [AnyExpr] -> Either String AnyExpr
+
+-- | orExpr creates an or expression that returns true if either argument
+--   is true.
+orExpr :: Expr Bool -> Expr Bool -> Expr Bool
+
+
 -- | This module contains the standard library of expressions, used by the
 --   Relapse parser.
-module Exprs
+module Data.Katydid.Relapse.Exprs
 
 -- | mkBuiltIn parsers a builtin function to a relapse expression.
 mkBuiltIn :: String -> AnyExpr -> Either String AnyExpr
@@ -563,69 +615,8 @@ type MkFunc = String -> [AnyExpr] -> Either String AnyExpr
 stdOnly :: String -> [AnyExpr] -> Either String AnyExpr
 
 
--- | This module describes the Relapse's abstract syntax tree.
---   
---   It also contains some simple functions for the map of references that
---   a Relapse grammar consists of.
---   
---   Finally it also contains some very simple pattern functions.
-module Ast
-
--- | Pattern recursively describes a Relapse Pattern.
-data Pattern
-Empty :: Pattern
-ZAny :: Pattern
-Node :: (Expr Bool) -> Pattern -> Pattern
-Or :: Pattern -> Pattern -> Pattern
-And :: Pattern -> Pattern -> Pattern
-Not :: Pattern -> Pattern
-Concat :: Pattern -> Pattern -> Pattern
-Interleave :: Pattern -> Pattern -> Pattern
-ZeroOrMore :: Pattern -> Pattern
-Optional :: Pattern -> Pattern
-Contains :: Pattern -> Pattern
-Reference :: String -> Pattern
-
--- | Refs is a map from reference name to pattern and describes a relapse
---   grammar.
-data Grammar
-
--- | emptyRef returns an empty reference map.
-emptyRef :: Grammar
-
--- | union returns the union of two reference maps.
-union :: Grammar -> Grammar -> Grammar
-
--- | newRef returns a new reference map given a single pattern and its
---   reference name.
-newRef :: String -> Pattern -> Grammar
-
--- | reverseLookupRef returns the reference name for a given pattern.
-reverseLookupRef :: Pattern -> Grammar -> Maybe String
-
--- | lookupRef looks up a pattern in the reference map, given a reference
---   name.
-lookupRef :: Grammar -> String -> Either String Pattern
-
--- | hasRecursion returns whether an relapse grammar has any recursion,
---   starting from the "main" reference.
-hasRecursion :: Grammar -> Either String Bool
-
--- | listRefs returns the list of reference names.
-listRefs :: Grammar -> [String]
-
--- | The nullable function returns whether a pattern is nullable. This
---   means that the pattern matches the empty string.
-nullable :: Grammar -> Pattern -> Either String Bool
-instance GHC.Classes.Eq Ast.Grammar
-instance GHC.Show.Show Ast.Grammar
-instance GHC.Show.Show Ast.Pattern
-instance GHC.Classes.Ord Ast.Pattern
-instance GHC.Classes.Eq Ast.Pattern
-
-
 -- | This module parses the Relapse Grammar using the Parsec Library.
-module Parser
+module Data.Katydid.Relapse.Parser
 
 -- | parseGrammar parses the Relapse Grammar.
 parseGrammar :: String -> Either String Grammar
@@ -669,14 +660,14 @@ ws :: CharParser () ()
 
 
 -- | This module simplifies Relapse patterns.
-module Simplify
+module Data.Katydid.Relapse.Simplify
 
 -- | simplify simplifies an input pattern to an equivalent simpler pattern.
 simplify :: Grammar -> Pattern -> Pattern
 
 
 -- | This module describes the smart constructors for Relapse patterns.
-module Smart
+module Data.Katydid.Relapse.Smart
 
 -- | Pattern recursively describes a Relapse Pattern.
 data Pattern
@@ -781,28 +772,20 @@ nullable :: Pattern -> Bool
 
 -- | lookupMain retrieves the main pattern from the grammar.
 lookupMain :: Grammar -> Pattern
-instance GHC.Classes.Eq Smart.Grammar
-instance GHC.Show.Show Smart.Grammar
-instance GHC.Classes.Ord Smart.Pattern
-instance GHC.Classes.Eq Smart.Pattern
-instance GHC.Show.Show Smart.ValidRef
-instance GHC.Classes.Ord Smart.ValidRef
-instance GHC.Classes.Eq Smart.ValidRef
-instance GHC.Show.Show Smart.Pattern
-
-
--- | This module contains the XML Parser.
-module Xml
-
--- | decodeXML returns a XmlTree, given an input string.
-decodeXML :: String -> [XmlTree]
-instance Parsers.Tree Text.XML.HXT.DOM.TypeDefs.XmlTree
+instance GHC.Classes.Eq Data.Katydid.Relapse.Smart.Grammar
+instance GHC.Show.Show Data.Katydid.Relapse.Smart.Grammar
+instance GHC.Classes.Ord Data.Katydid.Relapse.Smart.Pattern
+instance GHC.Classes.Eq Data.Katydid.Relapse.Smart.Pattern
+instance GHC.Show.Show Data.Katydid.Relapse.Smart.ValidRef
+instance GHC.Classes.Ord Data.Katydid.Relapse.Smart.ValidRef
+instance GHC.Classes.Eq Data.Katydid.Relapse.Smart.ValidRef
+instance GHC.Show.Show Data.Katydid.Relapse.Smart.Pattern
 
 
 -- | This is an internal relapse module.
 --   
 --   It zips patterns to reduce the state space.
-module Zip
+module Data.Katydid.Relapse.Zip
 
 -- | Zipper represents compressed indexes that resulted from compressing a
 --   list of patterns. This can be used to uncompress a list of bools
@@ -814,16 +797,16 @@ zippy :: [Pattern] -> ([Pattern], Zipper)
 
 -- | unzipby uncompresses a list of bools (nullability of patterns).
 unzipby :: Zipper -> [Bool] -> [Bool]
-instance GHC.Classes.Ord Zip.Zipper
-instance GHC.Classes.Eq Zip.Zipper
-instance GHC.Classes.Ord Zip.ZipEntry
-instance GHC.Classes.Eq Zip.ZipEntry
+instance GHC.Classes.Ord Data.Katydid.Relapse.Zip.Zipper
+instance GHC.Classes.Eq Data.Katydid.Relapse.Zip.Zipper
+instance GHC.Classes.Ord Data.Katydid.Relapse.Zip.ZipEntry
+instance GHC.Classes.Eq Data.Katydid.Relapse.Zip.ZipEntry
 
 
 -- | This is an internal relapse module.
 --   
 --   It contains multiple implementations of if expressions.
-module IfExprs
+module Data.Katydid.Relapse.IfExprs
 
 -- | IfExprs is a tree of if expressions, which contains a list of
 --   resulting patterns on each of its leaves.
@@ -864,7 +847,7 @@ evalZippedIfExprs :: ZippedIfExprs -> Label -> Either String ([Pattern], Zipper)
 --   This means that it gives up speed for readability.
 --   
 --   Thus it has no type of memoization.
-module Derive
+module Data.Katydid.Relapse.Derive
 
 -- | derive is the classic derivative implementation for trees.
 derive :: Tree t => Grammar -> [t] -> Either String Pattern
@@ -904,7 +887,7 @@ removeOneForEach :: [a] -> [[a]]
 --   
 --   It shows how our algorithm is effectively equivalent to a visibly
 --   pushdown automaton.
-module VpaDerive
+module Data.Katydid.Relapse.VpaDerive
 
 -- | derive is the derivative implementation for trees. This implementation
 --   makes use of visual pushdown automata.
@@ -920,7 +903,7 @@ derive :: Tree t => Grammar -> [t] -> Either String Pattern
 --   
 --   This module provides memoization of the nullable, calls and returns
 --   functions.
-module MemDerive
+module Data.Katydid.Relapse.MemDerive
 
 -- | derive is the classic derivative implementation for trees.
 derive :: Tree t => Grammar -> [t] -> Either String Pattern
@@ -954,7 +937,7 @@ validate :: Tree t => Grammar -> Pattern -> [t] -> (State Mem) Bool
 --   example, valid json like "[1, 2]" does not have a single root. Relapse
 --   can also validate these types of trees. If your tree has a single
 --   root, simply provide a singleton list as input.
-module Relapse
+module Data.Katydid.Relapse.Relapse
 
 -- | parse parses the relapse grammar and returns either a parsed grammar
 --   or an error string.

@@ -11,6 +11,8 @@ extra-source-files:
 - LICENSE
 - Makefile
 - Changelog.md
+- package.yaml
+- stack.yaml
 
 # Metadata used when publishing your package
 synopsis:            A haskell implementation of Katydid
