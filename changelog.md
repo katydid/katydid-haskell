@@ -1,3 +1,7 @@
+# 0.4.0.2
+
+Regenerate docs
+
 # 0.4.0.1
 
 Moved all files into move idiomatic folders.
