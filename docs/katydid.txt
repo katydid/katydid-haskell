@@ -7,7 +7,7 @@
 --   Please see the README on GitHub at
 --   <a>https://github.com/katydid/katydid-haskell#readme</a>
 @package katydid
-@version 0.4.0.1
+@version 0.4.0.2
 
 
 -- | This module describes the abstract tree that can be validated by
