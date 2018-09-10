@@ -1,7 +1,7 @@
 -- |
 -- This module contains the Relapse compare expressions: 
 -- equal, not equal, greater than, greater than or equal, less than and less than or equal.
-module Exprs.Compare (
+module Data.Katydid.Relapse.Exprs.Compare (
     mkEqExpr, eqExpr
     , mkNeExpr, neExpr
     , mkGeExpr, geExpr
@@ -10,7 +10,7 @@ module Exprs.Compare (
     , mkLtExpr, ltExpr
 ) where
 
-import Expr
+import Data.Katydid.Relapse.Expr
 
 -- |
 -- mkEqExpr dynamically creates an eq (equal) expression, if the two input types are the same.

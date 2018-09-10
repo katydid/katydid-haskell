@@ -5,7 +5,7 @@
 --
 -- The JSON and XML parsers both are both versions of this type class.
 
-module Parsers (
+module Data.Katydid.Parser.Parser (
     Tree(..), Label(..)
 ) where
 

@@ -5,7 +5,7 @@
 --
 -- It shows how our algorithm is effectively equivalent to a visibly pushdown automaton.
 
-module VpaDerive (
+module Data.Katydid.Relapse.VpaDerive (
     derive      
 ) where
 
@@ -14,13 +14,14 @@ import Control.Monad.State (State, runState, state, lift)
 import Data.Foldable (foldlM)
 import Control.Monad.Trans.Except (ExceptT(..), runExceptT)
 
-import qualified Derive
-import Smart (Grammar, Pattern)
-import qualified Smart
-import IfExprs
-import Expr
-import Zip
-import Parsers
+import Data.Katydid.Parser.Parser
+
+import qualified Data.Katydid.Relapse.Derive as Derive
+import Data.Katydid.Relapse.Smart (Grammar, Pattern)
+import qualified Data.Katydid.Relapse.Smart as Smart
+import Data.Katydid.Relapse.IfExprs
+import Data.Katydid.Relapse.Expr
+import Data.Katydid.Relapse.Zip
 
 mem :: Ord k => (k -> v) -> k -> M.Map k v -> (v, M.Map k v)
 mem f k m

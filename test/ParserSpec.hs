@@ -11,18 +11,18 @@ import qualified Test.Tasty.HUnit as HUnit
 
 import Text.ParserCombinators.Parsec (CharParser, parse, eof)
 
-import Parser
-import Expr
-import Exprs.Compare
-import Exprs.Contains
-import Exprs.Elem
-import Exprs.Length
-import Exprs.Logic
-import Exprs.Strings
-import Exprs.Type
-import Exprs.Var
-import Exprs
-import Ast
+import Data.Katydid.Relapse.Parser
+import Data.Katydid.Relapse.Expr
+import Data.Katydid.Relapse.Exprs.Compare
+import Data.Katydid.Relapse.Exprs.Contains
+import Data.Katydid.Relapse.Exprs.Elem
+import Data.Katydid.Relapse.Exprs.Length
+import Data.Katydid.Relapse.Exprs.Logic
+import Data.Katydid.Relapse.Exprs.Strings
+import Data.Katydid.Relapse.Exprs.Type
+import Data.Katydid.Relapse.Exprs.Var
+import Data.Katydid.Relapse.Exprs
+import Data.Katydid.Relapse.Ast
 
 import UserDefinedFuncs
 

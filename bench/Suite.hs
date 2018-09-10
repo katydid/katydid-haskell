@@ -15,12 +15,12 @@ import Control.DeepSeq (NFData)
 import GHC.Generics (Generic)
 import Data.Int (Int64)
 
-import qualified Ast
-import Json (JsonTree, decodeJSON)
-import Xml (decodeXML)
-import qualified Parser
+import Data.Katydid.Parser.Json (JsonTree, decodeJSON)
+import Data.Katydid.Parser.Xml (decodeXML)
 
-import qualified Relapse
+import qualified Data.Katydid.Relapse.Ast as Ast
+import qualified Data.Katydid.Relapse.Parser as Parser
+import qualified Data.Katydid.Relapse.Relapse as Relapse
 
 runBench :: BenchSuiteCase -> IO Int
 runBench (BenchSuiteCase _ g (XMLDatas inputs)) =

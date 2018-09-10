@@ -78,7 +78,7 @@ The `Expr` library provides many useful helper functions:
 
 ```haskell
 import Data.Numbers.Primes (isPrime)
-import Expr
+import Data.Katydid.Relapse.Expr
 
 userLib :: String -> [AnyExpr] -> Either String AnyExpr
 userLib "isPrime" args = mkIsPrime args

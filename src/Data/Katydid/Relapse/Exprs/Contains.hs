@@ -1,6 +1,6 @@
 -- |
 -- This module contains the Relapse contains expressions.
-module Exprs.Contains (
+module Data.Katydid.Relapse.Exprs.Contains (
     mkContainsExpr
     , containsStringExpr
     , containsExpr
@@ -8,7 +8,7 @@ module Exprs.Contains (
 
 import qualified Data.Text as Text
 
-import Expr
+import Data.Katydid.Relapse.Expr
 
 -- |
 -- mkContainsExpr dynamically creates a contains expression, if the two input types are:

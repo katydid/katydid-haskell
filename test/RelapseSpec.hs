@@ -7,11 +7,13 @@ module RelapseSpec (
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as HUnit
 
-import Relapse
-import Json
+import qualified Data.Katydid.Parser.Json as Json
+
+import qualified Data.Katydid.Relapse.Relapse as Relapse
+import Data.Katydid.Relapse.Expr (AnyExpr)
+import Data.Katydid.Relapse.Exprs (mkExpr)
+
 import UserDefinedFuncs
-import Expr (AnyExpr)
-import Exprs (mkExpr)
 
 tests = T.testGroup "Relapse" [
     HUnit.testCase "parseGrammar success" $ either HUnit.assertFailure (\_ -> return ()) $

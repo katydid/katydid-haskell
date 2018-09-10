@@ -10,14 +10,16 @@ import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as HUnit
 
 import Data.Tree
-import qualified Derive
-import qualified Parser
-import qualified Smart
-import qualified Parsers
+
+import qualified Data.Katydid.Parser.Parser as Parser
+
+import qualified Data.Katydid.Relapse.Derive as Derive
+import qualified Data.Katydid.Relapse.Parser as Relapse.Parser
+import qualified Data.Katydid.Relapse.Smart as Smart
 
 import Data.List.Index (imap)
 
-instance Parsers.Tree (Tree Parsers.Label) where
+instance Parser.Tree (Tree Parser.Label) where
     getLabel (Node l _) = l
     getChildren (Node _ cs) = cs
 
@@ -25,16 +27,16 @@ tests = T.testGroup "Derive" [
     T.testGroup "derive" [
         HUnit.testCase "two ors" $
             either HUnit.assertFailure (\(want,got) -> HUnit.assertEqual "(want,got)" want got) $ do {
-                input <- Parser.parseGrammar "(== 1 | !(== 2))" >>= Smart.compile;
-                want <- Parser.parseGrammar "*" >>= Smart.compile;
-                got <- Derive.derive input [Node (Parsers.Int 1) []];
+                input <- Relapse.Parser.parseGrammar "(== 1 | !(== 2))" >>= Smart.compile;
+                want <- Relapse.Parser.parseGrammar "*" >>= Smart.compile;
+                got <- Derive.derive input [Node (Parser.Int 1) []];
                 return (Smart.lookupMain want, got)
             }
         , HUnit.testCase "two interleaves" $
             either HUnit.assertFailure (\(want,got) -> HUnit.assertEqual "(want,got)" want got) $ do {
-                input <- Parser.parseGrammar "{== 1 ; !(== 2)}" >>= Smart.compile;
-                want <- Parser.parseGrammar "({<empty>;!(==2)}|{==1;*})" >>= Smart.compile;
-                got <- Derive.derive input [Node (Parsers.Int 1) []];
+                input <- Relapse.Parser.parseGrammar "{== 1 ; !(== 2)}" >>= Smart.compile;
+                want <- Relapse.Parser.parseGrammar "({<empty>;!(==2)}|{==1;*})" >>= Smart.compile;
+                got <- Derive.derive input [Node (Parser.Int 1) []];
                 return (Smart.lookupMain want, got)
             }
     ]

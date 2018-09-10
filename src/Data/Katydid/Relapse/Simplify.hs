@@ -3,15 +3,15 @@
 -- |
 -- This module simplifies Relapse patterns.
 
-module Simplify (
+module Data.Katydid.Relapse.Simplify (
     simplify  
 ) where
 
 import qualified Data.Set as S
 
-import Ast
-import Expr
-import Exprs.Logic
+import Data.Katydid.Relapse.Ast
+import Data.Katydid.Relapse.Expr
+import Data.Katydid.Relapse.Exprs.Logic
 
 -- |
 -- simplify simplifies an input pattern to an equivalent simpler pattern.

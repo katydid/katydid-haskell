@@ -3,18 +3,19 @@
 --
 -- It contains multiple implementations of if expressions.
 
-module IfExprs (
+module Data.Katydid.Relapse.IfExprs (
     IfExprs, IfExpr, newIfExpr,
     evalIfExprs, compileIfExprs,
     ZippedIfExprs, zipIfExprs, evalZippedIfExprs
 ) where
 
-import Smart
-import Expr
-import Exprs.Logic
-import Simplify
-import Zip
-import Parsers
+import Data.Katydid.Parser.Parser
+
+import Data.Katydid.Relapse.Smart
+import Data.Katydid.Relapse.Expr
+import Data.Katydid.Relapse.Exprs.Logic
+import Data.Katydid.Relapse.Simplify
+import Data.Katydid.Relapse.Zip
 
 -- |
 -- IfExpr contains a condition and a return pattern for each of the two cases.

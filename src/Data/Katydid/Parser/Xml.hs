@@ -3,7 +3,7 @@
 -- |
 -- This module contains the XML Parser.
 
-module Xml (
+module Data.Katydid.Parser.Xml (
     decodeXML
 ) where
 
@@ -13,7 +13,7 @@ import Text.XML.HXT.Parser.XmlParsec (xread)
 import Data.Tree.NTree.TypeDefs (NTree(..))
 import qualified Data.Text as Text
 
-import Parsers
+import Data.Katydid.Parser.Parser
 
 instance Tree XmlTree where
     getLabel (NTree n _ ) = either (String . Text.pack . ("XML Parse Error:" ++)) id (xmlLabel n)

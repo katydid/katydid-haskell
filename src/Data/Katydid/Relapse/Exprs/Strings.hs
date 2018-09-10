@@ -1,7 +1,7 @@
 -- |
 -- This module contains the Relapse string expressions.
 
-module Exprs.Strings (
+module Data.Katydid.Relapse.Exprs.Strings (
     mkHasPrefixExpr, hasPrefixExpr
     , mkHasSuffixExpr, hasSuffixExpr
     , mkRegexExpr, regexExpr
@@ -12,7 +12,7 @@ module Exprs.Strings (
 import Text.Regex.TDFA ((=~))
 import Data.Text (Text, isPrefixOf, isSuffixOf, toLower, toUpper, unpack)
 
-import Expr
+import Data.Katydid.Relapse.Expr
 
 -- |
 -- mkHasPrefixExpr dynamically creates a hasPrefix expression.

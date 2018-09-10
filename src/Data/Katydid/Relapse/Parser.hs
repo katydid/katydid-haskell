@@ -1,7 +1,7 @@
 -- |
 -- This module parses the Relapse Grammar using the Parsec Library.
 
-module Parser (
+module Data.Katydid.Relapse.Parser (
     -- * Parse Grammar
     parseGrammar, parseGrammarWithUDFs
     -- * Internal functions
@@ -17,11 +17,11 @@ import qualified Data.Text as Text
 import qualified Data.ByteString.Char8 as ByteString
 import Control.Arrow (left)
 
-import Expr
-import Exprs
-import Exprs.Logic
-import Exprs.Var
-import Ast
+import Data.Katydid.Relapse.Expr
+import Data.Katydid.Relapse.Exprs
+import Data.Katydid.Relapse.Exprs.Logic
+import Data.Katydid.Relapse.Exprs.Var
+import Data.Katydid.Relapse.Ast
 
 -- | parseGrammar parses the Relapse Grammar.
 parseGrammar :: String -> Either String Grammar

@@ -7,7 +7,7 @@
 --
 -- This module provides memoization of the nullable, calls and returns functions.
 
-module MemDerive (
+module Data.Katydid.Relapse.MemDerive (
     derive, Mem, newMem, validate
 ) where
 
@@ -15,12 +15,13 @@ import qualified Data.Map.Strict as M
 import Control.Monad.State (State, runState, lift, state)
 import Control.Monad.Trans.Except (ExceptT(..), runExceptT)
 
-import qualified Derive
-import Smart (Grammar, Pattern, lookupRef, nullable, lookupMain)
-import IfExprs
-import Expr
-import Zip
-import Parsers
+import Data.Katydid.Parser.Parser
+
+import qualified Data.Katydid.Relapse.Derive as Derive
+import Data.Katydid.Relapse.Smart (Grammar, Pattern, lookupRef, nullable, lookupMain)
+import Data.Katydid.Relapse.IfExprs
+import Data.Katydid.Relapse.Expr
+import Data.Katydid.Relapse.Zip
 
 mem :: Ord k => (k -> v) -> k -> M.Map k v -> (v, M.Map k v)
 mem f k m

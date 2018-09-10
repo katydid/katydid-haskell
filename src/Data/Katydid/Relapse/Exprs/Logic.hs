@@ -1,13 +1,13 @@
 -- |
 -- This module contains the Relapse logic expressions: not, and, or. 
-module Exprs.Logic (
+module Data.Katydid.Relapse.Exprs.Logic (
     mkNotExpr, notExpr
     , mkAndExpr, andExpr
     , mkOrExpr, orExpr
 ) where
 
-import Expr
-import Exprs.Var
+import Data.Katydid.Relapse.Expr
+import Data.Katydid.Relapse.Exprs.Var
 
 -- |
 -- mkNotExpr dynamically creates a not expression, if the single argument is a bool expression.

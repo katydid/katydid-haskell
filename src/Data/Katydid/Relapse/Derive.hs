@@ -7,7 +7,7 @@
 --
 -- Thus it has no type of memoization.
 
-module Derive (
+module Data.Katydid.Relapse.Derive (
     derive, calls, returns, zipderive
     -- * Internal functions
     -- | These functions are exposed for testing purposes.
@@ -17,11 +17,12 @@ module Derive (
 import Data.Foldable (foldlM)
 import Data.List.Index (imap)
 
-import Smart
-import Parsers
-import Simplify
-import Zip
-import IfExprs
+import Data.Katydid.Parser.Parser
+
+import Data.Katydid.Relapse.Smart
+import Data.Katydid.Relapse.Simplify
+import Data.Katydid.Relapse.Zip
+import Data.Katydid.Relapse.IfExprs
 
 -- | 
 -- calls returns a compiled if expression tree.

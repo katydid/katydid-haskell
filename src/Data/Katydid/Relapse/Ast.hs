@@ -4,7 +4,7 @@
 -- It also contains some simple functions for the map of references that a Relapse grammar consists of.
 --
 -- Finally it also contains some very simple pattern functions.
-module Ast (
+module Data.Katydid.Relapse.Ast (
     Pattern(..)
     , Grammar, emptyRef, union, newRef, reverseLookupRef, lookupRef, hasRecursion, listRefs
     , nullable
@@ -14,7 +14,7 @@ import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import Control.Monad.Extra ((||^), (&&^))
 
-import Expr
+import Data.Katydid.Relapse.Expr
 
 -- |
 -- Pattern recursively describes a Relapse Pattern.

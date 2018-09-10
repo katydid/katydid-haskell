@@ -1,12 +1,12 @@
 -- |
 -- This module contains the Relapse type expression.
 
-module Exprs.Type (
+module Data.Katydid.Relapse.Exprs.Type (
     mkTypeExpr
     , typeExpr
 ) where
 
-import Expr
+import Data.Katydid.Relapse.Expr
 
 -- |
 -- mkTypeExpr is used by the parser to create a type expression for the specific input type.

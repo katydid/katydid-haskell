@@ -1,0 +1,81 @@
+name:                katydid
+version:             0.4.0.1
+github:              "katydid/katydid-haskell"
+license:             BSD3
+author:              "Walter Schulze"
+maintainer:          "awalterschulze@gmail.com"
+copyright:           "Walter Schulze"
+
+extra-source-files:
+- Readme.md
+- LICENSE
+- Makefile
+- Changelog.md
+
+# Metadata used when publishing your package
+synopsis:            A haskell implementation of Katydid
+category:            Data
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/katydid/katydid-haskell#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- containers
+- json
+- hxt
+- regex-tdfa
+- mtl
+- parsec
+- deepseq
+- text
+- bytestring
+- either
+- extra
+- ilist
+- transformers
+
+library:
+  source-dirs: src
+
+executables:
+  katydid-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - katydid
+
+tests:
+  katydid-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - katydid
+    - directory
+    - filepath
+    - HUnit
+    - tasty-hunit
+    - tasty
+    - primes
+
+benchmarks:
+  katydid-benchmark:
+    main: Benchmarks.hs
+    source-dirs: bench
+    ghc-options:
+    - -Wall
+    dependencies:
+    - katydid
+    - criterion >= 1.2.2
+    - directory
+    - filepath

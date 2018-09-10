@@ -1,7 +1,7 @@
 -- |
 -- This module contains all the functions you need to implement a Relapse expression.
 
-module Expr (
+module Data.Katydid.Relapse.Expr (
     Desc(..), mkDesc
     , AnyExpr(..), AnyFunc(..)
     , Expr(..), Func, params, name, hasVar
@@ -22,7 +22,7 @@ import Data.List (intercalate)
 import Data.Text (Text, unpack, pack)
 import Data.ByteString (ByteString)
 
-import qualified Parsers
+import qualified Data.Katydid.Parser.Parser as Parser
 
 -- |
 -- assertArgs1 asserts that the list of arguments is only one argument and 
@@ -82,7 +82,7 @@ data AnyExpr = AnyExpr {
 -- |
 -- Func represents the evaluation function part of a user defined expression.
 -- This function takes a label from a tree parser and returns a value or an error string.
-type Func a = (Parsers.Label -> Either String a)
+type Func a = (Parser.Label -> Either String a)
 
 instance Show AnyExpr where
     show a = show (_desc a)
@@ -297,8 +297,8 @@ hashString s = hashList 0 (map ord s)
 hashList :: Int -> [Int] -> Int
 hashList = foldl (\acc h -> 31*acc + h)
 
-noLabel :: Parsers.Label
-noLabel = Parsers.String (pack "not a label, trying constant evaluation")
+noLabel :: Parser.Label
+noLabel = Parser.String (pack "not a label, trying constant evaluation")
 
 -- |
 -- evalConst tries to evaluate a constant expression and 

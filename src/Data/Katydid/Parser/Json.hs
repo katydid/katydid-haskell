@@ -3,7 +3,7 @@
 -- |
 -- This module contains the Json Parser.
 
-module Json (
+module Data.Katydid.Parser.Json (
     decodeJSON, JsonTree
 ) where
 
@@ -12,7 +12,7 @@ import Data.Ratio (denominator)
 import Data.Text (pack)
 
 import qualified Data.Tree as DataTree
-import Parsers
+import Data.Katydid.Parser.Parser
 
 instance Tree JsonTree where
     getLabel (DataTree.Node l _) = l

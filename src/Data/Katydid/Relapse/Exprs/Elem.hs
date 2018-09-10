@@ -1,11 +1,11 @@
 -- |
 -- This module contains the Relapse elem expression.
-module Exprs.Elem (
+module Data.Katydid.Relapse.Exprs.Elem (
     mkElemExpr
     , elemExpr
 ) where
 
-import Expr
+import Data.Katydid.Relapse.Expr
 
 -- |
 -- mkElemExpr dynamically creates an elem expression, if the first argument is a list and the second an int index.

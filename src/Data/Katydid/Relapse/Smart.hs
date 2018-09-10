@@ -1,6 +1,6 @@
 -- |
 -- This module describes the smart constructors for Relapse patterns.
-module Smart (
+module Data.Katydid.Relapse.Smart (
     Pattern(..)
     , Grammar
     , lookupRef
@@ -21,9 +21,9 @@ import qualified Data.Set as S
 import Data.List (sort, sortBy, intercalate)
 import Control.Monad (when)
 
-import qualified Expr
-import Exprs.Logic (orExpr, andExpr)
-import qualified Ast
+import qualified Data.Katydid.Relapse.Expr as Expr
+import Data.Katydid.Relapse.Exprs.Logic (orExpr, andExpr)
+import qualified Data.Katydid.Relapse.Ast as Ast
 
 -- | compile complies an ast into a smart grammar.
 compile :: Ast.Grammar -> Either String Grammar

@@ -13,7 +13,7 @@
 -- Relapse can also validate these types of trees.  
 -- If your tree has a single root, simply provide a singleton list as input.
 
-module Relapse (
+module Data.Katydid.Relapse.Relapse (
     parse, parseWithUDFs, Grammar
     , validate, filter
 ) where
@@ -22,12 +22,13 @@ import Prelude hiding (filter)
 import Control.Monad.State (runState)
 import Control.Monad (filterM)
 
-import qualified Parser
-import qualified Ast
-import qualified MemDerive
-import qualified Smart
-import Parsers
-import qualified Exprs
+import Data.Katydid.Parser.Parser
+
+import qualified Data.Katydid.Relapse.Parser as Parser
+import qualified Data.Katydid.Relapse.Ast as Ast
+import qualified Data.Katydid.Relapse.MemDerive as MemDerive
+import qualified Data.Katydid.Relapse.Smart as Smart
+import qualified Data.Katydid.Relapse.Exprs as Exprs
 
 -- | Grammar represents a compiled relapse grammar.
 newtype Grammar = Grammar Smart.Grammar

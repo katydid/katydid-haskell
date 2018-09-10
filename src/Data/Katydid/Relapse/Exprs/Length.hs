@@ -1,6 +1,6 @@
 -- |
 -- This module contains the Relapse length expressions.
-module Exprs.Length (
+module Data.Katydid.Relapse.Exprs.Length (
     mkLengthExpr
     , lengthListExpr
     , lengthStringExpr
@@ -10,7 +10,7 @@ module Exprs.Length (
 import qualified Data.Text as Text
 import qualified Data.ByteString as ByteString
 
-import Expr
+import Data.Katydid.Relapse.Expr
 
 -- |
 -- mkLengthExpr dynamically creates a length expression, if the single argument is a list, string or bytes.

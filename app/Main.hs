@@ -1,7 +1,7 @@
 module Main where
 
-import qualified Relapse
-import qualified Json
+import qualified Data.Katydid.Relapse.Relapse as Relapse
+import qualified Data.Katydid.Parser.Json as Json
 
 main :: IO ()
 main = either 

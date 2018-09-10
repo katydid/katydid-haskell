@@ -3,14 +3,14 @@
 --
 -- It zips patterns to reduce the state space.
 
-module Zip (
+module Data.Katydid.Relapse.Zip (
     Zipper, zippy, unzipby
 ) where
 
 import qualified Data.Set as S
 import Data.List (elemIndex)
 
-import Smart
+import Data.Katydid.Relapse.Smart
 
 data ZipEntry = ZipVal Int | ZipZAny | ZipNotZAny
     deriving (Eq, Ord)

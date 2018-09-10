@@ -11,16 +11,16 @@ import System.Directory (getCurrentDirectory, listDirectory, doesDirectoryExist)
 import System.FilePath (FilePath, (</>), takeExtension, takeBaseName, takeDirectory)
 import Text.XML.HXT.DOM.TypeDefs (XmlTree)
 
-import Parsers (Tree)
-import Smart (Grammar, Pattern, nullable, compile)
-import qualified Ast
-import Json (JsonTree, decodeJSON)
-import Xml (decodeXML)
-import Parser (parseGrammar)
+import Data.Katydid.Parser.Parser (Tree)
+import Data.Katydid.Parser.Json (JsonTree, decodeJSON)
+import Data.Katydid.Parser.Xml (decodeXML)
 
-import qualified Derive
-import qualified MemDerive
-import qualified VpaDerive
+import Data.Katydid.Relapse.Smart (Grammar, Pattern, nullable, compile)
+import qualified Data.Katydid.Relapse.Ast as Ast
+import Data.Katydid.Relapse.Parser (parseGrammar)
+import qualified Data.Katydid.Relapse.Derive as Derive
+import qualified Data.Katydid.Relapse.MemDerive as MemDerive
+import qualified Data.Katydid.Relapse.VpaDerive as VpaDerive
 
 tests :: [TestSuiteCase] -> T.TestTree
 tests testSuiteCases = 

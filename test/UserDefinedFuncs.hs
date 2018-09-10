@@ -9,7 +9,7 @@ import qualified Data.Text
 
 import Data.Numbers.Primes (isPrime)
 
-import Expr
+import Data.Katydid.Relapse.Expr
 
 -- |
 -- userLib is a library of user defined functions that can be passed to the parser.

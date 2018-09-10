@@ -1,7 +1,7 @@
 -- |
 -- This module contains all expressions for Relapse variables.
 
-module Exprs.Var (
+module Data.Katydid.Relapse.Exprs.Var (
     varBoolExpr
     , varIntExpr
     , varUintExpr
@@ -14,8 +14,9 @@ module Exprs.Var (
 import Data.Text (Text)
 import Data.ByteString (ByteString)
 
-import qualified Parsers
-import Expr
+import qualified Data.Katydid.Parser.Parser as Parser
+
+import Data.Katydid.Relapse.Expr
 
 -- |
 -- isVar returns whether an expression is one of the six variable expressions.
@@ -41,7 +42,7 @@ varBoolExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Bool b) -> Right b
+        (Parser.Bool b) -> Right b
         _ -> Left "not a bool"
 }
 
@@ -57,7 +58,7 @@ varIntExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Int i) -> Right i
+        (Parser.Int i) -> Right i
         _ -> Left "not an int"
 }
 
@@ -73,7 +74,7 @@ varUintExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Uint u) -> Right u
+        (Parser.Uint u) -> Right u
         _ -> Left "not a uint"
 }
 
@@ -89,7 +90,7 @@ varDoubleExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Double d) -> Right d
+        (Parser.Double d) -> Right d
         _ -> Left "not a double"
 }
 
@@ -105,7 +106,7 @@ varStringExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.String s) -> Right s
+        (Parser.String s) -> Right s
         _ -> Left "not a string"
 }
 
@@ -121,6 +122,6 @@ varBytesExpr = Expr {
         , _hasVar = True
     }
     , eval = \l -> case l of
-        (Parsers.Bytes b) -> Right b
+        (Parser.Bytes b) -> Right b
         _ -> Left "not bytes"
 }
