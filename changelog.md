@@ -1,6 +1,6 @@
 # 0.4.0.2
 
-Regenerate docs
+Regenerated docs
 
 # 0.4.0.1
 
