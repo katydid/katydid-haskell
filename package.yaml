@@ -10,7 +10,7 @@ extra-source-files:
 - Readme.md
 - LICENSE
 - Makefile
-- Changelog.md
+- CHANGELOG.md
 - package.yaml
 - stack.yaml
 

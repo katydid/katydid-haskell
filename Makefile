@@ -28,9 +28,6 @@ setup:
 	stack setup
 	stack install brittany
 
-ide-setup:
-	stack build intero
-
 doc:
 	stack haddock --haddock-arguments "--odir=./docs"
 
