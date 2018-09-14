@@ -40,5 +40,4 @@ script:
 # Build the package, its tests, and its docs and run the tests
 - make test
 - make fmt
-- make doc
 - git diff --exit-code
