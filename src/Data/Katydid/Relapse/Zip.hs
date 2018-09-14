@@ -3,14 +3,17 @@
 --
 -- It zips patterns to reduce the state space.
 
-module Data.Katydid.Relapse.Zip (
-    Zipper, zippy, unzipby
-) where
+module Data.Katydid.Relapse.Zip
+  ( Zipper
+  , zippy
+  , unzipby
+  )
+where
 
-import qualified Data.Set as S
-import Data.List (elemIndex)
+import qualified Data.Set                      as S
+import           Data.List                      ( elemIndex )
 
-import Data.Katydid.Relapse.Smart
+import           Data.Katydid.Relapse.Smart
 
 data ZipEntry = ZipVal Int | ZipZAny | ZipNotZAny
     deriving (Eq, Ord)
@@ -25,23 +28,23 @@ newtype Zipper = Zipper [ZipEntry]
 -- | zippy compresses a list of patterns.
 zippy :: [Pattern] -> ([Pattern], Zipper)
 zippy ps =
-    let s = S.fromList ps
-        s' = S.delete ZAny s
-        s'' = S.delete emptySet s'
-        l = S.toAscList s''
-    in (l, Zipper $ map (indexOf l) ps)
+  let s   = S.fromList ps
+      s'  = S.delete ZAny s
+      s'' = S.delete emptySet s'
+      l   = S.toAscList s''
+  in  (l, Zipper $ map (indexOf l) ps)
 
 indexOf :: [Pattern] -> Pattern -> ZipEntry
-indexOf _ ZAny = ZipZAny
-indexOf _ Not{pat=ZAny} = ZipNotZAny
-indexOf ps p = case elemIndex p ps of
-    (Just i) -> ZipVal i
+indexOf _  ZAny               = ZipZAny
+indexOf _  Not { pat = ZAny } = ZipNotZAny
+indexOf ps p                  = case elemIndex p ps of
+  (Just i) -> ZipVal i
 
 -- | unzipby uncompresses a list of bools (nullability of patterns).
 unzipby :: Zipper -> [Bool] -> [Bool]
 unzipby (Zipper z) bs = map (ofIndexb bs) z
 
 ofIndexb :: [Bool] -> ZipEntry -> Bool
-ofIndexb _ ZipZAny = True
-ofIndexb _ ZipNotZAny = False
+ofIndexb _  ZipZAny    = True
+ofIndexb _  ZipNotZAny = False
 ofIndexb bs (ZipVal i) = bs !! i

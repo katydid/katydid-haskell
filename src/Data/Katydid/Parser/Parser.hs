@@ -5,14 +5,16 @@
 --
 -- The JSON and XML parsers both are both versions of this type class.
 
-module Data.Katydid.Parser.Parser (
-    Tree(..), Label(..)
-) where
+module Data.Katydid.Parser.Parser
+  ( Tree(..)
+  , Label(..)
+  )
+where
 
-import Control.DeepSeq (NFData)
-import GHC.Generics (Generic)
-import Data.Text (Text)
-import Data.ByteString (ByteString)
+import           Control.DeepSeq                ( NFData )
+import           GHC.Generics                   ( Generic )
+import           Data.Text                      ( Text )
+import           Data.ByteString                ( ByteString )
 
 -- |
 -- Label is a tagged union of all possible value types that can returned by a katydid parser: 

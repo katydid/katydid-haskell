@@ -18,8 +18,15 @@ bench:
 run: build
 	stack exec katydid-exe
 
+fmt:
+	brittany --write-mode=inplace *.hs
+	brittany --write-mode=inplace **/*.hs
+	brittany --write-mode=inplace ./src/Data/Katydid/**/*.hs
+	brittany --write-mode=inplace ./src/Data/Katydid/Relapse/**/*.hs
+
 setup:
 	stack setup
+	stack install brittany
 
 ide-setup:
 	stack build intero
