@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+package person;
+
+import "phone.proto";
+
+message Person {
+    optional string Name = 1;
+    optional PersonAddress Address = 2;
+    repeated phone.PhoneNumber PhoneNumbers = 3;
+
+    message PersonAddress {
+        optional string Street = 1;
+        optional uint64 Number = 2;
+    }
+}

@@ -15,11 +15,14 @@ import           System.Directory               ( getCurrentDirectory
                                                 )
 import           System.FilePath                ( FilePath
                                                 , (</>)
-                                                , takeExtension
+                                                , isExtensionOf
                                                 , takeBaseName
                                                 , takeDirectory
                                                 )
 import           Text.XML.HXT.DOM.TypeDefs      ( XmlTree )
+import           Data.ByteString                ( ByteString )
+import           Data.ByteString.Char8          ( pack )
+import           Data.Foldable                  ( foldrM )
 
 import           Data.Katydid.Parser.Parser     ( Tree )
 import           Data.Katydid.Parser.Json       ( JsonTree
@@ -63,12 +66,23 @@ readTestCases = do
   exists <- doesDirectoryExist path
   if exists
     then do
-      jsondirs      <- ls $ path </> "json"
-      xmldirs       <- ls $ path </> "xml"
-      xmlTestCases  <- mapM readXMLTest xmldirs
-      jsonTestCases <- mapM readJsonTest jsondirs
+      jsondirs          <- ls $ path </> "json"
+      xmldirs           <- ls $ path </> "xml"
+      pbls              <- ls $ path </> "pb"
+      (pbdirs, pbfiles) <- partitionM doesDirectoryExist pbls
+      xmlTestCases      <- mapM readXMLTest xmldirs
+      jsonTestCases     <- mapM readJsonTest jsondirs
+      pbTestCases       <- mapM readProtoTest pbdirs
       return $ jsonTestCases ++ xmlTestCases
     else return []
+
+partitionM :: (Monad m) => (a -> m Bool) -> [a] -> m ([a], [a])
+partitionM pred = foldrM (selectM pred) ([], [])
+
+selectM :: (Monad m) => (a -> m Bool) -> a -> ([a], [a]) -> m ([a], [a])
+selectM pred x (a, b) = do
+  p <- pred x
+  return $ if p then (x : a, b) else (a, x : b)
 
 data TestSuiteCase = TestSuiteCase {
     name        :: String
@@ -183,14 +197,9 @@ testDeriv AlgoVpa name g ts want =
         want
         got
 
-getRelapseJson :: [FilePath] -> FilePath
-getRelapseJson paths = head $ filter
-  (\fname -> takeExtension fname == ".json" && takeBaseName fname == "relapse")
-  paths
-
-getRelapse :: [FilePath] -> FilePath
-getRelapse paths = head $ filter
-  (\fname -> takeExtension fname == ".txt" && takeBaseName fname == "relapse")
+getGrammar :: [FilePath] -> FilePath
+getGrammar paths = head $ filter
+  (\fname -> "txt" `isExtensionOf` fname && takeBaseName fname == "relapse")
   paths
 
 isValidCase :: [FilePath] -> Bool
@@ -199,11 +208,11 @@ isValidCase paths =
 
 filepathWithExt :: [FilePath] -> String -> FilePath
 filepathWithExt paths ext = head $ filter
-  (\fname -> takeExtension fname == ext && takeBaseName fname /= "relapse")
+  (\fname -> ext `isExtensionOf` fname && takeBaseName fname /= "relapse")
   paths
 
-fromGrammar :: String -> Ast.Grammar
-fromGrammar s = case parseGrammar s of
+mkAst :: String -> Ast.Grammar
+mkAst s = case parseGrammar s of
   (Left err) ->
     error $ "given input: <" ++ s ++ "> got parse error: " ++ show err
   (Right g) -> g
@@ -211,32 +220,59 @@ fromGrammar s = case parseGrammar s of
 readJsonTest :: FilePath -> IO TestSuiteCase
 readJsonTest path = do
   files       <- ls path
-  grammarData <- readFile $ getRelapse files
-  jsonData    <- readFile $ filepathWithExt files ".json"
+  grammarData <- readFile $ getGrammar files
+  jsonData    <- readFile $ filepathWithExt files "json"
   let jValue = case decodeJSON jsonData of
         (Left  e) -> error e
         (Right r) -> r
   return $ TestSuiteCase (takeBaseName path)
-                         (fromGrammar grammarData)
+                         (mkAst grammarData)
                          (JsonData jValue)
                          (isValidCase files)
 
 readXMLTest :: FilePath -> IO TestSuiteCase
 readXMLTest path = do
   files       <- ls path
-  grammarData <- readFile $ getRelapse files
-  xmlData     <- readFile $ filepathWithExt files ".xml"
+  grammarData <- readFile $ getGrammar files
+  xmlData     <- readFile $ filepathWithExt files "xml"
   return $ TestSuiteCase (takeBaseName path)
-                         (fromGrammar grammarData)
+                         (mkAst grammarData)
                          (XMLData $ decodeXML xmlData)
                          (isValidCase files)
 
+readProtoTest :: FilePath -> IO TestSuiteCase
+readProtoTest path = do
+  files       <- ls path
+  grammarData <- readFile $ getGrammar files
+  let pbFilename = filepathWithExt files "pb"
+  jsonData <- readFile pbFilename
+  let jValue = case decodeJSON jsonData of
+        (Left  e) -> error e
+        (Right r) -> r
+  return $ TestSuiteCase (takeBaseName path)
+                         (mkAst grammarData)
+                         (JsonData jValue)
+                         (isValidCase files)
+
+type FileDescriptor = (FilePath, ByteString)
+
+readDescs :: FilePath -> IO [FileDescriptor]
+readDescs path = do
+  dirs <- ls path
+  let filenames = filter (\fname -> "desc" `isExtensionOf` fname) dirs
+  datas <- mapM readFile filenames
+  let databytes = map pack datas
+  return $ zip filenames databytes
+
 ls :: FilePath -> IO [FilePath]
 ls path = do
-  dirs <- listDirectory path
-  return $ map (path </>) dirs
+  files <- listDirectory path
+  let nohidden  = filter (\name -> takeBaseName name /= "") files
+  let fullpaths = map (path </>) nohidden
+  return fullpaths
 
 testPath :: IO FilePath
 testPath = do
-  path <- getCurrentDirectory
-  return $ takeDirectory path </> "testsuite" </> "relapse" </> "tests"
+  cur <- getCurrentDirectory
+  let up = takeDirectory cur
+  return $ up </> "testsuite" </> "relapse" </> "tests"

@@ -29,8 +29,7 @@ tests = T.testGroup
   [ T.testGroup
     "derive"
     [ HUnit.testCase "two ors"
-    $ either HUnit.assertFailure
-             (\(want, got) -> HUnit.assertEqual "(want,got)" want got)
+    $ either HUnit.assertFailure (uncurry $ HUnit.assertEqual "(want,got)")
     $ do
         input <-
           Relapse.Parser.parseGrammar "(== 1 | !(== 2))" >>= Smart.compile
@@ -38,8 +37,7 @@ tests = T.testGroup
         got  <- Derive.derive input [Node (Parser.Int 1) []]
         return (Smart.lookupMain want, got)
     , HUnit.testCase "two interleaves"
-    $ either HUnit.assertFailure
-             (\(want, got) -> HUnit.assertEqual "(want,got)" want got)
+    $ either HUnit.assertFailure (uncurry $ HUnit.assertEqual "(want,got)")
     $ do
         input <-
           Relapse.Parser.parseGrammar "{== 1 ; !(== 2)}" >>= Smart.compile

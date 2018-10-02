@@ -388,7 +388,7 @@ returnIfOnlyOne :: [Pattern] -> ([Pattern] -> Pattern) -> Pattern
 returnIfOnlyOne xs f = if length xs == 1 then head xs else f xs
 
 delete :: Pattern -> [Pattern] -> [Pattern]
-delete removeItem = filter (not . (\p -> p == removeItem))
+delete removeItem = filter (/= removeItem)
 
 -- |
 -- unescapable is used for short circuiting.

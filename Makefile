@@ -7,7 +7,7 @@ test: build
 	stack test
 
 singletest: build
-	stack test --ta '-p "Derive"'
+	stack test --ta '-p "Data.Katydid.Parser.Protobuf.Protobuf"'
 
 test-trace: build
 	stack test --trace
@@ -23,6 +23,31 @@ fmt:
 	brittany --write-mode=inplace **/*.hs
 	brittany --write-mode=inplace ./src/Data/Katydid/**/*.hs
 	brittany --write-mode=inplace ./src/Data/Katydid/Relapse/**/*.hs
+
+regenerate:
+	# If this does not work, then try stack install proto-lens-setup
+	stack install proto-lens-protoc
+	# If you don't have protoc then install it https://github.com/google/proto-lens/blob/master/docs/installing-protoc.md
+	(cd src/Data/Katydid/Parser/Protobuf/Testdata && protoc --plugin=protoc-gen-haskell=`which proto-lens-protoc` --haskell_out=. *.proto)
+	(cd src/Data/Katydid/Parser/Protobuf/Testdata \
+		&& sed -e 's/module Proto.Phone/module Data.Katydid.Parser.Protobuf.Testdata.Proto.Phone/g' ./Proto/Phone_Fields.hs > ./Proto/Phone_Fields.hs.bak \
+		; mv ./Proto/Phone_Fields.hs.bak ./Proto/Phone_Fields.hs \
+		\
+		; sed -e 's/module Proto.Phone/module Data.Katydid.Parser.Protobuf.Testdata.Proto.Phone/g' ./Proto/Phone.hs > ./Proto/Phone.hs.bak \
+		; mv ./Proto/Phone.hs.bak ./Proto/Phone.hs \
+		\
+		; sed -e 's/module Proto.Person/module Data.Katydid.Parser.Protobuf.Testdata.Proto.Person/g' ./Proto/Person_Fields.hs > ./Proto/Person_Fields.hs.bak \
+		; mv ./Proto/Person_Fields.hs.bak ./Proto/Person_Fields.hs \
+		\
+		; sed -e 's/import qualified Proto.Phone/import qualified Data.Katydid.Parser.Protobuf.Testdata.Proto.Phone as Proto.Phone/g' ./Proto/Person_Fields.hs > ./Proto/Person_Fields.hs.bak \
+		; mv ./Proto/Person_Fields.hs.bak ./Proto/Person_Fields.hs \
+		\
+		; sed -e 's/module Proto.Person/module Data.Katydid.Parser.Protobuf.Testdata.Proto.Person/g' ./Proto/Person.hs > ./Proto/Person.hs.bak \
+		; mv ./Proto/Person.hs.bak ./Proto/Person.hs \
+		\
+		; sed -e 's/import qualified Proto.Phone/import qualified Data.Katydid.Parser.Protobuf.Testdata.Proto.Phone as Proto.Phone/g' ./Proto/Person.hs > ./Proto/Person.hs.bak \
+		; mv ./Proto/Person.hs.bak ./Proto/Person.hs)
+		
 
 setup:
 	stack setup

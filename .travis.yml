@@ -35,9 +35,11 @@ install:
 # Build dependencies
 - stack --no-terminal --install-ghc test --only-dependencies
 - stack install brittany
+- stack install proto-lens-protoc
 
 script:
 # Build the package, its tests, and its docs and run the tests
 - make test
+- make regenerate
 - make fmt
 - git diff --exit-code
