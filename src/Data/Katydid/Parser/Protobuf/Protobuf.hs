@@ -22,6 +22,7 @@ import qualified Data.Text                     as Text
 import           Data.Int                       ( Int32
                                                 , Int64
                                                 )
+import           Data.List.Index                (imap)
 
 import           Data.Text.Encoding             ( decodeUtf8' )
 
@@ -138,10 +139,14 @@ testDecode = T.testGroup
         ]
       , Tree.Node
         (Parser.String "PhoneNumbers")
-        [ Tree.Node (Parser.String "Number")
-                    [Tree.Node (Parser.String "0211234567") []]
-        , Tree.Node (Parser.String "Number")
-                    [Tree.Node (Parser.String "0217654321") []]
+        [ Tree.Node (Parser.Int 0) [
+            Tree.Node (Parser.String "Number")
+              [Tree.Node (Parser.String "0211234567") []]
+          ]
+          , Tree.Node (Parser.Int 1) [
+            Tree.Node (Parser.String "Number")
+              [Tree.Node (Parser.String "0217654321") []]
+          ]
         ]
       ]
     )
@@ -160,25 +165,45 @@ instance Parser.Tree ProtoNode where
 decode :: D.DescMap -> D.MessageIdx -> ByteString -> Either String [ProtoNode]
 decode desc msgIdx bytes =
   let fieldLookup = D.lookupFieldIdx desc msgIdx
-                                                                                                      -- TODO: repeated fields should be given indices
-  in  catMaybes
-        <$> Parse.parseOnly (parseMsg desc fieldLookup <* endOfInput) bytes
+  in (mergeRepeated desc) . catMaybes
+      <$> Parse.parseOnly (parseMsg desc fieldLookup <* endOfInput) bytes
+
+mergeRepeated :: D.DescMap -> [ProtoField] -> [ProtoNode]
+mergeRepeated _ [] = []
+mergeRepeated desc (f@(fieldIdx, children):fs) =
+  let
+    fieldDesc = D.getField desc fieldIdx
+    fieldName = fieldDesc ^. P.name
+  in  if D.isRepeated fieldDesc
+      then
+        let
+          (grouped, rest) = group fieldIdx ([f], fs)
+          indexed = grouped |> imap (\index (_, fields) -> Tree.Node (Parser.Int index) fields)
+        in (Tree.Node (Parser.String fieldName) indexed) : mergeRepeated desc rest
+      else (Tree.Node (Parser.String fieldName) children):mergeRepeated desc fs
+
+group :: D.FieldIdx -> ([ProtoField], [ProtoField]) -> ([ProtoField], [ProtoField])
+group fieldIdx (grouped, []) = (reverse grouped, [])
+group fieldIdx (grouped, (f@(fieldIdx', children):fs)) =
+  if fieldIdx' == fieldIdx
+  then group fieldIdx (f:grouped, fs)
+  else (reverse grouped, f:fs)
 
 type FieldLookup = Word64 -> Maybe D.FieldIdx
 
-parseMsg :: D.DescMap -> FieldLookup -> Parse.Parser [Maybe ProtoNode]
+type ProtoField = (D.FieldIdx, [ProtoNode])
+
+parseMsg :: D.DescMap -> FieldLookup -> Parse.Parser [Maybe ProtoField]
 parseMsg desc getField = Parse.many' (parseField desc getField)
 
-parseField :: D.DescMap -> FieldLookup -> Parse.Parser (Maybe ProtoNode)
+parseField :: D.DescMap -> FieldLookup -> Parse.Parser (Maybe ProtoField)
 parseField desc getField = do
   tag <- Bytes.getVarInt
   case D.getWireFromTag tag of
     (Left  err ) -> fail err
     (Right wire) -> case getField tag of
       Nothing -> skipValue wire >> return Nothing
-      (Just fieldIdx) ->
-        let fieldDesc = D.getField desc fieldIdx
-        in  Just <$> parseValue desc fieldIdx wire
+      (Just fieldIdx) -> Just <$> parseValue desc fieldIdx wire
 
 skipValue :: D.WireType -> Parse.Parser ()
 skipValue wire = case wire of
@@ -188,7 +213,7 @@ skipValue wire = case wire of
   D.Lengthy -> Bytes.getVarInt >>= \length ->
     length |> (fromIntegral :: Word64 -> Int) |> Parse.take |> void
 
-parseValue :: D.DescMap -> D.FieldIdx -> D.WireType -> Parse.Parser ProtoNode
+parseValue :: D.DescMap -> D.FieldIdx -> D.WireType -> Parse.Parser ProtoField
 parseValue desc fieldIdx wire
   = let
       fieldDesc = D.getField desc fieldIdx
@@ -222,7 +247,7 @@ parseValue desc fieldIdx wire
                   |> Bytes.wordToSignedInt64
                   |> (fromIntegral :: Int64 -> Int)
                   |> Parser.Int
-          return $ Tree.Node (Parser.String fieldName) [Tree.Node label []]
+          return (fieldIdx, [Tree.Node label []])
         D.Fixed32 -> do
           value <- Bytes.anyBits :: Parse.Parser Word32
           let
@@ -234,7 +259,7 @@ parseValue desc fieldIdx wire
                 Parser.Double (toDouble value)
               P.FieldDescriptorProto'TYPE_FIXED32  -> Parser.Uint (toUint value)
               P.FieldDescriptorProto'TYPE_SFIXED32 -> Parser.Int (toInt value)
-          return $ Tree.Node (Parser.String fieldName) [Tree.Node label []]
+          return (fieldIdx, [Tree.Node label []])
         D.Fixed64 -> do
           value <- Bytes.anyBits :: Parse.Parser Word64
           let
@@ -246,26 +271,23 @@ parseValue desc fieldIdx wire
                 Parser.Double (toDouble value)
               P.FieldDescriptorProto'TYPE_FIXED64  -> Parser.Uint (toUint value)
               P.FieldDescriptorProto'TYPE_SFIXED64 -> Parser.Int (toInt value)
-          return $ Tree.Node (Parser.String fieldName) [Tree.Node label []]
+          return (fieldIdx, [Tree.Node label []])
         D.Lengthy -> do
           length <- Bytes.getVarInt
           let toInt = fromIntegral :: Word64 -> Int
           bytes <- Parse.take (toInt length)
           case fieldType of
             -- TODO: all scalar fields can be packed and should also be handled in this case
-            P.FieldDescriptorProto'TYPE_BYTES -> return $ Tree.Node
-              (Parser.String fieldName)
-              [Tree.Node (Parser.Bytes bytes) []]
+            P.FieldDescriptorProto'TYPE_BYTES ->
+              return (fieldIdx, [Tree.Node (Parser.Bytes bytes) []])
             P.FieldDescriptorProto'TYPE_STRING -> case decodeUtf8' bytes of
               (Left  err) -> fail (show err)
-              (Right str) -> return $ Tree.Node
-                (Parser.String fieldName)
-                [Tree.Node (Parser.String str) []]
+              (Right str) ->
+                return (fieldIdx, [Tree.Node (Parser.String str) []])
             P.FieldDescriptorProto'TYPE_GROUP -> fail "group is not supported"
             P.FieldDescriptorProto'TYPE_MESSAGE ->
               case D.lookupFieldMessageTypeIdx desc fieldIdx of
                 (Left  err   ) -> fail err
                 (Right msgIdx) -> case decode desc msgIdx bytes of
                   (Left err) -> fail err
-                  (Right fields) ->
-                    return $ Tree.Node (Parser.String fieldName) fields
+                  (Right fields) -> return (fieldIdx, fields)

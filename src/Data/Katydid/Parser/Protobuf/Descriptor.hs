@@ -15,6 +15,7 @@ module Data.Katydid.Parser.Protobuf.Descriptor
   , lookupFieldIdx
   , getField
   , getWireFromTag
+  , isRepeated
   , tests
   , WireType(..)
   )
