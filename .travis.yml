@@ -37,9 +37,9 @@ install:
 - stack install brittany
 - stack install proto-lens-protoc
 
+# TODO add `make regenerate` before diff
 script:
 # Build the package, its tests, and its docs and run the tests
 - make test
-- make regenerate
 - make fmt
 - git diff --exit-code
